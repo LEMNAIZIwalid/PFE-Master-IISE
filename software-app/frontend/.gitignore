@@ -1,0 +1,36 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Production build
+/dist
+
+# Used GitHub deploy key
+/id_rsa_deploy
+
+# Store API keys etc.
+.env.local
+.env.[hostname]
+.env.*.local
+
+# Vite cache
+.cache
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+.DS_Store
+*.swp
+*.tgz
+
