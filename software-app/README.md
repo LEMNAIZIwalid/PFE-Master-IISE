@@ -19,4 +19,3 @@ npm run dev
 # http://localhost:5000
 ```
 
-See individual READMEs for details.
