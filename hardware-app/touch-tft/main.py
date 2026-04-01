@@ -8,9 +8,9 @@ def loop():
     now = datetime.now(tz_morocco)
     time_str = now.strftime("%H:%M")
     
-    # Date avec jour en français
-    days_fr = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
-    day_name = days_fr[now.weekday()]
+    # Date avec jour en anglais
+    days_en = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    day_name = days_en[now.weekday()]
     date_str = f"{day_name} : {now.day}/{now.month}/{now.year}"
     
     # Simulation des données
