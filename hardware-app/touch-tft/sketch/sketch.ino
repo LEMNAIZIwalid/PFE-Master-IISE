@@ -4,7 +4,7 @@
 TFT_eSPI tft = TFT_eSPI();
 
 String enteredPin = "";
-bool authenticated = false;
+int currentPage = 0; // 0=LOGIN, 1=WELCOME, 2=SALE
 const String correctPin = "7687";
 
 // --- Données Bridge ---
@@ -28,63 +28,67 @@ void drawWiFiIcon(int x, int y, uint16_t color) {
     // x, y : position du coin supérieur gauche de la zone de l'icône
     
     if (g_wifiStr != "Connected") {
-        tft.setTextColor(color); 
-        tft.setTextDatum(MC_DATUM); // MC_DATUM = Milieu Centre
-        // Offset de +10 en X et +10 en Y pour centrer le 'E' dans la zone
-        tft.drawString("E", x + 10, y + 8, 4); 
+        // PAS DE CONNEXION WIFI : Icône Réseau Cellulaire (4 barres)
+        tft.fillRect(x, y + 12, 3, 4, color);      // Barre 1
+        tft.fillRect(x + 5, y + 8, 3, 8, color);   // Barre 2
+        tft.fillRect(x + 10, y + 4, 3, 12, color); // Barre 3
+        tft.fillRect(x + 15, y, 3, 16, color);     // Barre 4
         return;
     }
     
-    // Icône Réseau Cellulaire (4 barres verticales comme sur l'image)
-    // Barre 1 (la plus petite à gauche)
-    // tft.fillRect(x_position, y_position, largeur, hauteur, couleur)
-    tft.fillRect(x, y + 12, 3, 4, color);      // x=0, y=12 (bas=16)
+    // CONNEXION WIFI : Icône WiFi (Vagues pointant vers le haut)
+    // Le point central du WiFi est placé en bas (y+15)
+    int cx = x + 9;
+    int cy = y + 15;
     
-    // Barre 2
-    tft.fillRect(x + 5, y + 8, 3, 8, color);   // x=5, y=8
+    // Point central
+    tft.fillCircle(cx, cy, 2, color); 
     
-    // Barre 3
-    tft.fillRect(x + 10, y + 4, 3, 12, color); // x=10, y=4
-    
-    // Barre 4 (la plus grande à droite)
-    tft.fillRect(x + 15, y, 3, 16, color);     // x=15, y=0 (pleine hauteur=16px)
+    // Vagues concentriques inversées (135 à 225 degrés pour pointer à l'endroit)
+    tft.drawSmoothArc(cx, cy, 7, 5, 135, 225, color, TFT_WHITE);   // Vague 1
+    tft.drawSmoothArc(cx, cy, 12, 10, 135, 225, color, TFT_WHITE); // Vague 2
+    tft.drawSmoothArc(cx, cy, 17, 15, 135, 225, color, TFT_WHITE); // Vague 3
 }
 
 void drawSaleIcon(int x, int y, uint16_t color) {
-    // Bouton Sale - Chariot Plus Gras et Centré
-    int ox = x + 25, oy = y + 40;
-    for (int i = 0; i < 2; i++) { // Double épaisseur
-        tft.drawRect(ox + 5 + i, oy + 5 + i, 20, 15, color); 
-        tft.drawLine(ox + i, oy + i, ox + 5 + i, oy + 5 + i, color); 
-        tft.drawCircle(ox + 8 + i, oy + 23 + i, 2, color); 
-        tft.drawCircle(ox + 22 + i, oy + 23 + i, 2, color); 
-        // Flèche montante (Blanche)
-        tft.drawLine(ox + 15 + i, oy + 12, ox + 15 + i, oy + 2, 0xFFFF);
-        tft.drawLine(ox + 12 + i, oy + 5, ox + 15 + i, oy + 2, 0xFFFF);
-        tft.drawLine(ox + 18 + i, oy + 5, ox + 15 + i, oy + 2, 0xFFFF);
+    int cx = x + 42, cy = y + 50; // Centré dans le bouton de largeur 85
+    
+    // Hanse du sac de shopping
+    for (int i = 0; i < 3; i++) {
+        tft.drawRoundRect(cx - 10 - i, cy - 15 - i, 20 + i*2, 20 + i*2, 8, color);
     }
+    
+    // Corps plein du sac (beaucoup plus lisible qu'un chariot fin)
+    tft.fillRoundRect(cx - 17, cy - 4, 34, 28, 4, color);
+    
+    // Détail central transparent (Ajusté à la couleur du bouton)
+    tft.fillRoundRect(cx - 6, cy + 5, 12, 12, 2, COLOR_GLOW); 
+    tft.fillCircle(cx, cy + 11, 3, color); 
 }
 
 void drawSettingsIcon(int x, int y, uint16_t color) {
-    // Bouton Settings - Rouage Plus Gras et Centré
-    int cx = x + 42, cy = y + 55;
-    for (int i = 0; i < 2; i++) {
-        tft.drawCircle(cx + i, cy + i, 12, color);
-        tft.drawCircle(cx + i, cy + i, 4, color);
-        for (int j = 0; j < 8; j++) {
-            float angle = j * 45 * PI / 180;
-            tft.drawLine(cx + cos(angle)*12 + i, cy + sin(angle)*12 + i, cx + cos(angle)*17 + i, cy + sin(angle)*17 + i, color);
-        }
+    int cx = x + 42, cy = y + 50; 
+    
+    // Engrenage plein : dessin des 8 dents extérieures
+    for (int j = 0; j < 8; j++) {
+        float angle = j * 45 * PI / 180;
+        tft.fillCircle(cx + cos(angle)*15, cy + sin(angle)*15, 6, color);
     }
+    // Corps principal de l'engrenage
+    tft.fillCircle(cx, cy, 14, color);
+    
+    // Trou au centre (couleur du bouton COLOR_GLOW pour l'effet transparent)
+    tft.fillCircle(cx, cy, 6, COLOR_GLOW); 
 }
 
 void drawProfilIcon(int x, int y, uint16_t color) {
-    // Bouton Profil - Utilisateur Plus Gras et Centré
-    int cx = x + 42, cy = y + 50;
-    for (int i = 0; i < 2; i++) {
-        tft.drawCircle(cx + i, (cy - 5) + i, 8, color); // Tête
-        tft.drawSmoothArc(cx + i, (cy + 14) + i, 16, 12, 230, 310, color, COLOR_NAVY); // Épaules
-    }
+    int cx = x + 42, cy = y + 50; 
+    
+    // Tête de l'avatar (cercle plein)
+    tft.fillCircle(cx, cy - 10, 11, color); 
+    
+    // Épaules et corps pleins massifs
+    tft.fillRoundRect(cx - 18, cy + 4, 36, 18, 8, color);
 }
 
 void drawBackArrow(int x, int y, uint16_t color) {
@@ -260,6 +264,59 @@ void drawWelcomeScreen() {
     tft.drawString("Profile", 262, btnY + 115, 2);
 }
 
+void drawScannerIcon(int x, int y, uint16_t color) {
+    tft.drawRoundRect(x, y, 40, 40, 5, color);
+    tft.drawRoundRect(x+1, y+1, 38, 38, 4, color);
+    tft.fillRect(x - 5, y + 18, 50, 4, TFT_RED);
+    tft.fillRect(x + 8, y + 8, 4, 8, color);
+    tft.fillRect(x + 16, y + 8, 2, 8, color);
+    tft.fillRect(x + 22, y + 8, 6, 8, color);
+    tft.fillRect(x + 32, y + 8, 2, 8, color);
+    tft.fillRect(x + 8, y + 24, 4, 8, color);
+    tft.fillRect(x + 16, y + 24, 2, 8, color);
+    tft.fillRect(x + 22, y + 24, 6, 8, color);
+    tft.fillRect(x + 32, y + 24, 2, 8, color);
+}
+
+void drawCalculIcon(int x, int y, uint16_t color) {
+    tft.drawRoundRect(x, y, 36, 44, 4, color);
+    tft.drawRoundRect(x+1, y+1, 34, 42, 3, color);
+    tft.drawRect(x + 5, y + 5, 26, 10, color);
+    for(int r = 0; r < 3; r++) {
+        for(int c = 0; c < 3; c++) {
+            tft.fillRect(x + 5 + c*10, y + 18 + r*8, 6, 5, color);
+        }
+    }
+}
+
+// --- Page SALE ---
+void drawSaleScreen() {
+    tft.fillScreen(TFT_WHITE); 
+    updateHeader();
+    drawBackArrow(10, 65, COLOR_NAVY); 
+    
+    tft.fillRect(0, 140, 320, 340, COLOR_NAVY);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("SALE MENU", 160, 180, 4); 
+
+    int btnW = 260, btnH = 80, btnX = 30;
+    
+    // Bouton 1: Scanner (Haut)
+    int btn1Y = 220;
+    tft.drawRoundRect(btnX, btn1Y, btnW, btnH, 20, COLOR_GLOW); 
+    drawScannerIcon(btnX + 30, btn1Y + 20, TFT_WHITE);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextDatum(ML_DATUM);
+    tft.drawString("Scanner", btnX + 90, btn1Y + 40, 4);
+
+    // Bouton 2: Calcul (Bas)
+    int btn2Y = 320;
+    tft.drawRoundRect(btnX, btn2Y, btnW, btnH, 20, COLOR_GLOW); 
+    drawCalculIcon(btnX + 32, btn2Y + 18, TFT_WHITE);
+    tft.drawString("Calcul", btnX + 90, btn2Y + 40, 4);
+}
+
 // --- Fonctions de mise à jour via Bridge (RPC) ---
 void update_status_cb(String t, String d, String w, String b) {
     g_timeStr = t;
@@ -284,23 +341,24 @@ void loop() {
 
     // Redessiner intelligemment
     static String lastT = "";
-    static bool wasAuth = false;
+    static int lastPage = -1;
 
-    if (authenticated) {
-        if (!wasAuth) {
-            wasAuth = true;
-            drawWelcomeScreen(); // Plein dessin au premier accès
+    if (currentPage > 0) {
+        if (lastPage != currentPage) {
+            lastPage = currentPage;
+            if (currentPage == 1) drawWelcomeScreen();
+            else if (currentPage == 2) drawSaleScreen();
         }
         if (g_timeStr != lastT) {
             lastT = g_timeStr;
             updateHeader(); // Rafraîchit CHAPEAU SEULEMENT (évite le scintillement)
         }
     } else {
-        wasAuth = false;
+        lastPage = 0;
     }
 
     if (tft.getTouch(&x, &y)) {
-        if (!authenticated) {
+        if (currentPage == 0) {
             // Logique Clavier PIN
             if (y >= 280 && y <= 480) {
                 int col = x / 106;
@@ -317,8 +375,7 @@ void loop() {
             }
             else if (y >= 210 && y <= 260 && x >= 40 && x <= 280) {
                 if (enteredPin == correctPin) {
-                    authenticated = true;
-                    drawWelcomeScreen();
+                    currentPage = 1; // Passage à Welcome
                 } else {
                     enteredPin = "";
                     drawPinBoxes();
@@ -326,11 +383,10 @@ void loop() {
                 }
             }
         } 
-        else {
-            // Logique Page Welcome (Nouveaux Boutons)
+        else if (currentPage == 1) { // PAGE WELCOME
             // Bouton Back "<" (Top gauche)
             if (x < 80 && y < 130) {
-                authenticated = false;
+                currentPage = 0;
                 enteredPin = "";
                 drawMainUI();
                 delay(200);
@@ -338,8 +394,29 @@ void loop() {
             // Boutons Menu (Navy Area - Glowing Pill Buttons)
             if (y > 300) {
                 if (x >= 20 && x <= 105) { /* Action Settings */ }
-                if (x >= 117 && x <= 202) { /* Action Sale */ }
+                if (x >= 117 && x <= 202) { 
+                    currentPage = 2; // Aller à la page Sale
+                    delay(200);
+                }
                 if (x >= 215 && x <= 300) { /* Action Profile */ }
+            }
+        }
+        else if (currentPage == 2) { // PAGE SALE
+            // Bouton Back "<" de la page Sale -> Retour Welcome
+            if (x < 80 && y < 130) {
+                currentPage = 1; // Retour Welcome
+                delay(200);
+            }
+            // Boutons Scanner / Calcul
+            if (x >= 30 && x <= 290) {
+                if (y >= 220 && y <= 300) {
+                    /* Action Scanner */
+                    delay(200);
+                }
+                if (y >= 320 && y <= 400) {
+                    /* Action Calcul */
+                    delay(200);
+                }
             }
         }
     }
