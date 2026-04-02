@@ -24,30 +24,20 @@ String g_battStr = "84%";
 
 // --- Dessins d'Icônes Simples ---
 void drawWiFiIcon(int x, int y, uint16_t color) {
-    // ---- REGLES D'EMPLACEMENT (WIFI / SIGNAL) ----
-    // x, y : position du coin supérieur gauche de la zone de l'icône
-    
     if (g_wifiStr != "Connected") {
-        // PAS DE CONNEXION WIFI : Icône Réseau Cellulaire (4 barres)
-        tft.fillRect(x, y + 12, 3, 4, color);      // Barre 1
-        tft.fillRect(x + 5, y + 8, 3, 8, color);   // Barre 2
-        tft.fillRect(x + 10, y + 4, 3, 12, color); // Barre 3
-        tft.fillRect(x + 15, y, 3, 16, color);     // Barre 4
+        tft.fillRect(x, y + 12, 3, 4, color);     
+        tft.fillRect(x + 5, y + 8, 3, 8, color);  
+        tft.fillRect(x + 10, y + 4, 3, 12, color);
+        tft.fillRect(x + 15, y, 3, 16, color);    
         return;
     }
-    
-    // CONNEXION WIFI : Icône WiFi (Vagues pointant vers le haut)
-    // Le point central du WiFi est placé en bas (y+15)
-    int cx = x + 9;
-    int cy = y + 15;
-    
-    // Point central
+    int cx = x + 9, cy = y + 15;
     tft.fillCircle(cx, cy, 2, color); 
-    
-    // Vagues concentriques inversées (135 à 225 degrés pour pointer à l'endroit)
-    tft.drawSmoothArc(cx, cy, 7, 5, 135, 225, color, TFT_WHITE);   // Vague 1
-    tft.drawSmoothArc(cx, cy, 12, 10, 135, 225, color, TFT_WHITE); // Vague 2
-    tft.drawSmoothArc(cx, cy, 17, 15, 135, 225, color, TFT_WHITE); // Vague 3
+    tft.drawCircle(cx, cy, 6, color); 
+    tft.drawCircle(cx, cy, 12, color);
+    tft.drawCircle(cx, cy, 18, color);
+    tft.fillRect(x - 5, y + 16, 30, 10, TFT_WHITE);
+    tft.fillTriangle(cx, cy, x - 10, y - 10, x + 30, y - 10, TFT_WHITE);
 }
 
 void drawSaleIcon(int x, int y, uint16_t color) {
@@ -304,6 +294,71 @@ void drawArchivesIcon(int x, int y, uint16_t color) {
     tft.fillRect(x + 16, y + 16, 8, 10, color);
 }
 
+// --- Icons pour SETTINGS ---
+void drawWiFiSettingIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.fillCircle(cx, cy + 5, 4, color);
+    tft.drawCircle(cx, cy + 5, 10, color);
+    tft.drawCircle(cx, cy + 5, 11, color);
+    tft.drawCircle(cx, cy + 5, 18, color);
+    tft.drawCircle(cx, cy + 5, 19, color);
+    tft.fillRect(cx - 25, cy + 6, 50, 25, COLOR_NAVY);
+    tft.fillTriangle(cx, cy + 5, cx - 25, cy + 5, cx - 25, cy - 25, COLOR_NAVY);
+    tft.fillTriangle(cx, cy + 5, cx + 25, cy + 5, cx + 25, cy - 25, COLOR_NAVY);
+}
+
+void drawDisplayIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.fillCircle(cx, cy, 8, color);
+    for(int i = 0; i < 8; i++) {
+        float a = i * 45 * PI / 180;
+        tft.fillCircle(cx + cos(a)*14, cy + sin(a)*14, 2, color);
+    }
+}
+
+void drawCalibrateIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.drawCircle(cx, cy, 18, color);
+    tft.drawCircle(cx, cy, 8, color);
+    tft.fillCircle(cx, cy, 4, color);
+    tft.drawLine(cx - 22, cy, cx + 22, cy, color);
+    tft.drawLine(cx, cy - 22, cx, cy + 22, color);
+}
+
+void drawSecurityIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.drawRoundRect(cx-10, cy-5, 20, 18, 2, color);
+    tft.drawCircle(cx, cy-8, 8, color);
+    tft.drawCircle(cx, cy-8, 7, color);
+    tft.fillRect(cx-12, cy-8, 24, 6, COLOR_NAVY);
+    tft.fillCircle(cx, cy+4, 3, color);
+}
+
+void drawSystemIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.drawCircle(cx, cy, 13, color);
+    tft.drawCircle(cx, cy, 3, color);
+    for(int i=0; i<8; i++) {
+        float a = i*45*PI/180;
+        tft.fillCircle(cx+cos(a)*15, cy+sin(a)*15, 4, color);
+    }
+}
+
+void drawSaleSettingsIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.drawCircle(cx, cy, 18, color);
+    tft.setTextColor(color, COLOR_NAVY);
+    tft.drawString("$", cx, cy, 4);
+}
+
+void drawAboutIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.drawCircle(cx, cy, 18, color);
+    tft.drawCircle(cx, cy, 17, color);
+    tft.fillRect(cx-2, cy-8, 4, 16, color);
+    tft.fillCircle(cx, cy-12, 3, color);
+}
+
 // --- Page SETTINGS MENU (3) ---
 void drawSettingsScreen() {
     tft.fillScreen(TFT_WHITE); 
@@ -311,9 +366,40 @@ void drawSettingsScreen() {
     drawBackArrow(10, 65, COLOR_NAVY); 
     
     tft.fillRect(0, 140, 320, 340, COLOR_NAVY);
-    tft.setTextColor(TFT_WHITE);
+    tft.setTextColor(TFT_WHITE, COLOR_NAVY);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("SETTINGS MENU", 160, 180, 4); 
+
+    int w = 125, h = 80;
+    int col1 = 25, col2 = 170;
+    int row1 = 215, row2 = 305, row3 = 395;
+    
+    // Row 1
+    tft.drawRoundRect(col1, row1, w, h, 15, COLOR_GLOW);
+    drawWiFiSettingIcon(col1, row1 + 5, TFT_WHITE);
+    tft.drawString("Connectivity", col1 + 62, row1 + 65, 2);
+
+    tft.drawRoundRect(col2, row1, w, h, 15, COLOR_GLOW);
+    drawDisplayIcon(col2, row1 + 5, TFT_WHITE);
+    tft.drawString("Display", col2 + 62, row1 + 65, 2);
+
+    // Row 2
+    tft.drawRoundRect(col1, row2, w, h, 15, COLOR_GLOW);
+    drawSecurityIcon(col1, row2 + 5, TFT_WHITE);
+    tft.drawString("Security", col1 + 62, row2 + 65, 2);
+
+    tft.drawRoundRect(col2, row2, w, h, 15, COLOR_GLOW);
+    drawSystemIcon(col2, row2 + 5, TFT_WHITE);
+    tft.drawString("System", col2 + 62, row2 + 65, 2);
+
+    // Row 3
+    tft.drawRoundRect(col1, row3, w, h, 15, COLOR_GLOW);
+    drawSaleSettingsIcon(col1, row3 + 5, TFT_WHITE);
+    tft.drawString("Sale Opts", col1 + 62, row3 + 65, 2);
+
+    tft.drawRoundRect(col2, row3, w, h, 15, COLOR_GLOW);
+    drawAboutIcon(col2, row3 + 5, TFT_WHITE);
+    tft.drawString("About", col2 + 62, row3 + 65, 2);
 }
 
 // --- Page SALE ---
@@ -364,14 +450,21 @@ void update_status_cb(String t, String d, String w, String b) {
 }
 
 void setup() {
+    Serial.begin(115200);
+    delay(500);
+    
+    // On lance le bridge d'abord (Correctif pour l'écran blanc)
+    Bridge.begin();
+    Bridge.provide("update_status", update_status_cb);
+    
     tft.init();
     tft.setRotation(0);
-    touch_calibrate();
-    drawMainUI();
+    delay(200);
     
-    Bridge.begin();
-    // On enregistre les fonctions que Python peut appeler
-    Bridge.provide("update_status", update_status_cb);
+    // Rétablissement de la calibration automatique au démarrage (comme au début)
+    touch_calibrate();
+    
+    drawMainUI();
 }
 
 void loop() {
@@ -464,6 +557,22 @@ void loop() {
             if (x < 80 && y < 130) {
                 currentPage = 1; 
                 delay(200);
+            }
+            // Boutons de la page Settings (6 catégories)
+            if (y >= 215 && y <= 300) { // Row 1
+                if (x >= 25 && x <= 150) { /* Connectivity */ delay(200); }
+                else if (x >= 170 && x <= 295) { /* Display */ delay(200); }
+            }
+            else if (y >= 305 && y <= 390) { // Row 2
+                if (x >= 25 && x <= 150) { /* Security */ delay(200); }
+                else if (x >= 170 && x <= 295) { // System
+                    /* System Action (Info, Sounds, etc.) */
+                    delay(200);
+                }
+            }
+            else if (y >= 395 && y <= 480) { // Row 3
+                if (x >= 25 && x <= 150) { /* Sale Opts */ delay(200); }
+                else if (x >= 170 && x <= 295) { /* About (No interaction) */ }
             }
         }
     }
