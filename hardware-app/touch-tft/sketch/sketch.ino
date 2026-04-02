@@ -289,6 +289,21 @@ void drawCalculIcon(int x, int y, uint16_t color) {
     }
 }
 
+void drawRefundIcon(int x, int y, uint16_t color) {
+    int cx = x + 20, cy = y + 20;
+    tft.drawCircle(cx, cy, 18, color);
+    tft.drawCircle(cx, cy, 17, color);
+    tft.fillRect(cx - 6, cy - 2, 16, 4, color);
+    tft.fillTriangle(cx - 6, cy - 8, cx - 14, cy, cx - 6, cy + 8, color);
+}
+
+void drawArchivesIcon(int x, int y, uint16_t color) {
+    tft.drawRoundRect(x, y + 8, 40, 28, 4, color);
+    tft.drawRoundRect(x + 1, y + 9, 38, 26, 3, color);
+    tft.fillRoundRect(x - 2, y + 4, 44, 8, 2, color);
+    tft.fillRect(x + 16, y + 16, 8, 10, color);
+}
+
 // --- Page SALE ---
 void drawSaleScreen() {
     tft.fillScreen(TFT_WHITE); 
@@ -300,21 +315,32 @@ void drawSaleScreen() {
     tft.setTextDatum(MC_DATUM);
     tft.drawString("SALE MENU", 160, 180, 4); 
 
-    int btnW = 260, btnH = 80, btnX = 30;
+    int w = 125, h = 90;
+    int col1 = 25, col2 = 170;
+    int row1 = 230, row2 = 340;
     
-    // Bouton 1: Scanner (Haut)
-    int btn1Y = 220;
-    tft.drawRoundRect(btnX, btn1Y, btnW, btnH, 20, COLOR_GLOW); 
-    drawScannerIcon(btnX + 30, btn1Y + 20, TFT_WHITE);
     tft.setTextColor(TFT_WHITE);
-    tft.setTextDatum(ML_DATUM);
-    tft.drawString("Scanner", btnX + 90, btn1Y + 40, 4);
+    tft.setTextDatum(MC_DATUM);
 
-    // Bouton 2: Calcul (Bas)
-    int btn2Y = 320;
-    tft.drawRoundRect(btnX, btn2Y, btnW, btnH, 20, COLOR_GLOW); 
-    drawCalculIcon(btnX + 32, btn2Y + 18, TFT_WHITE);
-    tft.drawString("Calcul", btnX + 90, btn2Y + 40, 4);
+    // Bouton 1: Scanner (Haut Gauche)
+    tft.drawRoundRect(col1, row1, w, h, 15, COLOR_GLOW); 
+    drawScannerIcon(col1 + 42, row1 + 15, TFT_WHITE);
+    tft.drawString("Scanner", col1 + 62, row1 + 75, 2);
+
+    // Bouton 2: Calcul (Haut Droit)
+    tft.drawRoundRect(col2, row1, w, h, 15, COLOR_GLOW); 
+    drawCalculIcon(col2 + 44, row1 + 12, TFT_WHITE);
+    tft.drawString("Calcul", col2 + 62, row1 + 75, 2);
+
+    // Bouton 3: Refund (Bas Gauche)
+    tft.drawRoundRect(col1, row2, w, h, 15, COLOR_GLOW); 
+    drawRefundIcon(col1 + 42, row2 + 15, TFT_WHITE);
+    tft.drawString("Refund", col1 + 62, row2 + 75, 2);
+
+    // Bouton 4: Archives (Bas Droit)
+    tft.drawRoundRect(col2, row2, w, h, 15, COLOR_GLOW); 
+    drawArchivesIcon(col2 + 42, row2 + 15, TFT_WHITE);
+    tft.drawString("Archives", col2 + 62, row2 + 75, 2);
 }
 
 // --- Fonctions de mise à jour via Bridge (RPC) ---
@@ -407,16 +433,14 @@ void loop() {
                 currentPage = 1; // Retour Welcome
                 delay(200);
             }
-            // Boutons Scanner / Calcul
-            if (x >= 30 && x <= 290) {
-                if (y >= 220 && y <= 300) {
-                    /* Action Scanner */
-                    delay(200);
-                }
-                if (y >= 320 && y <= 400) {
-                    /* Action Calcul */
-                    delay(200);
-                }
+            // Boutons de la page Sale
+            if (y >= 230 && y <= 320) {
+                if (x >= 25 && x <= 150) { /* Action Scanner */ delay(200); }
+                else if (x >= 170 && x <= 295) { /* Action Calcul */ delay(200); }
+            }
+            else if (y >= 340 && y <= 430) {
+                if (x >= 25 && x <= 150) { /* Action Refund */ delay(200); }
+                else if (x >= 170 && x <= 295) { /* Action Archives */ delay(200); }
             }
         }
     }
@@ -424,4 +448,3 @@ void loop() {
     // Bridge.update() à la fin comme dans le code original fonctionnel
     Bridge.update();
 }
-
