@@ -304,6 +304,18 @@ void drawArchivesIcon(int x, int y, uint16_t color) {
     tft.fillRect(x + 16, y + 16, 8, 10, color);
 }
 
+// --- Page SETTINGS MENU (3) ---
+void drawSettingsScreen() {
+    tft.fillScreen(TFT_WHITE); 
+    updateHeader();
+    drawBackArrow(10, 65, COLOR_NAVY); 
+    
+    tft.fillRect(0, 140, 320, 340, COLOR_NAVY);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("SETTINGS MENU", 160, 180, 4); 
+}
+
 // --- Page SALE ---
 void drawSaleScreen() {
     tft.fillScreen(TFT_WHITE); 
@@ -374,6 +386,7 @@ void loop() {
             lastPage = currentPage;
             if (currentPage == 1) drawWelcomeScreen();
             else if (currentPage == 2) drawSaleScreen();
+            else if (currentPage == 3) drawSettingsScreen();
         }
         if (g_timeStr != lastT) {
             lastT = g_timeStr;
@@ -419,7 +432,10 @@ void loop() {
             }
             // Boutons Menu (Navy Area - Glowing Pill Buttons)
             if (y > 300) {
-                if (x >= 20 && x <= 105) { /* Action Settings */ }
+                if (x >= 20 && x <= 105) { 
+                    currentPage = 3; // Aller à la page Settings
+                    delay(200);
+                }
                 if (x >= 117 && x <= 202) { 
                     currentPage = 2; // Aller à la page Sale
                     delay(200);
@@ -441,6 +457,13 @@ void loop() {
             else if (y >= 340 && y <= 430) {
                 if (x >= 25 && x <= 150) { /* Action Refund */ delay(200); }
                 else if (x >= 170 && x <= 295) { /* Action Archives */ delay(200); }
+            }
+        }
+        else if (currentPage == 3) { // PAGE SETTINGS MAIN
+            // Bouton Back "<" -> Retour Welcome
+            if (x < 80 && y < 130) {
+                currentPage = 1; 
+                delay(200);
             }
         }
     }
