@@ -4,7 +4,7 @@
 TFT_eSPI tft = TFT_eSPI();
 
 String enteredPin = "";
-int currentPage = 0; // 0=LOGIN, 1=WELCOME, 2=SALE
+int currentPage = 0; // 0=LOGIN, 1=WELCOME, 2=SALE, 3=SETTINGS, 4=PROFILE
 const String correctPin = "7687";
 
 // --- Données Bridge ---
@@ -402,6 +402,43 @@ void drawSettingsScreen() {
     tft.drawString("About", col2 + 62, row3 + 65, 2);
 }
 
+// --- Page PROFILE (4) ---
+void drawProfileScreen() {
+    tft.fillScreen(TFT_WHITE); 
+    updateHeader();
+    drawBackArrow(10, 65, COLOR_NAVY); 
+    
+    tft.fillRect(0, 140, 320, 340, COLOR_NAVY);
+    tft.setTextColor(TFT_WHITE, COLOR_NAVY);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("PROFILE", 160, 180, 4); 
+
+    // Icône Profil Big
+    drawProfilIcon(117, 185, TFT_WHITE); 
+
+    // Informations
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextColor(COLOR_GLOW, COLOR_NAVY);
+    tft.drawString("Terminal ID", 160, 265, 2);
+    tft.setTextColor(TFT_WHITE, COLOR_NAVY);
+    tft.drawString("04040023", 160, 285, 4);
+
+    tft.setTextColor(COLOR_GLOW, COLOR_NAVY);
+    tft.drawString("POS Name", 160, 325, 2);
+    tft.setTextColor(TFT_WHITE, COLOR_NAVY);
+    tft.drawString("Izinm_POS", 160, 345, 4);
+
+    tft.setTextColor(COLOR_GLOW, COLOR_NAVY);
+    tft.drawString("Role / Grade", 160, 385, 2);
+    tft.setTextColor(TFT_WHITE, COLOR_NAVY);
+    tft.drawString("Market merchant", 160, 405, 4);
+
+    // Bouton Edit Cercle
+    tft.fillCircle(160, 455, 22, COLOR_GLOW);
+    tft.setTextColor(TFT_WHITE, COLOR_GLOW);
+    tft.drawString("Edit", 160, 455, 2);
+}
+
 // --- Page SALE ---
 void drawSaleScreen() {
     tft.fillScreen(TFT_WHITE); 
@@ -480,6 +517,7 @@ void loop() {
             if (currentPage == 1) drawWelcomeScreen();
             else if (currentPage == 2) drawSaleScreen();
             else if (currentPage == 3) drawSettingsScreen();
+            else if (currentPage == 4) drawProfileScreen();
         }
         if (g_timeStr != lastT) {
             lastT = g_timeStr;
@@ -533,7 +571,10 @@ void loop() {
                     currentPage = 2; // Aller à la page Sale
                     delay(200);
                 }
-                if (x >= 215 && x <= 300) { /* Action Profile */ }
+                if (x >= 215 && x <= 300) { 
+                    currentPage = 4; // Aller à la page Profile 
+                    delay(200);
+                }
             }
         }
         else if (currentPage == 2) { // PAGE SALE
@@ -573,6 +614,18 @@ void loop() {
             else if (y >= 395 && y <= 480) { // Row 3
                 if (x >= 25 && x <= 150) { /* Sale Opts */ delay(200); }
                 else if (x >= 170 && x <= 295) { /* About (No interaction) */ }
+            }
+        }
+        else if (currentPage == 4) { // PAGE PROFILE
+            // Bouton Back "<" -> Retour Welcome
+            if (x < 80 && y < 130) {
+                currentPage = 1; 
+                delay(200);
+            }
+            // Bouton Edit (Circle area)
+            if (x >= 130 && x <= 190 && y >= 430 && y <= 480) {
+                /* Action Edit */
+                delay(200);
             }
         }
     }
