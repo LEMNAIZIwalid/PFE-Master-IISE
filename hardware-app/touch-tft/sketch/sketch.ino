@@ -72,13 +72,13 @@ void drawSettingsIcon(int x, int y, uint16_t color) {
 }
 
 void drawProfilIcon(int x, int y, uint16_t color) {
-    int cx = x + 42, cy = y + 50; 
+    int cx = x + 42, cy = y + 45; // Ajustement vertical
     
-    // Tête de l'avatar (cercle plein)
-    tft.fillCircle(cx, cy - 10, 11, color); 
+    // Tête de l'avatar (cercle plein réduit)
+    tft.fillCircle(cx, cy - 8, 8, color); 
     
-    // Épaules et corps pleins massifs
-    tft.fillRoundRect(cx - 18, cy + 4, 36, 18, 8, color);
+    // Épaules et corps (plus compacts)
+    tft.fillRoundRect(cx - 14, cy + 4, 28, 14, 6, color);
 }
 
 void drawBackArrow(int x, int y, uint16_t color) {
@@ -419,19 +419,19 @@ void drawProfileScreen() {
     // Informations
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(COLOR_GLOW, COLOR_NAVY);
-    tft.drawString("Terminal ID", 160, 265, 2);
+    tft.drawString("Terminal ID", 160, 265, 4); // Label agrandi (Font 4)
     tft.setTextColor(TFT_WHITE, COLOR_NAVY);
-    tft.drawString("04040023", 160, 285, 4);
+    tft.drawString("04040023", 160, 290, 2);   // Donnée minimisée (Font 2)
 
     tft.setTextColor(COLOR_GLOW, COLOR_NAVY);
-    tft.drawString("POS Name", 160, 325, 2);
+    tft.drawString("POS Name", 160, 325, 4);    // Label agrandi (Font 4)
     tft.setTextColor(TFT_WHITE, COLOR_NAVY);
-    tft.drawString("Izinm_POS", 160, 345, 4);
+    tft.drawString("Izinm_POS", 160, 350, 2);   // Donnée minimisée (Font 2)
 
     tft.setTextColor(COLOR_GLOW, COLOR_NAVY);
-    tft.drawString("Role / Grade", 160, 385, 2);
+    tft.drawString("Role / Grade", 160, 385, 4); // Label agrandi (Font 4)
     tft.setTextColor(TFT_WHITE, COLOR_NAVY);
-    tft.drawString("Market merchant", 160, 405, 4);
+    tft.drawString("Market merchant", 160, 410, 2); // Donnée minimisée (Font 2)
 
     // Bouton Edit Cercle
     tft.fillCircle(160, 455, 22, COLOR_GLOW);
