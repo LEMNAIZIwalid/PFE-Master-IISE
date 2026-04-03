@@ -359,6 +359,13 @@ void drawAboutIcon(int bx, int by, uint16_t color) {
     tft.fillCircle(cx, cy-12, 3, color);
 }
 
+void drawPenIcon(int x, int y, uint16_t color) {
+    // Petit stylo incliné
+    tft.drawLine(x + 5, y + 25, x + 25, y + 5, color);
+    tft.drawLine(x + 6, y + 26, x + 26, y + 6, color);
+    tft.fillTriangle(x + 5, y + 25, x + 8, y + 23, x + 3, y + 28, color);
+}
+
 // --- Page SETTINGS MENU (3) ---
 void drawSettingsScreen() {
     tft.fillScreen(TFT_WHITE); 
@@ -411,32 +418,36 @@ void drawProfileScreen() {
     tft.fillRect(0, 140, 320, 340, COLOR_NAVY);
     tft.setTextColor(TFT_WHITE, COLOR_NAVY);
     tft.setTextDatum(MC_DATUM);
-    tft.drawString("PROFILE", 160, 180, 4); 
+    tft.drawString("PROFILE", 160, 165, 4); // SHIFTED UP
+    
+    // Avatar plus discret
+    drawProfilIcon(117, 160, TFT_WHITE); // SHIFTED FURTHER UP
 
-    // Icône Profil Big
-    drawProfilIcon(117, 185, TFT_WHITE); 
-
-    // Informations
+    // Informations (Plus serrées verticalement pour faire de la place)
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(COLOR_GLOW, COLOR_NAVY);
-    tft.drawString("Terminal ID", 160, 265, 4); // Label agrandi (Font 4)
+    tft.drawString("Terminal ID", 160, 245, 4); 
     tft.setTextColor(TFT_WHITE, COLOR_NAVY);
-    tft.drawString("04040023", 160, 290, 2);   // Donnée minimisée (Font 2)
+    tft.drawString("04040023", 160, 270, 2);
 
     tft.setTextColor(COLOR_GLOW, COLOR_NAVY);
-    tft.drawString("POS Name", 160, 325, 4);    // Label agrandi (Font 4)
+    tft.drawString("POS Name", 160, 305, 4); 
     tft.setTextColor(TFT_WHITE, COLOR_NAVY);
-    tft.drawString("Izinm_POS", 160, 350, 2);   // Donnée minimisée (Font 2)
+    tft.drawString("Izinm_POS", 160, 330, 2);
 
     tft.setTextColor(COLOR_GLOW, COLOR_NAVY);
-    tft.drawString("Role / Grade", 160, 385, 4); // Label agrandi (Font 4)
+    tft.drawString("Role / Grade", 160, 365, 4); 
     tft.setTextColor(TFT_WHITE, COLOR_NAVY);
-    tft.drawString("Market merchant", 160, 410, 2); // Donnée minimisée (Font 2)
+    tft.drawString("Market merchant", 160, 390, 2);
 
-    // Bouton Edit Cercle
-    tft.fillCircle(160, 455, 22, COLOR_GLOW);
-    tft.setTextColor(TFT_WHITE, COLOR_GLOW);
-    tft.drawString("Edit", 160, 455, 2);
+    // Nouveau Bouton Edit avec Icône et texte au milieu
+    int editX = 160, editY = 430;
+    tft.fillCircle(editX, editY, 20, COLOR_GLOW);
+    drawPenIcon(editX - 15, editY - 15, TFT_WHITE); // Centrer le stylo dans le cercle
+    
+    tft.setTextColor(TFT_WHITE, COLOR_NAVY);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("Edit", editX, editY + 32, 2); 
 }
 
 // --- Page SALE ---
@@ -622,8 +633,8 @@ void loop() {
                 currentPage = 1; 
                 delay(200);
             }
-            // Bouton Edit (Circle area)
-            if (x >= 130 && x <= 190 && y >= 430 && y <= 480) {
+            // Bouton Edit (Circle area + Text)
+            if (x >= 120 && x <= 200 && y >= 400 && y <= 475) {
                 /* Action Edit */
                 delay(200);
             }
