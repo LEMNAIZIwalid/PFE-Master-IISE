@@ -4,7 +4,7 @@
 TFT_eSPI tft = TFT_eSPI();
 
 String enteredPin = "";
-int currentPage = 0; // 0=LOGIN, 1=WELCOME, 2=SALE, 3=SETTINGS, 4=PROFILE
+int currentPage = 0; // 0=LOGIN, 1=WELCOME, 2=SALE, 3=SETTINGS, 4=PROFILE, 5=EDIT_PROMPT
 const String correctPin = "7687";
 
 // --- Données Bridge ---
@@ -12,6 +12,16 @@ String g_timeStr = "09:41";
 String g_dateStr = "mercredi : 1/4/2026";
 String g_wifiStr = "Connected";
 String g_battStr = "84%";
+
+String g_posName   = "Izinm_POS";
+String g_roleGrade = "Market merchant";
+bool   firstDraw   = true;
+
+// --- État Édition ---
+int    editField    = -1;   // -1=aucun, 0=POS Name, 1=Role/Grade
+bool   showKeyboard = false;
+String editBuffer   = "";
+const char* kbRows[4] = { "QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM", "1234567890" };
 
 // --- Couleurs Thème Mobile ---
 #define COLOR_BLUE    0x2477 // Bleu premium
@@ -154,6 +164,96 @@ void drawMainUI() {
     tft.setTextDatum(MC_DATUM);
     tft.drawString("Verify now", 160, 235, 4);
     drawKeypad();
+}
+
+// --- Clavier Alphanumérique (Page 5 Overlay) ---
+void drawAlphaKeyboard() {
+    int kbY = 280; 
+    tft.fillRect(0, kbY - 4, 320, 204, 0x10A2); // Fond sombre clavier
+    for (int r = 0; r < 4; r++) {
+        const char* row = kbRows[r];
+        int len = strlen(row);
+        int keyW = 320 / len;
+        int keyH = 42;
+        int y = kbY + r * keyH;
+        for (int c = 0; c < len; c++) {
+            int x = c * keyW;
+            tft.fillRoundRect(x + 2, y + 2, keyW - 4, keyH - 4, 6, COLOR_GREY_NK);
+            tft.setTextColor(TFT_BLACK);
+            tft.setTextDatum(MC_DATUM);
+            char buf[2] = {row[c], 0};
+            tft.drawString(buf, x + keyW / 2, y + keyH / 2, 2);
+        }
+    }
+    int y5 = kbY + 4 * 42;
+    // Ligne Espace/Del/OK
+    tft.fillRoundRect(2, y5 + 2, 130, 38, 8, COLOR_GREY_NK);
+    tft.setTextColor(TFT_BLACK); tft.drawString("SPACE", 67, y5 + 21, 2);
+    tft.fillRoundRect(136, y5 + 2, 80, 38, 8, 0xC618); // Rougeish DEL
+    tft.setTextColor(TFT_WHITE); tft.drawString("DEL", 176, y5 + 21, 2);
+    tft.fillRoundRect(220, y5 + 2, 98, 38, 8, COLOR_GLOW);
+    tft.setTextColor(TFT_WHITE); tft.drawString("OK", 269, y5 + 21, 2);
+}
+
+// --- PROMPT ALERTE EDIT (Overlay sur page Profil - Page 5) ---
+void drawEditPrompt() {
+    // 1. Dessiner la page Profil en fond
+    drawProfileScreen();
+
+    // 2. Overlay simple (Plus rapide qu'une boucle de lignes)
+    tft.fillRect(0, 0, 320, 480, 0x2104); // Sombre 10%
+
+    // 3. Dialogue (Position ajustée si clavier actif)
+    int bx = 30, by = 140; 
+    if (showKeyboard) by = 60; // Remonter pour faire place au clavier
+
+    // Ombre 
+    tft.fillRoundRect(bx + 5, by + 5, 260, 200, 18, 0x2104);
+    // Cadre Blanc
+    tft.fillRoundRect(bx, by, 260, 200, 18, TFT_WHITE);
+    tft.drawRoundRect(bx, by, 260, 200, 18, COLOR_GREY_NK);
+    tft.drawRoundRect(bx + 1, by + 1, 258, 198, 17, COLOR_GREY_LT);
+
+    // 4. Champs Texte
+    // Libellés basés sur 'by'
+    tft.setTextColor(COLOR_NAVY); tft.setTextDatum(TL_DATUM);
+    tft.drawString("POS Name", bx + 22, by + 20, 2);
+    tft.drawString("Role / Grade", bx + 22, by + 72, 2);
+
+    // Champ 1: POS Name
+    uint16_t border1 = (showKeyboard && editField == 0) ? COLOR_GLOW : COLOR_GREY_NK;
+    tft.fillRoundRect(bx + 20, by + 35, 220, 28, 6, TFT_WHITE);
+    tft.drawRoundRect(bx + 20, by + 35, 220, 28, 6, border1);
+    tft.setTextColor(TFT_BLACK); tft.setTextDatum(ML_DATUM);
+    String val1 = (showKeyboard && editField == 0) ? editBuffer + "|" : g_posName;
+    tft.drawString(val1, bx + 32, by + 49, 2);
+
+    // Champ 2: Role / Grade
+    uint16_t border2 = (showKeyboard && editField == 1) ? COLOR_GLOW : COLOR_GREY_NK;
+    tft.fillRoundRect(bx + 20, by + 87, 220, 28, 6, TFT_WHITE);
+    tft.drawRoundRect(bx + 20, by + 87, 220, 28, 6, border2);
+    tft.setTextColor(TFT_BLACK); tft.setTextDatum(ML_DATUM);
+    String val2 = (showKeyboard && editField == 1) ? editBuffer + "|" : g_roleGrade;
+    tft.drawString(val2, bx + 32, by + 101, 2);
+
+    // 5. Boutons (Uniquement si clavier masqué)
+    if (!showKeyboard) {
+        tft.drawFastHLine(bx + 10, by + 142, 240, COLOR_GREY_NK);
+        
+        // Cancel
+        tft.fillRoundRect(bx + 15, by + 152, 107, 38, 12, COLOR_GREY_LT);
+        tft.drawRoundRect(bx + 15, by + 152, 107, 38, 12, COLOR_GREY_NK);
+        tft.setTextColor(TFT_BLACK); tft.setTextDatum(MC_DATUM);
+        tft.drawString("Cancel", bx + 68, by + 171, 2);
+
+        // OK
+        tft.fillRoundRect(bx + 137, by + 152, 107, 38, 12, COLOR_BLUE);
+        tft.setTextColor(TFT_WHITE);
+        tft.drawString("OK", bx + 190, by + 171, 2);
+    } else {
+        // Dessiner le clavier si nécessaire
+        drawAlphaKeyboard();
+    }
 }
 
 // --- Mise à jour de la barre de statut ---
@@ -433,12 +533,12 @@ void drawProfileScreen() {
     tft.setTextColor(COLOR_GLOW, COLOR_NAVY);
     tft.drawString("POS Name", 160, 305, 4); 
     tft.setTextColor(TFT_WHITE, COLOR_NAVY);
-    tft.drawString("Izinm_POS", 160, 330, 2);
+    tft.drawString(g_posName, 160, 330, 2);
 
     tft.setTextColor(COLOR_GLOW, COLOR_NAVY);
     tft.drawString("Role / Grade", 160, 365, 4); 
     tft.setTextColor(TFT_WHITE, COLOR_NAVY);
-    tft.drawString("Market merchant", 160, 390, 2);
+    tft.drawString(g_roleGrade, 160, 390, 2);
 
     // Nouveau Bouton Edit avec Icône et texte au milieu
     int editX = 160, editY = 430;
@@ -501,21 +601,30 @@ void setup() {
     Serial.begin(115200);
     delay(500);
     
-    // On lance le bridge d'abord (Correctif pour l'écran blanc)
+    // 1. Initialiser le Bridge IMMÉDIATEMENT (prévenir timeout RPC)
     Bridge.begin();
     Bridge.provide("update_status", update_status_cb);
     
+    // 2. Initialiser l'écran
     tft.init();
     tft.setRotation(0);
-    delay(200);
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("Hardware Initializing...", 160, 160, 2);
+    delay(500);
     
-    // Rétablissement de la calibration automatique au démarrage (comme au début)
+    // 3. Calibration (Bloquant)
     touch_calibrate();
-    
-    drawMainUI();
+
+    // On s'assure que firstDraw est prêt pour la loop
+    firstDraw = true;
 }
 
 void loop() {
+    // 1. Priorité à la communication
+    Bridge.update();
+
     uint16_t x = 0, y = 0;
 
     // Redessiner intelligemment
@@ -529,13 +638,19 @@ void loop() {
             else if (currentPage == 2) drawSaleScreen();
             else if (currentPage == 3) drawSettingsScreen();
             else if (currentPage == 4) drawProfileScreen();
+            else if (currentPage == 5) drawEditPrompt();
         }
         if (g_timeStr != lastT) {
             lastT = g_timeStr;
-            updateHeader(); // Rafraîchit CHAPEAU SEULEMENT (évite le scintillement)
+            updateHeader(); // Rafraîchit CHAPEAU SEULEMENT
         }
     } else {
-        lastPage = 0;
+        // Page LOGIN (0) : Premier dessin ou retour
+        if (firstDraw || lastPage != 0) {
+            firstDraw = false;
+            lastPage = 0;
+            drawMainUI();
+        }
     }
 
     if (tft.getTouch(&x, &y)) {
@@ -635,12 +750,52 @@ void loop() {
             }
             // Bouton Edit (Circle area + Text)
             if (x >= 120 && x <= 200 && y >= 400 && y <= 475) {
-                /* Action Edit */
+                currentPage = 5; // Afficher le prompt alerte
                 delay(200);
             }
         }
+        else if (currentPage == 5) { // PROMPT ALERTE EDIT
+            if (!showKeyboard) {
+                // Détection clics sur les champs de saisie (by = 140)
+                int bx = 30, by = 140;
+                // Champ POS Name (y: 175-203)
+                if (x >= (bx + 20) && x <= (bx + 240) && y >= (by + 35) && y <= (by + 63)) {
+                    editField = 0; editBuffer = g_posName; showKeyboard = true; drawEditPrompt(); delay(200);
+                }
+                // Champ Role / Grade (y: 227-255)
+                else if (x >= (bx + 20) && x <= (bx + 240) && y >= (by + 87) && y <= (by + 115)) {
+                    editField = 1; editBuffer = g_roleGrade; showKeyboard = true; drawEditPrompt(); delay(200);
+                }
+                // Bouton Cancel → retour Profile
+                else if (x >= 45 && x <= 152 && y >= 292 && y <= 330) {
+                    currentPage = 4; delay(200);
+                }
+                // Bouton OK → retour Profile
+                else if (x >= 167 && x <= 274 && y >= 292 && y <= 330) {
+                    currentPage = 4; delay(200);
+                }
+            } else {
+                // LOGIQUE CLAVIER TACTILE (kbY = 280)
+                int kbY = 280;
+                if (y >= kbY && y < kbY + 168) {
+                    int r = (y - kbY) / 42;
+                    const char* row = kbRows[r]; int len = strlen(row);
+                    int c = x / (320 / len);
+                    if (editBuffer.length() < 24) editBuffer += row[c >= len ? len - 1 : c];
+                    drawEditPrompt(); delay(150);
+                } else if (y >= kbY + 168 && y <= kbY + 210) {
+                    // Derniere ligne: SPACE / DEL / OK
+                    if (x < 134) { if (editBuffer.length() < 24) editBuffer += ' '; }
+                    else if (x < 220) { if (editBuffer.length() > 0) editBuffer.remove(editBuffer.length() - 1); }
+                    else { 
+                        // OK Clavier -> Save dans variable et masquer
+                        if (editField == 0) g_posName = editBuffer;
+                        else if (editField == 1) g_roleGrade = editBuffer;
+                        showKeyboard = false; 
+                    }
+                    drawEditPrompt(); delay(200);
+                }
+            }
+        }
     }
-    
-    // Bridge.update() à la fin comme dans le code original fonctionnel
-    Bridge.update();
 }
