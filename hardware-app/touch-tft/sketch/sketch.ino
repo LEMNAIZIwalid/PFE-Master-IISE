@@ -1,3 +1,4 @@
+
 #include "TFT_eSPI.h"           
 #include "Arduino_RouterBridge.h"
 
@@ -142,7 +143,7 @@ void my_touch_calibrate() {
         
         // Attente du relâchement de l'écran pour passer au point suivant
         while (tft.getTouchRawZ() > 300) {
-            Bridge.update();
+            Bridge.update(); // Permet au Python de continuer à communiquer
             delay(10);
             yield();
         }
@@ -403,26 +404,164 @@ void drawPenIcon(int x, int y, uint16_t color) {
     tft.fillTriangle(x + 5, y + 25, x + 8, y + 23, x + 3, y + 28, color);
 }
 
-void drawScannerIcon(int x, int y, uint16_t color) { tft.drawRoundRect(x,y,40,40,5,color); tft.fillRect(x-5,y+18,50,4,TFT_RED); }
-void drawCalculIcon(int x, int y, uint16_t color) { tft.drawRoundRect(x,y,36,44,4,color); tft.drawRect(x+5,y+5,26,10,color); }
-void drawRefundIcon(int x, int y, uint16_t color) { tft.drawCircle(x+20,y+20,18,color); }
-void drawArchivesIcon(int x, int y, uint16_t color) { tft.drawRoundRect(x,y+8,40,28,4,color); }
+void drawScannerIcon(int x, int y, uint16_t color) {
+    // Barcode simplifié et épais
+    tft.fillRect(x + 5, y + 5, 4, 25, color);
+    tft.fillRect(x + 12, y + 5, 2, 25, color);
+    tft.fillRect(x + 17, y + 5, 6, 25, color);
+    tft.fillRect(x + 26, y + 5, 3, 25, color);
+    tft.fillRect(x + 32, y + 5, 5, 25, color);
+    // Laser rouge horizontal
+    tft.fillRect(x, y + 16, 42, 3, TFT_RED);
+}
+
+void drawCalculIcon(int x, int y, uint16_t color) {
+    // Corps solide
+    tft.fillRoundRect(x + 6, y, 30, 36, 4, color);
+    // Écran blanc
+    tft.fillRect(x + 10, y + 4, 22, 10, COLOR_NAVY);
+    // 4 gros boutons simplify
+    tft.fillRect(x + 10, y + 18, 9, 6, COLOR_GLOW);
+    tft.fillRect(x + 23, y + 18, 9, 6, COLOR_GLOW);
+    tft.fillRect(x + 10, y + 27, 9, 6, COLOR_GLOW);
+    tft.fillRect(x + 23, y + 27, 9, 6, COLOR_GLOW);
+}
+
+void drawRefundIcon(int x, int y, uint16_t color) {
+    int cx = x + 20, cy = y + 18; // Centré dans la zone d'icône
+    // Cercle extérieur épais
+    tft.drawCircle(cx, cy, 18, color);
+    tft.drawCircle(cx, cy, 17, color);
+    // Flèche de retour (Refund)
+    tft.fillRect(cx - 6, cy - 2, 16, 4, color);
+    tft.fillTriangle(cx - 6, cy - 8, cx - 14, cy, cx - 6, cy + 8, color);
+}
+
+void drawArchivesIcon(int x, int y, uint16_t color) {
+    // Dossier plein
+    tft.fillRoundRect(x + 4, y + 6, 34, 26, 3, color);
+    tft.fillRoundRect(x + 4, y + 2, 15, 8, 2, color);
+    // Lignes de séparation
+    tft.fillRect(x + 10, y + 14, 22, 3, COLOR_NAVY);
+    tft.fillRect(x + 10, y + 22, 16, 3, COLOR_NAVY);
+}
+
+// --- Nouvelles Icônes SETTINGS ---
+void drawWiFiSettingIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.fillCircle(cx, cy + 5, 4, color);
+    tft.drawCircle(cx, cy + 5, 10, color);
+    tft.drawCircle(cx, cy + 5, 11, color);
+    tft.drawCircle(cx, cy + 5, 18, color);
+    tft.drawCircle(cx, cy + 5, 19, color);
+    tft.fillRect(cx - 25, cy + 6, 50, 25, COLOR_NAVY);
+    tft.fillTriangle(cx, cy + 5, cx - 25, cy + 5, cx - 25, cy - 25, COLOR_NAVY);
+    tft.fillTriangle(cx, cy + 5, cx + 25, cy + 5, cx + 25, cy - 25, COLOR_NAVY);
+}
+
+void drawDisplayIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.fillCircle(cx, cy, 8, color);
+    for(int i = 0; i < 8; i++) {
+        float a = i * 45 * PI / 180;
+        tft.fillCircle(cx + cos(a)*14, cy + sin(a)*14, 2, color);
+    }
+}
+
+void drawSecurityIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.drawRoundRect(cx-10, cy-5, 20, 18, 2, color);
+    tft.drawCircle(cx, cy-8, 8, color);
+    tft.drawCircle(cx, cy-8, 7, color);
+    tft.fillRect(cx-12, cy-8, 24, 6, COLOR_NAVY);
+    tft.fillCircle(cx, cy+4, 3, color);
+}
+
+void drawAboutIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.drawCircle(cx, cy, 18, color);
+    tft.drawCircle(cx, cy, 17, color);
+    tft.fillRect(cx-2, cy-8, 4, 16, color);
+    tft.fillCircle(cx, cy-12, 3, color);
+}
+
+void drawSystemIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.drawCircle(cx, cy, 13, color);
+    tft.drawCircle(cx, cy, 3, color);
+    for(int i=0; i<8; i++) {
+        float a = i*45*PI/180;
+        tft.fillCircle(cx+cos(a)*15, cy+sin(a)*15, 4, color);
+    }
+}
+
+void drawSaleSettingsIcon(int bx, int by, uint16_t color) {
+    int cx = bx + 62, cy = by + 25;
+    tft.drawCircle(cx, cy, 18, color);
+    tft.setTextColor(color, COLOR_NAVY);
+    tft.drawString("$", cx, cy, 4);
+}
+
+void drawSettingsButton(int x, int y, int w, int h, const char* label, int iconType) {
+    tft.drawRoundRect(x, y, w, h, 15, COLOR_GLOW);
+    if (iconType == 6)      drawWiFiSettingIcon(x, y, TFT_WHITE);
+    else if (iconType == 5) drawDisplayIcon(x, y, TFT_WHITE);
+    else if (iconType == 8) drawSecurityIcon(x, y, TFT_WHITE);
+    else if (iconType == 7) drawAboutIcon(x, y, TFT_WHITE);
+    else if (iconType == 9) drawSystemIcon(x, y, TFT_WHITE);
+    else if (iconType == 10) drawSaleSettingsIcon(x, y, TFT_WHITE);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextDatum(BC_DATUM);
+    tft.drawString(label, x + w/2, y + h - 10, 2);
+}
+
+void drawSaleButton(int x, int y, int w, int h, const char* label, int iconType) {
+    // Cadre du bouton
+    tft.drawRoundRect(x, y, w, h, 15, COLOR_GLOW);
+    
+    // Position centrale de l'icône dans le bouton
+    int iconX = x + (w - 40) / 2;
+    int iconY = y + 15;
+    
+    if (iconType == 0) drawScannerIcon(iconX, iconY, TFT_WHITE);
+    else if (iconType == 1) drawCalculIcon(iconX, iconY, TFT_WHITE);
+    else if (iconType == 2) drawRefundIcon(iconX, iconY, TFT_WHITE);
+    else if (iconType == 3) drawArchivesIcon(iconX, iconY, TFT_WHITE);
+    
+    // Texte centré en bas de l'icône
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextDatum(BC_DATUM);
+    tft.drawString(label, x + w/2, y + h - 10, 2);
+}
 
 void drawSaleScreen() {
     tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(10, 65, COLOR_NAVY); 
     tft.fillRect(0, 140, 320, 340, COLOR_NAVY);
     tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString("SALE MENU", 160, 180, 4); 
+    
     int col1 = 25, col2 = 170, row1 = 230, row2 = 340, w = 125, h = 90;
-    tft.drawRoundRect(col1, row1, w, h, 15, COLOR_GLOW); drawScannerIcon(col1+42, row1+15, TFT_WHITE);
-    tft.drawRoundRect(col2, row1, w, h, 15, COLOR_GLOW); drawCalculIcon(col2+44, row1+12, TFT_WHITE);
-    tft.drawRoundRect(col1, row2, w, h, 15, COLOR_GLOW); drawRefundIcon(col1+12, row2+12, TFT_WHITE);
-    tft.drawRoundRect(col2, row2, w, h, 15, COLOR_GLOW); drawArchivesIcon(col2+42, row2+15, TFT_WHITE);
+    
+    drawSaleButton(col1, row1, w, h, "Scan", 0);
+    drawSaleButton(col2, row1, w, h, "Manual", 1);
+    drawSaleButton(col1, row2, w, h, "Refund", 2);
+    drawSaleButton(col2, row2, w, h, "History", 3);
 }
 
 void drawSettingsScreen() {
     tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(10, 65, COLOR_NAVY); 
     tft.fillRect(0, 140, 320, 340, COLOR_NAVY);
-    tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString("SETTINGS MENU", 160, 180, 4);
+    tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString("SETTINGS MENU", 160, 175, 4); 
+    
+    int w = 125, h = 80;
+    int col1 = 25, col2 = 170;
+    int row1 = 200, row2 = 295, row3 = 390;
+
+    drawSettingsButton(col1, row1, w, h, "Network", 6);
+    drawSettingsButton(col2, row1, w, h, "Display", 5);
+    drawSettingsButton(col1, row2, w, h, "Security", 8); 
+    drawSettingsButton(col2, row2, w, h, "System", 9);
+    drawSettingsButton(col1, row3, w, h, "Sale Opts", 10);
+    drawSettingsButton(col2, row3, w, h, "About", 7);
 }
 
 void update_status_cb(String t, String d, String w, String b) {
@@ -431,14 +570,27 @@ void update_status_cb(String t, String d, String w, String b) {
 
 void setup() {
     Serial.begin(115200);
-    delay(500);
+    delay(200); // Délai réduit pour réactivité
+    
+    // 1. Initialiser le Bridge IMMÉDIATEMENT (prévenir timeout RPC)
     Bridge.begin();
     Bridge.provide("update_status", update_status_cb);
+    
+    // 2. Initialiser l'écran
     tft.init();
     tft.setRotation(0);
+    
+    // État visuel initial pour confirmer le démarrage
     tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("INITIALIZING...", 160, 240, 4);
     delay(500);
+    
+    // 3. Calibration (qui laisse passer les messages Bridge)
     touch_calibrate(); 
+    
+    firstDraw = true; // Prêt pour le premier dessin de UI
 }
 
 void loop() {
