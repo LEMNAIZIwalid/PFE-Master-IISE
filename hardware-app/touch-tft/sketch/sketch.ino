@@ -446,70 +446,86 @@ void drawArchivesIcon(int x, int y, uint16_t color) {
     tft.fillRect(x + 10, y + 22, 16, 3, COLOR_NAVY);
 }
 
-// --- Nouvelles Icônes SETTINGS ---
-void drawWiFiSettingIcon(int bx, int by, uint16_t color) {
-    int cx = bx + 62, cy = by + 25;
-    tft.fillCircle(cx, cy + 5, 4, color);
-    tft.drawCircle(cx, cy + 5, 10, color);
-    tft.drawCircle(cx, cy + 5, 11, color);
-    tft.drawCircle(cx, cy + 5, 18, color);
-    tft.drawCircle(cx, cy + 5, 19, color);
-    tft.fillRect(cx - 25, cy + 6, 50, 25, COLOR_NAVY);
-    tft.fillTriangle(cx, cy + 5, cx - 25, cy + 5, cx - 25, cy - 25, COLOR_NAVY);
-    tft.fillTriangle(cx, cy + 5, cx + 25, cy + 5, cx + 25, cy - 25, COLOR_NAVY);
+// --- Nouvelles Icônes SETTINGS (Look Premium) ---
+void drawWiFiSettingIcon(int cx, int cy, uint16_t color) {
+    // 3 arcs pleins pour un look moderne
+    tft.fillCircle(cx, cy + 12, 4, color);
+    for (int i = 0; i < 3; i++) {
+        int r = 12 + (i * 8);
+        tft.drawCircle(cx, cy + 12, r, color);
+        tft.drawCircle(cx, cy + 12, r - 1, color);
+    }
+    // Masque pour ne garder que le haut (arc)
+    tft.fillRect(cx - 30, cy + 13, 60, 30, COLOR_NAVY);
+    tft.fillTriangle(cx, cy + 12, cx - 40, cy + 12, cx - 40, cy - 40, COLOR_NAVY);
+    tft.fillTriangle(cx, cy + 12, cx + 40, cy + 12, cx + 40, cy - 40, COLOR_NAVY);
 }
 
-void drawDisplayIcon(int bx, int by, uint16_t color) {
-    int cx = bx + 62, cy = by + 25;
-    tft.fillCircle(cx, cy, 8, color);
-    for(int i = 0; i < 8; i++) {
+void drawDisplayIcon(int cx, int cy, uint16_t color) {
+    // Un soleil plein avec rayons réguliers
+    tft.fillCircle(cx, cy, 9, color);
+    for (int i = 0; i < 8; i++) {
         float a = i * 45 * PI / 180;
-        tft.fillCircle(cx + cos(a)*14, cy + sin(a)*14, 2, color);
+        int x1 = cx + cos(a) * 13;
+        int y1 = cy + sin(a) * 13;
+        int x2 = cx + cos(a) * 18;
+        int y2 = cy + sin(a) * 18;
+        tft.drawLine(x1, y1, x2, y2, color);
+        tft.drawLine(x1+1, y1, x2+1, y2, color); // Épaisseur
     }
 }
 
-void drawSecurityIcon(int bx, int by, uint16_t color) {
-    int cx = bx + 62, cy = by + 25;
-    tft.drawRoundRect(cx-10, cy-5, 20, 18, 2, color);
-    tft.drawCircle(cx, cy-8, 8, color);
-    tft.drawCircle(cx, cy-8, 7, color);
-    tft.fillRect(cx-12, cy-8, 24, 6, COLOR_NAVY);
-    tft.fillCircle(cx, cy+4, 3, color);
+void drawSecurityIcon(int cx, int cy, uint16_t color) {
+    // Un cadenas solide et moderne
+    tft.fillRoundRect(cx - 12, cy - 2, 24, 20, 3, color);
+    tft.drawCircle(cx, cy - 4, 9, color);
+    tft.drawCircle(cx, cy - 4, 8, color);
+    tft.fillRect(cx - 14, cy - 4, 28, 6, COLOR_NAVY); // Masque anse
+    tft.fillCircle(cx, cy + 6, 3, COLOR_NAVY); // Trou serrure
 }
 
-void drawAboutIcon(int bx, int by, uint16_t color) {
-    int cx = bx + 62, cy = by + 25;
-    tft.drawCircle(cx, cy, 18, color);
-    tft.drawCircle(cx, cy, 17, color);
-    tft.fillRect(cx-2, cy-8, 4, 16, color);
-    tft.fillCircle(cx, cy-12, 3, color);
+void drawAboutIcon(int cx, int cy, uint16_t color) {
+    // Bouton info 'i' élégant
+    tft.fillCircle(cx, cy, 18, color);
+    tft.fillRect(cx - 2, cy - 4, 4, 12, COLOR_NAVY);
+    tft.fillCircle(cx, cy - 9, 3, COLOR_NAVY);
 }
 
-void drawSystemIcon(int bx, int by, uint16_t color) {
-    int cx = bx + 62, cy = by + 25;
-    tft.drawCircle(cx, cy, 13, color);
-    tft.drawCircle(cx, cy, 3, color);
-    for(int i=0; i<8; i++) {
-        float a = i*45*PI/180;
-        tft.fillCircle(cx+cos(a)*15, cy+sin(a)*15, 4, color);
+void drawSystemIcon(int cx, int cy, uint16_t color) {
+    // Un engrenage massif et précis
+    for (int i = 0; i < 8; i++) {
+        float a = i * 45 * PI / 180;
+        int tx = cx + cos(a) * 14;
+        int ty = cy + sin(a) * 14;
+        tft.fillCircle(tx, ty, 4, color);
     }
+    tft.fillCircle(cx, cy, 11, color);
+    tft.fillCircle(cx, cy, 4, COLOR_NAVY); // Centre vide
 }
 
-void drawSaleSettingsIcon(int bx, int by, uint16_t color) {
-    int cx = bx + 62, cy = by + 25;
-    tft.drawCircle(cx, cy, 18, color);
-    tft.setTextColor(color, COLOR_NAVY);
-    tft.drawString("$", cx, cy, 4);
+void drawSaleSettingsIcon(int cx, int cy, uint16_t color) {
+    // Symbole Dollar bold et épuré (Utilise police 4 avec taille 2 pour visibilité)
+    tft.setTextColor(color);
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextSize(2);
+    tft.drawString("$", cx, cy, 4); 
+    tft.setTextSize(1); // Reset pour les autres dessins
 }
 
 void drawSettingsButton(int x, int y, int w, int h, const char* label, int iconType) {
     tft.drawRoundRect(x, y, w, h, 15, COLOR_GLOW);
-    if (iconType == 6)      drawWiFiSettingIcon(x, y, TFT_WHITE);
-    else if (iconType == 5) drawDisplayIcon(x, y, TFT_WHITE);
-    else if (iconType == 8) drawSecurityIcon(x, y, TFT_WHITE);
-    else if (iconType == 7) drawAboutIcon(x, y, TFT_WHITE);
-    else if (iconType == 9) drawSystemIcon(x, y, TFT_WHITE);
-    else if (iconType == 10) drawSaleSettingsIcon(x, y, TFT_WHITE);
+    
+    // Position centrale dynamique comme la page SALE
+    int cx = x + w / 2;
+    int cy = y + 30;
+
+    if (iconType == 6)      drawWiFiSettingIcon(cx, cy, TFT_WHITE);
+    else if (iconType == 5) drawDisplayIcon(cx, cy, TFT_WHITE);
+    else if (iconType == 8) drawSecurityIcon(cx, cy, TFT_WHITE);
+    else if (iconType == 7) drawAboutIcon(cx, cy, TFT_WHITE);
+    else if (iconType == 9) drawSystemIcon(cx, cy, TFT_WHITE);
+    else if (iconType == 10) drawSaleSettingsIcon(cx, cy, TFT_WHITE);
+    
     tft.setTextColor(TFT_WHITE);
     tft.setTextDatum(BC_DATUM);
     tft.drawString(label, x + w/2, y + h - 10, 2);
