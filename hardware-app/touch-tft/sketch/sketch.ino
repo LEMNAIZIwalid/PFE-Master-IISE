@@ -4,7 +4,7 @@
 TFT_eSPI tft = TFT_eSPI();
 
 String enteredPin = "";
-int currentPage = 0; // 0:LOGIN, 1:WELCOME, 2:SALE, 3:SETTINGS, 4:PROFILE, 6:ABOUT, 7:WIFI, 9:DISPLAY, 10:SECURITY, 11:SYSTEM, 12:SALE_OPTS
+int currentPage = 0; // 0:LOGIN, 1:WELCOME, 2:SALE, 3:SETTINGS, 4:PROFILE, 6:ABOUT, 7:WIFI, 9:DISPLAY, 10:SECURITY, 11:SYSTEM, 12:SALE_OPTS, 13:MANUAL_CONF
 const String correctPin = "7687";
 
 // --- Données Bridge ---
@@ -144,6 +144,10 @@ void drawSaleOptsScreen() {
     tft.fillScreen(COLOR_NAVY); updateHeader(); drawBackArrow(10, 65, TFT_WHITE);
     tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString("Opts_POS", 160, 240, 4); 
 }
+void drawManualConfScreen() {
+    tft.fillScreen(COLOR_NAVY); updateHeader(); drawBackArrow(10, 65, TFT_WHITE);
+    tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString("Manul_conf", 160, 240, 4); 
+}
 
 // --- 4. Setup & Loop ---
 void update_status_cb(String t, String d, String w, String b) { g_timeStr = t; g_dateStr = d; g_wifiStr = w; g_battStr = b; }
@@ -156,7 +160,7 @@ void loop() {
     if (lastPage != currentPage) {
         lastPage = currentPage;
         switch(currentPage) {
-            case 0: drawMainUI(); break; case 1: drawWelcomeScreen(); break; case 2: drawSaleScreen(); break; case 3: drawSettingsScreen(); break; case 4: drawProfileScreen(); break; case 6: drawAboutScreen(); break; case 7: drawWifiScreen(); break; case 9: drawDisplayScreen(); break; case 10: drawSecurityScreen(); break; case 11: drawSystemScreen(); break; case 12: drawSaleOptsScreen(); break;
+            case 0: drawMainUI(); break; case 1: drawWelcomeScreen(); break; case 2: drawSaleScreen(); break; case 3: drawSettingsScreen(); break; case 4: drawProfileScreen(); break; case 6: drawAboutScreen(); break; case 7: drawWifiScreen(); break; case 9: drawDisplayScreen(); break; case 10: drawSecurityScreen(); break; case 11: drawSystemScreen(); break; case 12: drawSaleOptsScreen(); break; case 13: drawManualConfScreen(); break;
         }
     }
     if (tft.getTouch(&tx, &ty)) {
@@ -165,7 +169,11 @@ void loop() {
             else if (ty>=210 && ty<=260 && tx>=40 && tx<=280) { if (enteredPin == correctPin) currentPage = 1; else { enteredPin = ""; drawPinBoxes(); } delay(200); }
         } else if (currentPage == 1) {
             if (tx < 100 && ty < 150) { currentPage = 0; enteredPin = ""; } else if (ty > 300) { if (tx < 110) currentPage = 3; else if (tx < 210) currentPage = 2; else currentPage = 4; } delay(200);
-        } else if (currentPage == 2 || currentPage == 4) { if (tx < 100 && ty < 150) currentPage = 1; delay(200); }
+        } else if (currentPage == 2) { 
+            if (tx < 100 && ty < 150) currentPage = 1; 
+            else if (tx >= 170 && ty >= 230 && ty <= 320) currentPage = 13;
+            delay(200); 
+        } else if (currentPage == 4) { if (tx < 100 && ty < 150) currentPage = 1; delay(200); }
         else if (currentPage == 3) { 
             if (tx < 100 && ty < 150) currentPage = 1; 
             else if (tx >= 170 && ty >= 390) currentPage = 6; 
@@ -176,6 +184,7 @@ void loop() {
             else if (tx <= 150 && ty >= 390 && ty <= 470) currentPage = 12;
             delay(200); 
         }
+        else if (currentPage == 13) { if (tx < 100 && ty < 150) currentPage = 2; delay(200); }
         else if (currentPage >= 6) { if (tx < 100 && ty < 150) currentPage = 3; delay(200); }
     }
     Bridge.update(); delay(5);
