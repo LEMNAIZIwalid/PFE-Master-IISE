@@ -322,6 +322,11 @@ void update_status_cb(String t, String d, String w, String b) {
     g_timeStr = t; g_dateStr = d; g_wifiStr = w; g_battStr = b;
 }
 
+void drawWifiScreen() {
+    tft.fillScreen(COLOR_NAVY); updateHeader(); drawBackArrow(10, 65, TFT_WHITE);
+    tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString("wifi_POS", 160, 240, 4);
+}
+
 void setup() {
     Serial.begin(115200); delay(200); 
     Bridge.begin(); Bridge.provide("update_status", update_status_cb);
@@ -361,6 +366,8 @@ void loop() {
         } else if (currentPage == 4) {
             if (x < 100 && y < 150) currentPage = 1; delay(200);
         } else if (currentPage == 6) {
+            if (x < 100 && y < 150) currentPage = 3; delay(200);
+        } else if (currentPage == 7) {
             if (x < 100 && y < 150) currentPage = 3; delay(200);
         }
     }
