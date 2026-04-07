@@ -4,7 +4,7 @@
 TFT_eSPI tft = TFT_eSPI();
 
 String enteredPin = "";
-int currentPage = 0; // 0:LOGIN, 1:WELCOME, 2:SALE, 3:SETTINGS, 4:PROFILE, 6:ABOUT, 7:WIFI, 9:DISPLAY, 10:SECURITY, 11:SYSTEM
+int currentPage = 0; // 0:LOGIN, 1:WELCOME, 2:SALE, 3:SETTINGS, 4:PROFILE, 6:ABOUT, 7:WIFI, 9:DISPLAY, 10:SECURITY, 11:SYSTEM, 12:SALE_OPTS
 const String correctPin = "7687";
 
 // --- Données Bridge ---
@@ -140,6 +140,10 @@ void drawSystemScreen() {
     tft.fillScreen(COLOR_NAVY); updateHeader(); drawBackArrow(10, 65, TFT_WHITE);
     tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString("System_POS", 160, 240, 4); 
 }
+void drawSaleOptsScreen() {
+    tft.fillScreen(COLOR_NAVY); updateHeader(); drawBackArrow(10, 65, TFT_WHITE);
+    tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString("Opts_POS", 160, 240, 4); 
+}
 
 // --- 4. Setup & Loop ---
 void update_status_cb(String t, String d, String w, String b) { g_timeStr = t; g_dateStr = d; g_wifiStr = w; g_battStr = b; }
@@ -152,7 +156,7 @@ void loop() {
     if (lastPage != currentPage) {
         lastPage = currentPage;
         switch(currentPage) {
-            case 0: drawMainUI(); break; case 1: drawWelcomeScreen(); break; case 2: drawSaleScreen(); break; case 3: drawSettingsScreen(); break; case 4: drawProfileScreen(); break; case 6: drawAboutScreen(); break; case 7: drawWifiScreen(); break; case 9: drawDisplayScreen(); break; case 10: drawSecurityScreen(); break; case 11: drawSystemScreen(); break;
+            case 0: drawMainUI(); break; case 1: drawWelcomeScreen(); break; case 2: drawSaleScreen(); break; case 3: drawSettingsScreen(); break; case 4: drawProfileScreen(); break; case 6: drawAboutScreen(); break; case 7: drawWifiScreen(); break; case 9: drawDisplayScreen(); break; case 10: drawSecurityScreen(); break; case 11: drawSystemScreen(); break; case 12: drawSaleOptsScreen(); break;
         }
     }
     if (tft.getTouch(&tx, &ty)) {
@@ -169,6 +173,7 @@ void loop() {
             else if (tx >= 170 && ty >= 200 && ty <= 280) currentPage = 9; 
             else if (tx <= 150 && ty >= 295 && ty <= 375) currentPage = 10;
             else if (tx >= 170 && ty >= 295 && ty <= 375) currentPage = 11;
+            else if (tx <= 150 && ty >= 390 && ty <= 470) currentPage = 12;
             delay(200); 
         }
         else if (currentPage >= 6) { if (tx < 100 && ty < 150) currentPage = 3; delay(200); }
