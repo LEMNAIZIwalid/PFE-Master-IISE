@@ -4,7 +4,7 @@
 TFT_eSPI tft = TFT_eSPI();
 
 String enteredPin = "";
-int currentPage = 0; 
+int currentPage = 0; // 0:LOGIN, 1:WELCOME, 2:SALE, 3:SETTINGS, 4:PROFILE, 6:ABOUT, 7:WIFI, 9:DISPLAY, 10:SECURITY, 11:SYSTEM, 12:SALE_OPTS, 13:MANUAL_CONF, 14:SCAN, 15:REFUND, 16:HISTORY
 const String correctPin = "7687";
 
 // --- Données Bridge ---
@@ -67,9 +67,9 @@ void drawMainUI() {
 void drawWelcomeScreen() {
     tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(10, 65, COLOR_NAVY); tft.fillRect(0, 140, 320, 340, COLOR_NAVY); tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString(F("WELCOME"), 160, 180, 4);
     int btnY = 300, btnW = 92, btnH = 80; 
-    tft.drawRoundRect(10, btnY, btnW, btnH, 15, COLOR_GLOW); tft.drawString(F("Settings"), 56, btnY + 40, 2);
+    tft.drawRoundRect(10, btnY, btnW, btnH, 15, COLOR_GLOW); tft.drawString(F("Settings"), 56, btnY + 40, 4);
     tft.drawRoundRect(114, btnY, btnW, btnH, 15, COLOR_GLOW); tft.drawString(F("Sale"), 160, btnY + 40, 4); 
-    tft.drawRoundRect(218, btnY, btnW, btnH, 15, COLOR_GLOW); tft.drawString(F("Profile"), 264, btnY + 40, 2);
+    tft.drawRoundRect(218, btnY, btnW, btnH, 15, COLOR_GLOW); tft.drawString(F("Profile"), 264, btnY + 40, 4);
 }
 void drawSaleScreen() {
     tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(10, 65, COLOR_NAVY); tft.fillRect(0, 140, 320, 340, COLOR_NAVY); tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString(F("SALE MENU"), 160, 180, 4);
@@ -86,7 +86,7 @@ void drawSettingsScreen() {
     tft.drawRoundRect(170, 200, w, h, 15, COLOR_GLOW); tft.drawString(F("Display"), 237, 240, 4);
     tft.drawRoundRect(15, 295, w, h, 15, COLOR_GLOW); tft.drawString(F("Security"), 82, 335, 4);
     tft.drawRoundRect(170, 295, w, h, 15, COLOR_GLOW); tft.drawString(F("System"), 237, 335, 4);
-    tft.drawRoundRect(15, 390, w, h, 15, COLOR_GLOW); tft.drawString(F("Sale Opts"), 82, 430, 2);
+    tft.drawRoundRect(15, 390, w, h, 15, COLOR_GLOW); tft.drawString(F("Sale Opts"), 82, 430, 4);
     tft.drawRoundRect(170, 390, w, h, 15, COLOR_GLOW); tft.drawString(F("About"), 237, 430, 4);
 }
 void drawProfileScreen() {
