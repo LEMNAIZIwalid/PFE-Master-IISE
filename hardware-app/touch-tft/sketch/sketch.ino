@@ -19,6 +19,8 @@ float  calcTotal = 0.0;
 String calcInput = "";
 String calcHistory = "";
 char   calcOp = ' ';
+String currentCurrency = "MAD";
+float  taxRate = 20.0;
 
 // --- Couleurs ---
 #define COLOR_BLUE    0x2477
@@ -66,17 +68,51 @@ void drawGenericSubPage(String title, bool hasBack) {
 }
 void updateCalcDisplay() {
     tft.fillRect(0, 46, 320, 130, TFT_WHITE);
-    // Affichage du Total en Vert Sapin (#449545) et Bold
+    // Affichage du Total en Vert Sapin (#449545) et Bold + Devise
     tft.setTextColor(COLOR_GREEN_DARK); tft.setTextDatum(MC_DATUM);
     String displayStr = (calcInput == "" && calcTotal == 0) ? "0.00" : (calcInput != "" ? calcInput : String(calcTotal, 2));
+    displayStr += " " + currentCurrency;
     tft.drawString(displayStr, 160, 115, 4);
     tft.drawString(displayStr, 161, 115, 4); // Effet gras
     
-    // Affichage de la séquence en Noir (Centré verticalement)
+    // Affichage de la séquence en Noir
     tft.setTextColor(TFT_BLACK); tft.setTextDatum(MC_DATUM);
     tft.drawString(calcHistory, 160, 155, 2);
     // Bouton de retour persistant
     drawBackArrow(5, 55, COLOR_NAVY);
+}
+void updateTaxDisplay() {
+    tft.fillRect(100, 310, 120, 50, TFT_WHITE);
+    tft.setTextColor(TFT_BLACK); tft.setTextDatum(MC_DATUM);
+    tft.drawString(String((int)taxRate) + "%", 160, 335, 4);
+}
+void drawCurrencyRow() {
+    tft.fillRect(0, 125, 320, 80, TFT_WHITE); // Effacer juste la ligne des devises
+    String currencies[3] = {"MAD", "$", "EUR"};
+    for (int i=0; i<3; i++) {
+        int x = 40 + (i * 90);
+        uint16_t boxCol = COLOR_BLUE; // Tout en bleu pour la cohérence
+        uint16_t txtCol = (currentCurrency == currencies[i]) ? TFT_WHITE : COLOR_BLUE;
+        if (currentCurrency == currencies[i]) tft.fillRoundRect(x, 130, 70, 70, 8, boxCol);
+        else tft.drawRoundRect(x, 130, 70, 70, 8, boxCol);
+        tft.setTextColor(txtCol); tft.setTextDatum(MC_DATUM);
+        tft.drawString(currencies[i], x+35, 165, 2);
+    }
+}
+void drawSaleOptions() {
+    tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(5, 55, COLOR_NAVY);
+    tft.setTextDatum(MC_DATUM); tft.setTextColor(COLOR_BLUE);
+    tft.drawString(F("SELECT CURRENCY"), 160, 100, 4);
+    drawCurrencyRow();
+    
+    tft.setTextColor(COLOR_BLUE);
+    tft.drawString(F("TAX RATE (TVA)"), 160, 260, 4);
+    tft.drawRoundRect(30, 300, 60, 60, 8, COLOR_BLUE); tft.setTextColor(COLOR_BLUE); tft.drawString("-", 60, 330, 4);
+    tft.drawRoundRect(230, 300, 60, 60, 8, COLOR_BLUE); tft.setTextColor(COLOR_BLUE); tft.drawString("+", 260, 330, 4);
+    updateTaxDisplay();
+    
+    tft.fillRoundRect(60, 410, 200, 50, 8, COLOR_BLUE); 
+    tft.setTextColor(TFT_WHITE); tft.drawString(F("SAVE & BACK"), 160, 435, 2);
 }
 void drawManualCalculator() {
     tft.fillScreen(TFT_WHITE); updateHeader(); 
@@ -152,7 +188,7 @@ void loop() {
         switch(currentPage) {
             case 0: drawMainUI(); break; case 1: drawWelcomeScreen(); break; case 2: drawSaleScreen(); break; case 3: drawSettingsScreen(); break; case 4: drawProfileScreen(); break;
             case 6: drawGenericSubPage(F("About izinm"), true); break;  case 7: drawGenericSubPage(F("wifi_POS"), true); break; case 9: drawGenericSubPage(F("DISPLAY_POS"), true); break;
-            case 10: drawGenericSubPage(F("Security_POS"), true); break; case 11: drawGenericSubPage(F("System_POS"), true); break; case 12: drawGenericSubPage(F("Opts_POS"), true); break;
+            case 10: drawGenericSubPage(F("Security_POS"), true); break; case 11: drawGenericSubPage(F("System_POS"), true); break; case 12: drawSaleOptions(); break;
             case 13: drawManualCalculator(); break; case 14: drawGenericSubPage(F("POS_SCAN"), true); break;
             case 15: drawGenericSubPage(F("REFUND_POS"), true); break; case 16: drawGenericSubPage(F("HISTORY_POS"), true); break;
         }
@@ -211,7 +247,6 @@ void loop() {
                             }
                             
                             if (key != '=') { 
-                                // Gérer le changement d'opérateur en cours de route
                                 if (calcHistory.length() > 0) {
                                     char last = calcHistory[calcHistory.length()-1];
                                     if (last == '+' || last == '-' || last == '*') calcHistory.remove(calcHistory.length()-1);
@@ -225,6 +260,19 @@ void loop() {
                     }
                 }
             }
+        }
+        else if (currentPage == 12) {
+            if (ty < 150 && tx < 100) { currentPage = 3; delay(200); }
+            else if (ty >= 130 && ty <= 200) { // Currencies
+                if (tx < 110) currentCurrency = "MAD";
+                else if (tx < 210) currentCurrency = "$";
+                else currentCurrency = "EUR";
+                drawCurrencyRow(); delay(200); 
+            } else if (ty >= 300 && ty <= 360) { // Tax
+                if (tx < 100) { if(taxRate>0) taxRate--; }
+                else if (tx > 220) { if(taxRate<99) taxRate++; }
+                updateTaxDisplay(); delay(150);
+            } else if (ty >= 400 && ty <= 450) { currentPage = 3; delay(200); }
         }
         else if (currentPage >= 14 && currentPage <= 16) { if (tx < 100 && ty < 150) currentPage = 2; delay(200); }
         else if (currentPage >= 6) { if (tx < 100 && ty < 150) currentPage = 3; delay(200); }
