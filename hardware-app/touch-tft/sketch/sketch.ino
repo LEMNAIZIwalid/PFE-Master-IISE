@@ -14,11 +14,17 @@ String g_wifiStr = "Connected";
 String g_battStr = "84%";
 String g_posName = "Izinm_POS";
 bool   firstDraw = true;
+// --- Variables Calculatrice ---
+float  calcTotal = 0.0;
+String calcInput = "";
+String calcHistory = "";
+char   calcOp = ' ';
 
 // --- Couleurs ---
 #define COLOR_BLUE    0x2477
 #define COLOR_NAVY    0x018C
 #define COLOR_GLOW    0x05FF
+#define COLOR_GREEN_DARK 0x44A8 // #449545
 #define COLOR_GREY_NK 0xD6BA
 #define COLOR_GREY_LT 0xDEFB
 
@@ -57,6 +63,33 @@ void updateHeader() {
 void drawGenericSubPage(String title, bool hasBack) {
     tft.fillScreen(COLOR_NAVY); updateHeader(); if (hasBack) drawBackArrow(10, 65, TFT_WHITE);
     tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString(title, 160, 240, 4);
+}
+void updateCalcDisplay() {
+    tft.fillRect(0, 46, 320, 130, TFT_WHITE);
+    // Affichage du Total en Vert Sapin (#449545) et Bold
+    tft.setTextColor(COLOR_GREEN_DARK); tft.setTextDatum(MC_DATUM);
+    String displayStr = (calcInput == "" && calcTotal == 0) ? "0.00" : (calcInput != "" ? calcInput : String(calcTotal, 2));
+    tft.drawString(displayStr, 160, 115, 4);
+    tft.drawString(displayStr, 161, 115, 4); // Effet gras
+    
+    // Affichage de la séquence en Noir (Centré verticalement)
+    tft.setTextColor(TFT_BLACK); tft.setTextDatum(MC_DATUM);
+    tft.drawString(calcHistory, 160, 155, 2);
+    // Bouton de retour persistant
+    drawBackArrow(5, 55, COLOR_NAVY);
+}
+void drawManualCalculator() {
+    tft.fillScreen(TFT_WHITE); updateHeader(); 
+    updateCalcDisplay(); // Dessine aussi la flèche de retour
+    tft.setTextDatum(MC_DATUM); tft.setTextColor(TFT_BLACK);
+    const char calcKeys[4][4] = {{'7','8','9','*'},{'4','5','6','-'},{'1','2','3','+'},{'C','0','=','<'}};
+    for (int r = 0; r < 4; r++) {
+        for (int c = 0; c < 4; c++) {
+            int x = c * 80, y = 180 + (r * 75);
+            tft.drawRoundRect(x + 8, y + 8, 64, 60, 8, COLOR_BLUE);
+            tft.drawString(String(calcKeys[r][c]), x + 40, y + 38, 4);
+        }
+    }
 }
 
 // --- Écrans ---
@@ -120,7 +153,7 @@ void loop() {
             case 0: drawMainUI(); break; case 1: drawWelcomeScreen(); break; case 2: drawSaleScreen(); break; case 3: drawSettingsScreen(); break; case 4: drawProfileScreen(); break;
             case 6: drawGenericSubPage(F("About izinm"), true); break;  case 7: drawGenericSubPage(F("wifi_POS"), true); break; case 9: drawGenericSubPage(F("DISPLAY_POS"), true); break;
             case 10: drawGenericSubPage(F("Security_POS"), true); break; case 11: drawGenericSubPage(F("System_POS"), true); break; case 12: drawGenericSubPage(F("Opts_POS"), true); break;
-            case 13: drawGenericSubPage(F("Manul_conf"), true); break; case 14: drawGenericSubPage(F("POS_SCAN"), true); break;
+            case 13: drawManualCalculator(); break; case 14: drawGenericSubPage(F("POS_SCAN"), true); break;
             case 15: drawGenericSubPage(F("REFUND_POS"), true); break; case 16: drawGenericSubPage(F("HISTORY_POS"), true); break;
         }
     }
@@ -139,7 +172,61 @@ void loop() {
             delay(200); 
         } else if (currentPage == 4) { if (tx < 100 && ty < 150) currentPage = 1; delay(200); }
         else if (currentPage == 3) { if (tx < 100 && ty < 150) currentPage = 1; else if (tx >= 170 && ty >= 390) currentPage = 6; else if (tx <= 150 && ty >= 200 && ty <= 280) currentPage = 7; else if (tx >= 170 && ty >= 200 && ty <= 280) currentPage = 9; else if (tx <= 150 && ty >= 295 && ty <= 375) currentPage = 10; else if (tx >= 170 && ty >= 295 && ty <= 375) currentPage = 11; else if (tx <= 150 && ty >= 390 && ty <= 470) currentPage = 12; delay(200); }
-        else if (currentPage >= 13 && currentPage <= 16) { if (tx < 100 && ty < 150) currentPage = 2; delay(200); }
+        else if (currentPage == 13) {
+            if (ty < 170 && tx < 80) { currentPage = 2; calcInput = ""; calcTotal = 0; calcOp = ' '; calcHistory = ""; delay(200); }
+            else {
+                int col = tx / 80, row = (ty - 180) / 75;
+                if (ty >= 180 && row >= 0 && row < 4 && col >= 0 && col < 4) {
+                    int bx = col * 80 + 8, by = 180 + row * 75 + 8;
+                    if (tx >= bx && tx <= bx + 64 && ty >= by && ty <= by + 60) {
+                        const char calcKeys[4][4] = {{'7', '8', '9', '*'}, {'4', '5', '6', '-'}, {'1', '2', '3', '+'}, {'C', '0', '=', '<'}};
+                        char key = calcKeys[row][col];
+                        
+                        tft.fillRoundRect(bx, by, 64, 60, 8, COLOR_GREY_LT); 
+                        tft.setTextColor(TFT_BLACK); tft.setTextDatum(MC_DATUM);
+                        tft.drawString(String(key), col * 80 + 40, 180 + row * 75 + 38, 4);
+                        delay(80); 
+                        tft.fillRoundRect(bx, by, 64, 60, 8, TFT_WHITE); 
+                        tft.drawRoundRect(bx, by, 64, 60, 8, COLOR_BLUE);
+                        tft.drawString(String(key), col * 80 + 40, 180 + row * 75 + 38, 4);
+
+                        if (key >= '0' && key <= '9') { calcInput += key; calcHistory += key; }
+                        else if (key == 'C') { calcInput = ""; calcTotal = 0; calcOp = ' '; calcHistory = ""; }
+                        else if (key == '<') { 
+                            if (calcInput.length() > 0) { calcInput.remove(calcInput.length() - 1); }
+                            if (calcHistory.length() > 0) {
+                                char last = calcHistory[calcHistory.length()-1];
+                                if (last == '+' || last == '-' || last == '*') calcOp = ' ';
+                                calcHistory.remove(calcHistory.length() - 1); 
+                            }
+                        }
+                        else if (key == '+' || key == '-' || key == '*' || key == '=') {
+                            if (calcInput != "") {
+                                float val = calcInput.toFloat();
+                                if (calcOp == ' ') calcTotal = val;
+                                else if (calcOp == '+') calcTotal += val;
+                                else if (calcOp == '-') calcTotal -= val;
+                                else if (calcOp == '*') calcTotal *= val;
+                                calcInput = "";
+                            }
+                            
+                            if (key != '=') { 
+                                // Gérer le changement d'opérateur en cours de route
+                                if (calcHistory.length() > 0) {
+                                    char last = calcHistory[calcHistory.length()-1];
+                                    if (last == '+' || last == '-' || last == '*') calcHistory.remove(calcHistory.length()-1);
+                                }
+                                calcOp = key; calcHistory += key; 
+                            } else { 
+                                calcOp = ' '; calcHistory = String(calcTotal, 2); 
+                            }
+                        }
+                        updateCalcDisplay(); delay(150);
+                    }
+                }
+            }
+        }
+        else if (currentPage >= 14 && currentPage <= 16) { if (tx < 100 && ty < 150) currentPage = 2; delay(200); }
         else if (currentPage >= 6) { if (tx < 100 && ty < 150) currentPage = 3; delay(200); }
     }
     Bridge.update(); delay(5);
