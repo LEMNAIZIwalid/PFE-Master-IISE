@@ -134,29 +134,37 @@ void drawMainUI() {
     tft.fillRoundRect(40, 210, 240, 50, 25, COLOR_BLUE); tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString(F("Verify now"), 160, 235, 4); drawKeypad();
 }
 void drawWelcomeScreen() {
-    tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(10, 65, COLOR_NAVY); tft.fillRect(0, 140, 320, 340, COLOR_NAVY); tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString(F("WELCOME"), 160, 180, 4);
-    int btnY = 300, btnW = 92, btnH = 80; 
-    tft.drawRoundRect(10, btnY, btnW, btnH, 15, COLOR_GLOW); tft.drawString(F("Settings"), 56, btnY + 40, 4);
-    tft.drawRoundRect(114, btnY, btnW, btnH, 15, COLOR_GLOW); tft.drawString(F("Sale"), 160, btnY + 40, 4); 
-    tft.drawRoundRect(218, btnY, btnW, btnH, 15, COLOR_GLOW); tft.drawString(F("Profile"), 264, btnY + 40, 4);
+    tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(10, 65, COLOR_NAVY); 
+    tft.fillRect(0, 140, 320, 340, COLOR_NAVY); tft.setTextColor(TFT_WHITE); 
+    tft.setTextDatum(MC_DATUM); tft.drawString(F("WELCOME"), 160, 175, 4);
+    
+    int w = 240, h = 65, x = 40; 
+    tft.drawRoundRect(x, 210, w, h, 15, COLOR_GLOW); tft.drawString(F("Settings"), 160, 242, 4);
+    tft.drawRoundRect(x, 300, w, h, 15, COLOR_GLOW); tft.drawString(F("Sale"), 160, 332, 4);
+    tft.drawRoundRect(x, 390, w, h, 15, COLOR_GLOW); tft.drawString(F("Profile"), 160, 422, 4);
 }
 void drawSaleScreen() {
-    tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(10, 65, COLOR_NAVY); tft.fillRect(0, 140, 320, 340, COLOR_NAVY); tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString(F("SALE MENU"), 160, 180, 4);
-    int w = 130, h = 90; 
-    tft.drawRoundRect(20, 230, w, h, 15, COLOR_GLOW); tft.drawString(F("Scan"), 85, 275, 4);
-    tft.drawRoundRect(170, 230, w, h, 15, COLOR_GLOW); tft.drawString(F("Manual"), 235, 275, 4);
-    tft.drawRoundRect(20, 340, w, h, 15, COLOR_GLOW); tft.drawString(F("Refund"), 85, 385, 4);
-    tft.drawRoundRect(170, 340, w, h, 15, COLOR_GLOW); tft.drawString(F("History"), 235, 385, 4);
+    tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(10, 65, COLOR_NAVY); 
+    tft.fillRect(0, 140, 320, 340, COLOR_NAVY); tft.setTextColor(TFT_WHITE); 
+    tft.setTextDatum(MC_DATUM); tft.drawString(F("SALE MENU"), 160, 175, 4);
+    
+    int w = 240, h = 65, x = 40; 
+    tft.drawRoundRect(x, 210, w, h, 15, COLOR_GLOW); tft.drawString(F("Scan"), 160, 242, 4);
+    tft.drawRoundRect(x, 300, w, h, 15, COLOR_GLOW); tft.drawString(F("Manual"), 160, 332, 4);
+    tft.drawRoundRect(x, 390, w, h, 15, COLOR_GLOW); tft.drawString(F("Refund"), 160, 422, 4);
 }
 void drawSettingsScreen() {
-    tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(10, 65, COLOR_NAVY); tft.fillRect(0, 140, 320, 340, COLOR_NAVY); tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM); tft.drawString(F("SETTINGS"), 160, 175, 4);
-    int w = 135, h = 80; 
-    tft.drawRoundRect(15, 200, w, h, 15, COLOR_GLOW); tft.drawString(F("Network"), 82, 240, 4);
-    tft.drawRoundRect(170, 200, w, h, 15, COLOR_GLOW); tft.drawString(F("Display"), 237, 240, 4);
-    tft.drawRoundRect(15, 295, w, h, 15, COLOR_GLOW); tft.drawString(F("Security"), 82, 335, 4);
-    tft.drawRoundRect(170, 295, w, h, 15, COLOR_GLOW); tft.drawString(F("System"), 237, 335, 4);
-    tft.drawRoundRect(15, 390, w, h, 15, COLOR_GLOW); tft.drawString(F("Sale Opts"), 82, 430, 4);
-    tft.drawRoundRect(170, 390, w, h, 15, COLOR_GLOW); tft.drawString(F("About"), 237, 430, 4);
+    tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(10, 65, COLOR_NAVY); 
+    tft.fillRect(0, 140, 320, 340, COLOR_NAVY); tft.setTextColor(TFT_WHITE); 
+    tft.setTextDatum(MC_DATUM); tft.drawString(F("SETTINGS"), 160, 175, 4);
+    
+    int w = 240, h = 65, x = 40; 
+    // Bouton 1: Network
+    tft.drawRoundRect(x, 210, w, h, 15, COLOR_GLOW); tft.drawString(F("Network"), 160, 242, 4);
+    // Bouton 2: Display
+    tft.drawRoundRect(x, 300, w, h, 15, COLOR_GLOW); tft.drawString(F("Display"), 160, 332, 4);
+    // Bouton 3: Sale Opts
+    tft.drawRoundRect(x, 390, w, h, 15, COLOR_GLOW); tft.drawString(F("Sale Opts"), 160, 422, 4);
 }
 void drawProfileScreen() {
     tft.fillScreen(TFT_WHITE); updateHeader(); drawBackArrow(10, 65, COLOR_NAVY); 
@@ -187,10 +195,12 @@ void loop() {
         lastPage = currentPage;
         switch(currentPage) {
             case 0: drawMainUI(); break; case 1: drawWelcomeScreen(); break; case 2: drawSaleScreen(); break; case 3: drawSettingsScreen(); break; case 4: drawProfileScreen(); break;
-            case 6: drawGenericSubPage(F("About izinm"), true); break;  case 7: drawGenericSubPage(F("wifi_POS"), true); break; case 9: drawGenericSubPage(F("DISPLAY_POS"), true); break;
-            case 10: drawGenericSubPage(F("Security_POS"), true); break; case 11: drawGenericSubPage(F("System_POS"), true); break; case 12: drawSaleOptions(); break;
-            case 13: drawManualCalculator(); break; case 14: drawGenericSubPage(F("POS_SCAN"), true); break;
-            case 15: drawGenericSubPage(F("REFUND_POS"), true); break; case 16: drawGenericSubPage(F("HISTORY_POS"), true); break;
+            case 7: drawGenericSubPage(F("wifi_POS"), true); break; 
+            case 9: drawGenericSubPage(F("DISPLAY_POS"), true); break; 
+            case 12: drawSaleOptions(); break;
+            case 13: drawManualCalculator(); break; 
+            case 14: drawGenericSubPage(F("POS_SCAN"), true); break;
+            case 15: drawGenericSubPage(F("REFUND_POS"), true); break; 
         }
     }
     if (tft.getTouch(&tx, &ty)) {
@@ -198,16 +208,31 @@ void loop() {
             if (ty >= 280) { int col = tx/106, row = (ty-280)/50; char k[4][3] = {{'1','2','3'},{'4','5','6'},{'7','8','9'},{' ','0','<'}}; char key = k[row][col]; if (key>='0' && key<='9') { if(enteredPin.length()<4) { enteredPin+=key; drawPinBoxes(); } } else if(key=='<') { if(enteredPin.length()>0) { enteredPin.remove(enteredPin.length()-1); drawPinBoxes(); } } delay(200); }
             else if (ty>=210 && ty<=260 && tx>=40 && tx<=280) { if (enteredPin == correctPin) currentPage = 1; else { enteredPin = ""; drawPinBoxes(); } delay(200); }
         } else if (currentPage == 1) {
-            if (tx < 100 && ty < 150) { currentPage = 0; enteredPin = ""; } else if (ty > 300) { if (tx < 110) currentPage = 3; else if (tx < 210) currentPage = 2; else currentPage = 4; } delay(200);
+            if (tx < 100 && ty < 150) { currentPage = 0; enteredPin = ""; } 
+            else if (tx >= 40 && tx <= 280) {
+                if (ty >= 210 && ty <= 275) currentPage = 3; // Settings
+                else if (ty >= 300 && ty <= 365) currentPage = 2; // Sale
+                else if (ty >= 390 && ty <= 455) currentPage = 4; // Profile
+            }
+            delay(200);
         } else if (currentPage == 2) { 
             if (tx < 100 && ty < 150) currentPage = 1; 
-            else if (tx >= 170 && ty >= 230 && ty <= 320) currentPage = 13;
-            else if (tx <= 150 && ty >= 230 && ty <= 320) currentPage = 14;
-            else if (tx <= 150 && ty >= 340 && ty <= 430) currentPage = 15;
-            else if (tx >= 170 && ty >= 340 && ty <= 430) currentPage = 16;
+            else if (tx >= 40 && tx <= 280) {
+                if (ty >= 210 && ty <= 275) currentPage = 14; // Scan
+                else if (ty >= 300 && ty <= 365) currentPage = 13; // Manual
+                else if (ty >= 390 && ty <= 455) currentPage = 15; // Refund
+            }
             delay(200); 
         } else if (currentPage == 4) { if (tx < 100 && ty < 150) currentPage = 1; delay(200); }
-        else if (currentPage == 3) { if (tx < 100 && ty < 150) currentPage = 1; else if (tx >= 170 && ty >= 390) currentPage = 6; else if (tx <= 150 && ty >= 200 && ty <= 280) currentPage = 7; else if (tx >= 170 && ty >= 200 && ty <= 280) currentPage = 9; else if (tx <= 150 && ty >= 295 && ty <= 375) currentPage = 10; else if (tx >= 170 && ty >= 295 && ty <= 375) currentPage = 11; else if (tx <= 150 && ty >= 390 && ty <= 470) currentPage = 12; delay(200); }
+        else if (currentPage == 3) { 
+            if (tx < 100 && ty < 150) currentPage = 1; 
+            else if (tx >= 40 && tx <= 280) {
+                if (ty >= 210 && ty <= 275) currentPage = 7; // Network
+                else if (ty >= 300 && ty <= 365) currentPage = 9; // Display
+                else if (ty >= 390 && ty <= 455) currentPage = 12; // Sale Opts
+            }
+            delay(200); 
+        }
         else if (currentPage == 13) {
             if (ty < 170 && tx < 80) { currentPage = 2; calcInput = ""; calcTotal = 0; calcOp = ' '; calcHistory = ""; delay(200); }
             else {
@@ -275,7 +300,7 @@ void loop() {
             } else if (ty >= 400 && ty <= 450) { currentPage = 3; delay(200); }
         }
         else if (currentPage >= 14 && currentPage <= 16) { if (tx < 100 && ty < 150) currentPage = 2; delay(200); }
-        else if (currentPage >= 6) { if (tx < 100 && ty < 150) currentPage = 3; delay(200); }
+        else if (currentPage >= 7) { if (tx < 100 && ty < 150) currentPage = 3; delay(200); }
     }
     Bridge.update(); delay(5);
 }
