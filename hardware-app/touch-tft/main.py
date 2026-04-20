@@ -26,6 +26,8 @@ def loop():
         # On passe désormais 4 paramètres
         Bridge.call("update_status", time_str, date_str, wifi_status, battery_val)
     except Exception as e:
+
+
         if "not available" in str(e):
             print("[PYTHON] En attente de l'Arduino...")
         else:
