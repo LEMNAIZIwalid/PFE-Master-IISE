@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="sleep_options">
+        <item>Never</item>
+        <item>30 seconds</item>
+        <item>1 minute</item>
+        <item>5 minutes</item>
+    </string-array>
+
+    <string-array name="currency_options">
+        <item>DH (Dirham)</item>
+        <item>€ (Euro)</item>
+        <item>$ (Dollar)</item>
+        <item>£ (Pound)</item>
+    </string-array>
+</resources>

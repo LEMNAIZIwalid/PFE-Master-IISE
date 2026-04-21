@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_color"
+    android:orientation="vertical">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="8dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_back_arrow"
+            android:contentDescription="Back" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:fontFamily="sans-serif-black"
+            android:text="MANUAL"
+            android:textColor="@color/brand_blue"
+            android:textSize="24sp" />
+
+        <!-- Spacer to balance the back button -->
+        <View android:layout_width="48dp" android:layout_height="48dp" />
+    </LinearLayout>
+
+    <!-- Display Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1.2"
+        android:background="#F5F5F5"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Total (large green) -->
+        <TextView
+            android:id="@+id/tvResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="0"
+            android:textColor="#2E7D32"
+            android:textSize="52sp"
+            android:fontFamily="sans-serif-black"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:adjustViewBounds="true" />
+
+        <!-- Expression history (small text) -->
+        <TextView
+            android:id="@+id/tvExpression"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text=""
+            android:textColor="#9E9E9E"
+            android:textSize="16sp"
+            android:maxLines="2"
+            android:ellipsize="start" />
+    </LinearLayout>
+
+    <!-- Keypad Section -->
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2.5"
+        android:columnCount="4"
+        android:rowCount="4"
+        android:padding="8dp">
+
+        <!-- Row 1: 7 8 9 / -->
+        <Button android:id="@+id/btn7" style="@style/CalcNumBtn" android:text="7" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btn8" style="@style/CalcNumBtn" android:text="8" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btn9" style="@style/CalcNumBtn" android:text="9" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btnDelete" style="@style/CalcOpBtn" android:text="⌫" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+
+        <!-- Row 2: 4 5 6 * -->
+        <Button android:id="@+id/btn4" style="@style/CalcNumBtn" android:text="4" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btn5" style="@style/CalcNumBtn" android:text="5" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btn6" style="@style/CalcNumBtn" android:text="6" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btnMultiply" style="@style/CalcOpBtn" android:text="×" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+
+        <!-- Row 3: 1 2 3 - -->
+        <Button android:id="@+id/btn1" style="@style/CalcNumBtn" android:text="1" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btn2" style="@style/CalcNumBtn" android:text="2" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btn3" style="@style/CalcNumBtn" android:text="3" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btnSubtract" style="@style/CalcOpBtn" android:text="−" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+
+        <!-- Row 4: C 0 = + -->
+        <Button android:id="@+id/btnClear" style="@style/CalcClearBtn" android:text="C" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btn0" style="@style/CalcNumBtn" android:text="0" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btnEquals" style="@style/CalcEqualBtn" android:text="=" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+        <Button android:id="@+id/btnAdd" style="@style/CalcOpBtn" android:text="+" android:layout_columnWeight="1" android:layout_rowWeight="1"/>
+
+    </GridLayout>
+
+</LinearLayout>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Mode: Eerie Black / Floral White palette -->
+    <color name="bg_color">#252422</color>
+    <color name="text_primary">#FFFCF2</color>
+    <color name="text_secondary">#CCC5B9</color>
+    
+    <!-- Accent Color (Replaces Blue) -->
+    <color name="brand_blue">#EB5E28</color>
+    <color name="text_on_brand">#FFFCF2</color>
+    
+    <color name="divider_color">#403D39</color>
+    <color name="success_green">#EB5E28</color>
+</resources>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_color">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center_vertical" android:orientation="horizontal">
+            <ImageButton android:id="@+id/btnBack" android:layout_width="48dp"
+                android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_back_arrow" android:contentDescription="Back" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-black"
+                android:text="ABOUT" android:textColor="@color/brand_blue" android:textSize="24sp" />
+            <View android:layout_width="48dp" android:layout_height="48dp" />
+        </LinearLayout>
+
+        <!-- App Icon + Name -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center" android:orientation="vertical" android:padding="24dp">
+            <ImageView android:layout_width="80dp" android:layout_height="80dp"
+                android:src="@drawable/ic_profile" app:tint="@color/brand_blue" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:fontFamily="sans-serif-black"
+                android:text="POS Terminal" android:textColor="@color/brand_blue" android:textSize="26sp" />
+            <TextView android:id="@+id/tvAppVersion" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="v1.0.0"
+                android:textColor="@color/text_secondary" android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Card: Hardware -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" app:cardCornerRadius="16dp" app:cardElevation="4dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="20dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-black" android:text="⚙️  Hardware"
+                    android:textColor="@color/brand_blue" android:textSize="18sp" />
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/divider_color" android:layout_marginVertical="12dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="• Microcontroller : Arduino Uno Q" android:textColor="@color/text_primary" android:layout_marginBottom="6dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="• NFC/RFID : PN532 Module" android:textColor="@color/text_primary" android:layout_marginBottom="6dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="• Scanner : 1D/2D Barcode Module" android:textColor="@color/text_primary" android:layout_marginBottom="6dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="• Dashboard : Android Smartphone" android:textColor="@color/text_primary" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card: Startup Guide -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" app:cardCornerRadius="16dp" app:cardElevation="4dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="20dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-black" android:text="🚀  Startup Guide"
+                    android:textColor="@color/brand_blue" android:textSize="18sp" />
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/divider_color" android:layout_marginVertical="12dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="1. Power on the Arduino and connect the PN532 via I2C." android:textColor="@color/text_primary" android:layout_marginBottom="8dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="2. Start the Python Bridge script on PC/RPi." android:textColor="@color/text_primary" android:layout_marginBottom="8dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="3. Connect the smartphone to the same Wi-Fi network." android:textColor="@color/text_primary" android:layout_marginBottom="8dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="4. Launch the POS app and enter the PIN (default: 3402)." android:textColor="@color/text_primary" android:layout_marginBottom="8dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="5. Check Bridge status in Settings → Network." android:textColor="@color/text_primary" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Footer -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="24dp" android:gravity="center"
+            android:text="© 2025 POS Terminal — All rights reserved"
+            android:textColor="#BDBDBD" android:textSize="12sp" />
+
+    </LinearLayout>
+</ScrollView>

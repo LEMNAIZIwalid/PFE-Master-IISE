@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_color"
+    android:padding="24dp"
+    tools:context=".Views.PinActivity">
+
+    <!-- Top Navigation -->
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_back_arrow"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:contentDescription="Go back" />
+
+    <!-- Title and Subtitle -->
+    <TextView
+        android:id="@+id/tvPinTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="Verify your POS Number"
+        android:textColor="@color/text_primary"
+        android:textSize="22sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnBack" />
+
+    <TextView
+        android:id="@+id/tvPinSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Confirm your 4-digit PIN"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvPinTitle" />
+
+    <!-- PIN Boxes -->
+    <LinearLayout
+        android:id="@+id/layoutPinBoxes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvPinSubtitle">
+
+        <TextView
+            android:id="@+id/tvPin1"
+            android:layout_width="60dp"
+            android:layout_height="70dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/pin_box_background"
+            android:gravity="center"
+            android:textSize="24sp"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/tvPin2"
+            android:layout_width="60dp"
+            android:layout_height="70dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/pin_box_background"
+            android:gravity="center"
+            android:textSize="24sp"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/tvPin3"
+            android:layout_width="60dp"
+            android:layout_height="70dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/pin_box_background"
+            android:gravity="center"
+            android:textSize="24sp"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/tvPin4"
+            android:layout_width="60dp"
+            android:layout_height="70dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/pin_box_background"
+            android:gravity="center"
+            android:textSize="24sp"
+            android:textColor="@color/text_primary" />
+
+    </LinearLayout>
+
+    <!-- Verify Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnVerify"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_marginTop="48dp"
+        android:backgroundTint="#3F51B5"
+        android:text="Verify now"
+        android:textAllCaps="false"
+        android:textSize="16sp"
+        app:cornerRadius="28dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutPinBoxes" />
+
+    <!-- Numeric Keypad -->
+    <GridLayout
+        android:id="@+id/numpad"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:alignmentMode="alignBounds"
+        android:columnCount="3"
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <!-- Keypad Buttons 1-9 -->
+        <Button
+            style="@style/PinKeypadStyle"
+            android:layout_columnWeight="1"
+            android:text="1" />
+
+        <Button
+            style="@style/PinKeypadStyle"
+            android:layout_columnWeight="1"
+            android:text="2" />
+
+        <Button
+            style="@style/PinKeypadStyle"
+            android:layout_columnWeight="1"
+            android:text="3" />
+
+        <Button
+            style="@style/PinKeypadStyle"
+            android:layout_columnWeight="1"
+            android:text="4" />
+
+        <Button
+            style="@style/PinKeypadStyle"
+            android:layout_columnWeight="1"
+            android:text="5" />
+
+        <Button
+            style="@style/PinKeypadStyle"
+            android:layout_columnWeight="1"
+            android:text="6" />
+
+        <Button
+            style="@style/PinKeypadStyle"
+            android:layout_columnWeight="1"
+            android:text="7" />
+
+        <Button
+            style="@style/PinKeypadStyle"
+            android:layout_columnWeight="1"
+            android:text="8" />
+
+        <Button
+            style="@style/PinKeypadStyle"
+            android:layout_columnWeight="1"
+            android:text="9" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_columnWeight="1" />
+
+        <Button
+            style="@style/PinKeypadStyle"
+            android:layout_columnWeight="1"
+            android:text="0" />
+
+        <ImageButton
+            android:id="@+id/btnDelete"
+            style="@style/PinKeypadStyle"
+            android:layout_columnWeight="1"
+            android:background="?attr/selectableItemBackground"
+            android:contentDescription="Delete digit"
+            android:src="@drawable/ic_backspace" />
+
+    </GridLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

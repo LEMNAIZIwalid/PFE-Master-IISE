@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- LIGHT MODE PALETTE: Orange, Light Gray, Silver, Black -->
+    
+    <!-- App Background: Light Gray -->
+    <color name="bg_color">#EBEBEB</color>
+    
+    <!-- Text: Always Black for max professional readability -->
+    <color name="text_primary">#000000</color>
+    <color name="text_secondary">#000000</color>
+    
+    <!-- Brand/Accent (Buttons, Highlights, Headers): Orange -->
+    <color name="brand_blue">#FF6700</color>
+    <!-- Text/Icons on top of Orange: Light Gray -->
+    <color name="text_on_brand">#EBEBEB</color>
+    
+    <!-- Cards, Panels, Dividers: Silver -->
+    <color name="divider_color">#C0C0C0</color>
+    
+    <!-- Status / Success: Orange instead of green to stick strictly to the 4 colors -->
+    <color name="success_green">#FF6700</color>
+</resources>
