@@ -118,6 +118,39 @@ def on_payment_detected(status):
     print(f"\n[PY] >>> TRANSACTION RÉUSSIE ! Statut: {status}")
     print("="*60)
 
+# --- ANALYSE MÉMOIRE UNO Q (STM32U585) ---
+MCU_FLASH_TOTAL = 2048 * 1024  # 2MB
+MCU_SRAM_TOTAL = 786 * 1024    # 786KB
+
+def analyze_arduino_memory(sketch_dir):
+    """Calcule l'occupation estimée du flash et de la SRAM sur le MCU."""
+    if not os.path.exists(sketch_dir): return
+    
+    print("\n" + "="*60)
+    print("      RAPPORT MÉMOIRE : ARDUINO UNO Q (STM32U585)")
+    print("="*60)
+    
+    total_size = 0
+    file_count = 0
+    for root, dirs, files in os.walk(sketch_dir):
+        for file in files:
+            if file.endswith(('.h', '.cpp', '.ino')):
+                total_size += os.path.getsize(os.path.join(root, file))
+                file_count += 1
+
+    # Estimation Flash (Code + Bibliothèques)
+    est_flash = int(total_size * 1.2) + 120000 # Base libs TFT/NFC
+    flash_pct = (est_flash / MCU_FLASH_TOTAL) * 100
+    
+    # Estimation SRAM (Variables + Buffer écran)
+    est_sram = 65000 + 307200 # Base + Framebuffer 320x480 (si utilisé)
+    sram_pct = (est_sram / MCU_SRAM_TOTAL) * 100
+
+    print(f"FLASH UTILISÉE : {est_flash/1024:.1f} KB / 2048 KB ({flash_pct:.1f}%)")
+    print(f"SRAM UTILISÉE  : {est_sram/1024:.1f} KB / 786 KB  ({sram_pct:.1f}%)")
+    print(f"Fichiers analysés : {file_count}")
+    print("="*60 + "\n")
+
 if __name__ == "__main__":
     sketch_path = os.path.join(os.getcwd(), "sketch")
     analyze_arduino_memory(sketch_path)
