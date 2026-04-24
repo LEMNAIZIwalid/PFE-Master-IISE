@@ -8,161 +8,208 @@
 #define PN532_MOSI 5
 #define PN532_SS   A0 
 #define BUZZER_PIN 4
+#define PIN_RX A1
+#define PIN_TX A2
+#define BIT_DELAY 103
 
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 TFT_eSPI tft = TFT_eSPI();
 
-// --- État ---
-uint8_t currentPage = 2; // Menu SALE par défaut
+// Commandes Scanner (Manual Bit-Banging)
+byte startScan[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x02, 0x01, 0xAB, 0xCD};
+byte stopScan[]  = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x02, 0x00, 0xAB, 0xCD};
+
+// États
+uint8_t currentPage = 2; 
 uint8_t lastPage = 255;
-bool nfcReady = false;
-bool isScanningMode = false; // Autorisation de détection
+bool isBarcodeActive = false;
+String barcodeBuffer = "";
 
-// --- Dessin Menu SALE (3 Boutons) ---
-void drawSaleMenu() {
-    tft.fillScreen(0x018C); // Fond Bleu Marine
-    tft.setTextColor(TFT_WHITE);
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString(F("SALE MENU"), 160, 100, 4);
-    
-    // Bouton SCAN
-    tft.drawRoundRect(40, 180, 240, 70, 15, 0x05FF);
-    tft.drawString(F("SCAN"), 160, 215, 4);
-    
-    // Bouton MANUAL
-    tft.drawRoundRect(40, 280, 240, 70, 15, 0x05FF);
-    tft.drawString(F("MANUAL"), 160, 315, 4);
-    
-    // Bouton REFUND
-    tft.drawRoundRect(40, 380, 240, 70, 15, 0x05FF);
-    tft.drawString(F("REFUND"), 160, 415, 4);
+// --- Audio ---
+void playSound(int freq, int dur) {
+    tone(BUZZER_PIN, freq, dur);
+    delay(dur);
+    noTone(BUZZER_PIN);
 }
 
-void drawScanningPage() {
-    tft.fillScreen(TFT_WHITE);
-    tft.setTextColor(TFT_BLACK); tft.setTextDatum(TL_DATUM);
-    tft.drawString(F("< SCAN"), 15, 15, 4); // Bouton retour
-    
-    tft.setTextColor(0x018C); tft.setTextDatum(MC_DATUM);
-    tft.drawString(F("PRET POUR SCAN"), 160, 100, 4);
-
-    // Bouton Cercle central
-    uint16_t circleColor = isScanningMode ? TFT_GREEN : 0x2477; // Bleu si attente, Vert si actif
-    tft.fillCircle(160, 260, 70, circleColor);
-    tft.drawCircle(160, 260, 72, TFT_BLACK);
-    
-    tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM);
-    tft.drawString(isScanningMode ? F("SCANNING...") : F("START"), 160, 260, 4);
-    
-    if (!isScanningMode) {
-        tft.setTextColor(TFT_BLACK);
-        tft.drawString(F("Cliquez sur le rond"), 160, 360, 2);
-    }
-}
-
-void drawManualPage() {
-    tft.fillScreen(TFT_WHITE);
-    tft.setTextColor(TFT_BLACK); tft.setTextDatum(TL_DATUM);
-    tft.drawString(F("< MANUAL"), 15, 15, 4);
-    
-    tft.setTextColor(0x2477); tft.setTextDatum(MC_DATUM);
-    tft.drawString(F("MANUAL PAYMENT"), 160, 240, 4);
-}
-
-void drawRefundPage() {
-    tft.fillScreen(TFT_WHITE);
-    tft.setTextColor(TFT_BLACK); tft.setTextDatum(TL_DATUM);
-    tft.drawString(F("< REFUND"), 15, 15, 4);
-    
-    tft.setTextColor(0x44A8); tft.setTextDatum(MC_DATUM);
-    tft.drawString(F("REFUND MODE"), 160, 240, 4);
-}
-
+// --- Calibration Tactile ---
 void touch_calibrate() {
     uint16_t calData[5];
     tft.fillScreen(TFT_BLACK);
-    tft.drawCentreString(F("Calibration..."), 160, 10, 2);
+    tft.setTextColor(TFT_WHITE);
+    tft.drawCentreString(F("CALIBRATION : TOUCHEZ LES COINS"), 160, 240, 2);
     tft.calibrateTouch(calData, TFT_MAGENTA, TFT_BLACK, 15);
     tft.setTouch(calData);
 }
 
-void playPaymentSound() {
-    // Apple Pay Success Sound Approximation
-    tone(BUZZER_PIN, 1760, 50); // A6
-    delay(60);
-    tone(BUZZER_PIN, 2349, 50); // D7
-    delay(60);
-    tone(BUZZER_PIN, 3136, 100); // G7
-    delay(120);
-    noTone(BUZZER_PIN);
+// --- Communication Série Manuelle ---
+void manualWrite(byte b) {
+    noInterrupts();
+    digitalWrite(PIN_TX, LOW); delayMicroseconds(BIT_DELAY);
+    for (int i = 0; i < 8; i++) {
+        digitalWrite(PIN_TX, (b >> i) & 0x01);
+        delayMicroseconds(BIT_DELAY);
+    }
+    digitalWrite(PIN_TX, HIGH);
+    interrupts();
+    delayMicroseconds(BIT_DELAY);
+}
+
+void sendScannerCmd(byte cmd[], int len) {
+    for (int i = 0; i < len; i++) {
+        manualWrite(cmd[i]);
+        delay(2);
+    }
+}
+
+// --- Dessins des Pages ---
+void drawMenu() {
+    tft.fillScreen(0x018C); // Bleu Marine
+    tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM);
+    tft.drawString(F("PFE - POS SYSTEM"), 160, 100, 4);
+    tft.fillRoundRect(40, 200, 240, 80, 15, 0x018C);
+    tft.drawRoundRect(40, 200, 240, 80, 15, TFT_WHITE);
+    tft.drawString(F("COMMENCER"), 160, 240, 4);
+}
+
+void drawChoicePage() {
+    tft.fillScreen(TFT_WHITE);
+    tft.setTextColor(TFT_RED); tft.setTextDatum(TL_DATUM);
+    tft.drawString(F("< ANNULER"), 20, 20, 2);
+    
+    tft.setTextDatum(MC_DATUM);
+    // Zone Payer (120 -> 220)
+    tft.fillRoundRect(30, 100, 260, 120, 12, 0x2477); // Bleu PN532
+    tft.setTextColor(TFT_WHITE);
+    tft.drawString(F("1. PAYER (NFC)"), 160, 160, 4);
+    
+    // Zone Scanner (280 -> 380)
+    tft.fillRoundRect(30, 280, 260, 120, 12, 0x05FF); // Bleu Scanner
+    tft.drawString(F("2. SCANNER (CODE)"), 160, 340, 4);
 }
 
 void setup() {
     tft.init();
     tft.setRotation(0);
     
-    // Calibration au démarrage
+    pinMode(PIN_RX, INPUT); pinMode(PIN_TX, OUTPUT); digitalWrite(PIN_TX, HIGH);
+    pinMode(BUZZER_PIN, OUTPUT); digitalWrite(BUZZER_PIN, LOW);
+    
+    // Étape 1 : Calibration (Crucial pour la précision des boutons)
     touch_calibrate();
     
-    tft.fillScreen(TFT_BLACK);
+    // Étape 2 : Démarrage des modules (Après calibration pour éviter timeouts)
+    tft.fillScreen(TFT_BLACK); tft.setTextColor(TFT_WHITE);
+    tft.drawString(F("Connexion au Bridge..."), 160, 240, 2);
+    
     Bridge.begin();
-    pinMode(BUZZER_PIN, OUTPUT);
-    digitalWrite(BUZZER_PIN, LOW);
-
     nfc.begin();
-    if (nfc.getFirmwareVersion()) {
-        nfcReady = true;
-        nfc.SAMConfig();
-        nfc.setPassiveActivationRetries(0x20); // Scan rapide
-    }
+    nfc.SAMConfig();
+    
+    currentPage = 2;
 }
 
 void loop() {
-    // 1. Pages
     if (lastPage != currentPage) {
         lastPage = currentPage;
-        if (currentPage == 2) drawSaleMenu();
-        else if (currentPage == 14) drawScanningPage();
-        else if (currentPage == 13) drawManualPage();
-        else if (currentPage == 15) drawRefundPage();
-        else {
-            tft.fillScreen(TFT_BLACK);
-            tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM);
-            tft.drawString(F("PAGE INCONNUE"), 160, 240, 2);
-        }
+        if (currentPage == 2) drawMenu();
+        else if (currentPage == 14) drawChoicePage();
     }
 
-    // 2. Tactile
     uint16_t tx, ty;
     if (tft.getTouch(&tx, &ty)) {
+        // --- Navigation Menu Principal ---
         if (currentPage == 2) {
-            if (ty >= 180 && ty <= 250) currentPage = 14; 
-            else if (ty >= 280 && ty <= 350) currentPage = 13;
-            else if (ty >= 380 && ty <= 450) currentPage = 15;
-            delay(200);
-        } else if (tx < 150 && ty < 60) { // Retour
-            currentPage = 2; isScanningMode = false; delay(200);
-        } else if (currentPage == 14 && !isScanningMode) {
-            // Détection du clic dans le cercle (Centre 160,260, Rayon 70)
-            long dx = (long)tx - 160;
-            long dy = (long)ty - 260;
-            if ((dx*dx + dy*dy) <= 4900) { // Rayon au carré
-                isScanningMode = true;
-                drawScanningPage(); // Mettre à jour l'état visuel
+            if (ty > 180 && ty < 300) { currentPage = 14; delay(200); }
+        } 
+        // --- Navigation Page de Choix ---
+        else if (currentPage == 14) {
+            if (ty < 80) { currentPage = 2; delay(200); } // Bouton Annuler
+            
+            // BOUTON PAYER (NFC UNIQEMENT)
+            else if (ty > 100 && ty < 220) {
+                currentPage = 16; // Vers Page NFC
+                delay(200);
+            }
+            
+            // BOUTON SCANNER (BARCODE UNIQUEMENT)
+            else if (ty > 280 && ty < 400) {
+                currentPage = 15; // Vers Page Scan
+                isBarcodeActive = true;
+                sendScannerCmd(startScan, 9); // Allumer Scanner
+                delay(200);
+            }
+        }
+        // --- Stop Scanner ---
+        else if (currentPage == 15) {
+            if (ty > 200) { // Clic n'importe où pour arrêter
+                isBarcodeActive = false;
+                sendScannerCmd(stopScan, 9); // Éteindre Scanner
+                currentPage = 14;
                 delay(200);
             }
         }
     }
 
-    // 3. NFC Logic (Page 14 + Autorisation)
-    if (currentPage == 14 && nfcReady && isScanningMode) {
+    // --- LOGIQUE NFC (PAGE 16) ---
+    if (currentPage == 16) {
+        tft.fillScreen(TFT_BLACK);
+        tft.setTextColor(TFT_WHITE); tft.setTextDatum(MC_DATUM);
+        tft.drawString(F("PRESENTER CARTE NFC"), 160, 240, 2);
+        
         uint8_t uid[] = {0,0,0,0,0,0,0}; uint8_t uidLen;
-        if (nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLen, 100)) {
-            playPaymentSound(); // Son Pro Apple Pay
-            
+        if (nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLen, 1000)) {
+            playSound(2000, 150);
+            tft.fillScreen(TFT_GREEN);
+            tft.drawString(F("PAIEMENT REUSSI"), 160, 240, 4);
             Bridge.call("notify_payment", "Success");
-            currentPage = 2; // Retour auto au menu après succès
-            delay(1000);
+            delay(2000);
+            currentPage = 2;
+        }
+    }
+
+    // --- LOGIQUE BARCODE (PAGE 15) ---
+    if (currentPage == 15) {
+        tft.fillScreen(TFT_BLACK);
+        tft.setTextColor(TFT_ORANGE); tft.setTextDatum(MC_DATUM);
+        tft.drawString(F("SCANNER ACTIF..."), 160, 150, 4);
+        tft.fillRoundRect(60, 300, 200, 60, 10, TFT_RED);
+        tft.setTextColor(TFT_WHITE);
+        tft.drawString(F("STOP"), 160, 330, 2);
+
+        while (currentPage == 15) {
+            if (digitalRead(PIN_RX) == LOW) { // Donnée reçue ?
+                delayMicroseconds(BIT_DELAY + (BIT_DELAY / 2));
+                byte r = 0;
+                for (int i = 0; i < 8; i++) {
+                    if (digitalRead(PIN_RX) == HIGH) r |= (1 << i);
+                    delayMicroseconds(BIT_DELAY);
+                }
+                char c = (char)r;
+                if (c == '\r' || c == '\n') {
+                    if (barcodeBuffer.length() > 0) {
+                        playSound(1000, 100);
+                        tft.fillScreen(TFT_GREEN);
+                        tft.drawString(barcodeBuffer, 160, 240, 4);
+                        Bridge.call("barcode_received", barcodeBuffer);
+                        delay(2000);
+                        barcodeBuffer = ""; isBarcodeActive = false;
+                        currentPage = 2;
+                        break;
+                    }
+                } else if (c >= 32 && c <= 126) barcodeBuffer += c;
+            }
+            
+            // Vérifier si on clique sur STOP
+            uint16_t bx, by;
+            if (tft.getTouch(&bx, &by)) {
+                if (by > 250) {
+                    sendScannerCmd(stopScan, 9);
+                    currentPage = 14;
+                    break;
+                }
+            }
+            Bridge.update();
         }
     }
 
