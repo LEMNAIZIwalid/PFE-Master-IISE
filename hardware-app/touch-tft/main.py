@@ -7,14 +7,9 @@ MCU_FLASH_TOTAL = 2048 * 1024  # 2MB
 MCU_SRAM_TOTAL = 786 * 1024    # 786KB
 
 def analyze_memory_usage():
-    """Estime l'occupation mémoire du projet actuel"""
+    """Rapport de consommation mémoire"""
     sketch_path = os.path.join(os.getcwd(), "sketch")
-    if not os.path.exists(sketch_path):
-        return
-
-    print("\n" + "="*50)
-    print("      RAPPORT MÉMOIRE : ARDUINO UNO Q")
-    print("="*50)
+    if not os.path.exists(sketch_path): return
 
     total_size = 0
     for root, dirs, files in os.walk(sketch_path):
@@ -22,43 +17,46 @@ def analyze_memory_usage():
             if file.endswith(('.h', '.cpp', '.ino')):
                 total_size += os.path.getsize(os.path.join(root, file))
 
-    # Estimation Flash (Code compilé + Libs + Ressources)
-    # Sur STM32, le binaire est souvent 1.5x à 2x la taille des sources + Libs
-    est_flash = int(total_size * 1.5) + 150000 # Base libs (TFT, NFC, Bridge)
+    est_flash = int(total_size * 1.5) + 150000 
     flash_pct = (est_flash / MCU_FLASH_TOTAL) * 100
-    
-    # Estimation SRAM
-    # Framebuffer TFT_eSPI (320x480x16bit) = ~307KB si actif
-    # + Variables + Buffers Bridge
     est_sram = 65000 + 307200 
     sram_pct = (est_sram / MCU_SRAM_TOTAL) * 100
 
-    print(f"FLASH (Code/Fonts) : {est_flash/1024:.1f} KB / 2048 KB ({flash_pct:.1f}%)")
-    print(f"SRAM (Variables/UI): {est_sram/1024:.1f} KB / 786 KB  ({sram_pct:.1f}%)")
-    print("-" * 50)
+    print("\n" + "═"*50)
+    print(f"║ FLASH : {est_flash/1024:.1f} KB ({flash_pct:.1f}%)".ljust(49) + "║")
+    print(f"║ SRAM  : {est_sram/1024:.1f} KB ({sram_pct:.1f}%)".ljust(49) + "║")
+    print("═"*50)
 
-# --- CALLBACKS POS ---
+# --- CALLBACKS RÉCEPTION ---
+
 def on_barcode_received(code):
-    print(f"\n[SCAN] Code reçu : {code}")
+    """Affiche le code-barres détecté"""
+    print("\n" + "╔" + "═"*40 + "╗")
+    print(f"║ [BARCODE] : {code.center(25)}  ║")
+    print(f"║ >>> DETECTION PRODUIT OK !             ║")
+    print("╚" + "═"*40 + "╝")
 
-def on_payment_success(msg):
-    print("\n[NFC] Paiement effectué avec succès !")
+def on_payment_success(tag_uid):
+    """Affiche le contenu (UID) du NTag détecté"""
+    print("\n" + "╔" + "═"*40 + "╗")
+    print(f"║ [NTAG NFC] : {tag_uid.center(24)}  ║")
+    print(f"║ >>> PAIEMENT VALIDÉ PAR CARTE          ║")
+    print("╚" + "═"*40 + "╝")
 
-# --- ENREGISTREMENT ---
+# --- BRIDGE ---
 Bridge.provide("barcode_received", on_barcode_received)
 Bridge.provide("notify_payment", on_payment_success)
 
 def loop():
-    # Affichage régulier du rapport mémoire (optionnel)
-    # analyze_memory_usage()
-    time.sleep(10)
+    # On peut ajouter ici une logique périodique si nécessaire
+    time.sleep(0.1)
 
 if __name__ == "__main__":
-    # Analyse au démarrage
     analyze_memory_usage()
-    
-    print("\n>>> System POS actif. En attente d'événements...")
+    print("\n" + "█"*50)
+    print("█" + " SYSTÈME POS PRÊT AU SCAN ".center(48) + "█")
+    print("█"*50 + "\n")
     try:
         App.run(user_loop=loop)
     except KeyboardInterrupt:
-        pass
+        print("\n>>> Arrêt du système...")
