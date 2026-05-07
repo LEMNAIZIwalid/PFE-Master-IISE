@@ -1,0 +1,15 @@
+{
+  "namespace": "com.pfe.pos",
+  "type": "record",
+  "name": "Transaction",
+  "fields": [
+    {"name": "client_id", "type": "string"},
+    {"name": "card_id", "type": "string"},
+    {"name": "PAN", "type": "string"},
+    {"name": "Amount", "type": "float"},
+    {"name": "F_name", "type": "string"},
+    {"name": "L_name", "type": "string"},
+    {"name": "Modify_by", "type": "string"},
+    {"name": "timestmp", "type": "string"}
+  ]
+}
