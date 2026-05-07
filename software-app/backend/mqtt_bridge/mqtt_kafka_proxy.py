@@ -26,7 +26,7 @@ parsed_schema = parse_schema(schema)
 MQTT_BROKER = "localhost"
 MQTT_TOPIC = "pos/transactions"
 KAFKA_BROKER = "localhost:9092"
-KAFKA_TOPIC = "MY-POS-BROKER"  # Nouveau Topic
+KAFKA_TOPIC = "HPOS"  # Changé de MY-POS-BROKER à HPOS
 
 # Initialisation Kafka
 producer = Producer({'bootstrap.servers': KAFKA_BROKER})
