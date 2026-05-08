@@ -254,6 +254,65 @@ def get_events():
         if connection:
             connection.close()
 
+@app.route('/api/external/create', methods=['POST'])
+def external_create_card():
+    data = request.json
+    print(f"📥 [EXTERNEL] Requête reçue pour création de carte : {data.get('id_Card')}")
+    
+    connection = None
+    try:
+        connection = get_oracle_connection()
+        cursor = connection.cursor()
+        
+        # 1. Insertion dans Externel_System (Table spécifique)
+        sql_ext = """
+            INSERT INTO POS.Externel_System (
+                id_Card, PAN, F_Name, L_Name, Amount, 
+                POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+            ) VALUES (
+                :id_Card, :PAN, :F_Name, :L_Name, :Amount, 
+                :POS_limit, :ATM_limit, :Status, :Source, :Operation, CURRENT_TIMESTAMP
+            )
+        """
+        
+        # 2. Insertion dans Events (Audit global du projet)
+        sql_events = """
+            INSERT INTO POS.Events (
+                id_card, PAN, F_Name, L_Name, Amounts, 
+                POS_limit, ATM_limit, Status, Source, Operation, Timetmp
+            ) VALUES (
+                :id_Card, :PAN, :F_Name, :L_Name, :Amount, 
+                :POS_limit, :ATM_limit, :Status, :Source, :Operation, CURRENT_TIMESTAMP
+            )
+        """
+        
+        params = {
+            "id_Card":   data.get('id_Card'),
+            "PAN":       data.get('PAN'),
+            "F_Name":    data.get('F_Name'),
+            "L_Name":    data.get('L_Name'),
+            "Amount":    float(data.get('Amount')) if data.get('Amount') else 0.0,
+            "POS_limit": float(data.get('POS_limit')) if data.get('POS_limit') else 0.0,
+            "ATM_limit": float(data.get('ATM_limit')) if data.get('ATM_limit') else 0.0,
+            "Status":    data.get('Status', 'Active'),
+            "Source":    'Externel_System',
+            "Operation": 'Create'
+        }
+        
+        cursor.execute(sql_ext, params)
+        cursor.execute(sql_events, params)
+        connection.commit()
+        
+        print(f"✅ Carte [EXT] {data.get('id_Card')} enregistrée avec succès.")
+        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} created in External System"}), 201
+        
+    except Exception as e:
+        print(f"❌ Erreur Oracle [EXT] : {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        if connection:
+            connection.close()
+
 if __name__ == '__main__':
     print("🚀 API PowerCard System démarrée sur http://localhost:5001")
     app.run(port=5001, debug=True)

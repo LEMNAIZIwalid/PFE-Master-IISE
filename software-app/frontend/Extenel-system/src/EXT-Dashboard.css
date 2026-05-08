@@ -1,0 +1,227 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.ext-app-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100vw;
+  background: #f8fafc;
+}
+
+/* Sidebar Styles */
+.ext-sidebar {
+  width: 280px;
+  background: white;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 1.5rem;
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.02);
+}
+
+.ext-sidebar-logo {
+  margin-bottom: 3rem;
+  display: flex;
+  justify-content: center;
+}
+
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-text {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #166534;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.ext-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ext-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.ext-nav-item:hover {
+  background: #f0fdf4;
+  color: #22c55e;
+}
+
+.ext-nav-item.active {
+  background: #22c55e;
+  color: white;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+}
+
+/* Main Content Styles */
+.ext-main {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.ext-dashboard-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.hero-subtitle {
+  font-size: 1.1rem;
+  color: #64748b;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Provisioning Form Styles */
+.ext-provisioning-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.provisioning-header h2 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 2rem;
+}
+
+.provisioning-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.provisioning-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+  border-top: 4px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.provisioning-card.accent-cyan { border-top-color: #86efac; }
+.provisioning-card.accent-blue { border-top-color: #4ade80; }
+.provisioning-card.accent-purple { border-top-color: #22c55e; }
+
+.card-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.input-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.input-group input {
+  padding: 0.8rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #22c55e;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.05);
+}
+
+.locked-input {
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed;
+  border-style: dashed !important;
+}
+
+.provisioning-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.ext-primary-btn {
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  color: white;
+  border: none;
+  padding: 1.2rem 3rem;
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.2);
+}
+
+.ext-primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(34, 197, 94, 0.3);
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+

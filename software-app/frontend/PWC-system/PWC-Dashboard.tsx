@@ -38,6 +38,7 @@ function PWCDashboard() {
   const [activeEventFilter, setActiveEventFilter] = useState('all')
   const [showSettingsPassword, setShowSettingsPassword] = useState(false)
   const [settingsSubTab, setSettingsSubTab] = useState<'profile' | 'theme' | 'monitoring'>('profile')
+  const [eventSearchTerm, setEventSearchTerm] = useState('')
 
   // État pour le formulaire d'édition
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -388,23 +389,26 @@ function PWCDashboard() {
 
           {activeTab === 'settings' && (
             <div className="sub-menu">
-              <div
-                className={`sub-nav-item ${settingsSubTab === 'profile' ? 'active' : ''}`}
+              <div 
+                className={`sub-nav-item ${settingsSubTab === 'profile' ? 'active' : ''}`} 
                 onClick={() => setSettingsSubTab('profile')}
               >
-                👤 Profile
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Profile</span>
               </div>
-              <div
-                className={`sub-nav-item ${settingsSubTab === 'theme' ? 'active' : ''}`}
+              <div 
+                className={`sub-nav-item ${settingsSubTab === 'theme' ? 'active' : ''}`} 
                 onClick={() => setSettingsSubTab('theme')}
               >
-                🎨 Theme
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+                <span>Theme</span>
               </div>
-              <div
-                className={`sub-nav-item ${settingsSubTab === 'monitoring' ? 'active' : ''}`}
+              <div 
+                className={`sub-nav-item ${settingsSubTab === 'monitoring' ? 'active' : ''}`} 
                 onClick={() => setSettingsSubTab('monitoring')}
               >
-                📈 Monitoring
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                <span>Monitoring</span>
               </div>
             </div>
           )}
@@ -698,15 +702,30 @@ function PWCDashboard() {
                 <h1 className="system-title">checking-Events</h1>
                 <p className="system-subtitle">System Audit Log & Event Tracking</p>
               </div>
-              <button className="primary-btn" onClick={fetchEvents}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-                  <path d="M21 2v6h-6"></path>
-                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-                  <path d="M3 22v-6h6"></path>
-                  <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-                </svg>
-                Refresh Audit
-              </button>
+              <div className="header-right">
+                <div className="search-wrapper">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input 
+                    type="text" 
+                    placeholder="Search by Card ID or Client..." 
+                    value={eventSearchTerm}
+                    onChange={(e) => setEventSearchTerm(e.target.value)}
+                    className="search-bar"
+                  />
+                </div>
+                <button className="primary-btn" onClick={fetchEvents}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                    <path d="M21 2v6h-6"></path>
+                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                    <path d="M3 22v-6h6"></path>
+                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                  </svg>
+                  Refresh Audit
+                </button>
+              </div>
             </header>
 
             <div className="stats-grid events-audit-grid">
@@ -786,10 +805,14 @@ function PWCDashboard() {
                     </thead>
                     <tbody>
                       {(() => {
-                        const filteredEvents = activeEventFilter === 'all'
-                          ? events
-                          : events.filter(e => e.OPERATION?.toLowerCase() === activeEventFilter);
-
+                        const filteredEvents = events.filter(e => {
+                          const matchesFilter = activeEventFilter === 'all' || e.OPERATION?.toLowerCase() === activeEventFilter;
+                          const matchesSearch = e.ID_CARD?.toLowerCase().includes(eventSearchTerm.toLowerCase()) || 
+                                              e.F_NAME?.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
+                                              e.L_NAME?.toLowerCase().includes(eventSearchTerm.toLowerCase());
+                          return matchesFilter && matchesSearch;
+                        });
+                          
                         return filteredEvents.length > 0 ? (
                           filteredEvents.map((event, idx) => (
                             <tr key={idx}>
@@ -867,21 +890,23 @@ function PWCDashboard() {
                       <label>Username</label>
                       <input type="text" value="admin" disabled className="locked-input" />
                     </div>
-                    <div className="setting-item password-field-group">
-                      <label>Update Secure Password</label>
-                      <div className="password-input-wrapper">
-                        <input
-                          type={showSettingsPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          className="password-input"
-                        />
-                        <button type="button" className="eye-toggle" onClick={() => setShowSettingsPassword(!showSettingsPassword)}>
-                          {showSettingsPassword ? (
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                          ) : (
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                          )}
-                        </button>
+                    <div className="password-update-form">
+                      <div className="setting-item password-field-group">
+                        <label>Current Password</label>
+                        <div className="password-input-wrapper">
+                          <input 
+                            type={showSettingsPassword ? "text" : "password"} 
+                            placeholder="Current Password" 
+                            className="password-input"
+                          />
+                          <button type="button" className="eye-toggle" onClick={() => setShowSettingsPassword(!showSettingsPassword)}>
+                            {showSettingsPassword ? (
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                            ) : (
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <button className="primary-btn">Update Security Profile</button>
