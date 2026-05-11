@@ -9,7 +9,7 @@ CORS(app) # Autorise le Frontend React à communiquer avec cette API
 # Configuration Oracle (Identique à tes autres scripts)
 ORACLE_USER = "POS"
 ORACLE_PASSWORD = "Izinm123W"
-ORACLE_DSN = "localhost:1521/XE"
+ORACLE_DSN = "172.22.32.1:1521/XE"
 
 def get_oracle_connection():
     return oracledb.connect(
@@ -21,7 +21,7 @@ def get_oracle_connection():
 @app.route('/api/create-card', methods=['POST'])
 def create_card():
     data = request.json
-    print(f"📥 Requête reçue pour création de carte : {data.get('id_Card')}")
+    print(f"Request received for card creation : {data.get('id_Card')}")
     
     connection = None
     try:
@@ -68,17 +68,17 @@ def create_card():
         cursor.execute(sql_events, params)
         connection.commit()
         
-        print(f"✅ Carte {data.get('id_Card')} enregistrée avec succès dans PWC_System et Events.")
+        print(f"Card {data.get('id_Card')} successfully registered in PWC_System and Events.")
         return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} created successfully in both tables"}), 201
         
     except Exception as e:
-        print(f"❌ Erreur Oracle : {e}")
+        print(f"Oracle Error : {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/update-card', methods=['POST'])
 def update_card():
     data = request.json
-    print(f"📥 Requête reçue pour mise à jour de carte : {data.get('id_Card')}")
+    print(f"Request received for card update : {data.get('id_Card')}")
     
     connection = None
     try:
@@ -125,11 +125,11 @@ def update_card():
         cursor.execute(sql_events, params)
         connection.commit()
         
-        print(f"✅ Mise à jour de la carte {data.get('id_Card')} enregistrée avec succès (PWC & Events).")
+        print(f"Card {data.get('id_Card')} update successfully registered (PWC & Events).")
         return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} updated successfully in both tables"}), 200
         
     except Exception as e:
-        print(f"❌ Erreur Oracle lors de l'update : {e}")
+        print(f"Oracle Error during update : {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         if connection:
@@ -138,7 +138,7 @@ def update_card():
 @app.route('/api/delete-card', methods=['POST'])
 def delete_card():
     data = request.json
-    print(f"🗑️ Requête reçue pour suppression de carte : {data.get('id_Card')}")
+    print(f"Request received for card deletion : {data.get('id_Card')}")
     
     connection = None
     try:
@@ -183,11 +183,11 @@ def delete_card():
         cursor.execute(sql_events, params)
         connection.commit()
         
-        print(f"✅ Suppression (log) de la carte {data.get('id_Card')} enregistrée avec succès (PWC & Events).")
+        print(f"Card {data.get('id_Card')} deletion (log) successfully registered (PWC & Events).")
         return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} deleted successfully in both tables"}), 200
         
     except Exception as e:
-        print(f"❌ Erreur Oracle lors de la suppression : {e}")
+        print(f"Oracle Error during deletion : {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         if connection:
@@ -220,7 +220,7 @@ def get_cards():
             
         return jsonify(cards), 200
     except Exception as e:
-        print(f"❌ Erreur Oracle : {e}")
+        print(f"Oracle Error : {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         if connection:
@@ -248,7 +248,7 @@ def get_events():
             
         return jsonify(events), 200
     except Exception as e:
-        print(f"❌ Erreur Oracle Events : {e}")
+        print(f"Oracle Events Error : {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         if connection:
@@ -257,7 +257,7 @@ def get_events():
 @app.route('/api/external/create', methods=['POST'])
 def external_create_card():
     data = request.json
-    print(f"📥 [EXTERNEL] Requête reçue pour création de carte : {data.get('id_Card')}")
+    print(f"[EXTERNAL] Request received for card creation : {data.get('id_Card')}")
     
     connection = None
     try:
@@ -303,16 +303,48 @@ def external_create_card():
         cursor.execute(sql_events, params)
         connection.commit()
         
-        print(f"✅ Carte [EXT] {data.get('id_Card')} enregistrée avec succès.")
+        print(f"Card [EXT] {data.get('id_Card')} successfully registered.")
         return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} created in External System"}), 201
         
     except Exception as e:
-        print(f"❌ Erreur Oracle [EXT] : {e}")
+        print(f"Oracle Error [EXT] : {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        if connection:
+            connection.close()
+
+@app.route('/api/external/cards', methods=['GET'])
+def get_external_cards():
+    connection = None
+    try:
+        connection = get_oracle_connection()
+        cursor = connection.cursor()
+        
+        # Récupérer la dernière opération de chaque carte dans Externel_System
+        sql = """
+            SELECT ID_CARD, PAN, F_NAME, L_NAME, OPERATION, AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT
+            FROM (
+                SELECT ID_CARD, PAN, F_NAME, L_NAME, OPERATION, AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT,
+                       ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
+                FROM POS.Externel_System
+            ) WHERE rn = 1
+            ORDER BY TIMESTMP DESC
+        """
+        cursor.execute(sql)
+        
+        columns = [col[0] for col in cursor.description]
+        cards = []
+        for row in cursor:
+            cards.append(dict(zip(columns, row)))
+            
+        return jsonify(cards), 200
+    except Exception as e:
+        print(f"Oracle Error [EXT GET]: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         if connection:
             connection.close()
 
 if __name__ == '__main__':
-    print("🚀 API PowerCard System démarrée sur http://localhost:5001")
+    print("API PowerCard System started on http://localhost:5001")
     app.run(port=5001, debug=True)

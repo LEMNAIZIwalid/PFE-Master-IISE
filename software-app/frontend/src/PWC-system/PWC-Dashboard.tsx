@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
 import './PWC-Dashboard.css'
 
 function PWCDashboard() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeTab, setActiveTab] = useState('dashboard')
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false)
+  const [sidebarOpen, setSidebarOpen] = React.useState(true)
+  const [activeTab, setActiveTab] = React.useState('dashboard')
+  const [username, setUsername] = React.useState('')
+  const [password, setPassword] = React.useState('')
+  const [error, setError] = React.useState('')
 
   // État pour le formulaire "Create Card"
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     id_Card: '',
     PAN: '',
     F_Name: '',
@@ -24,25 +24,26 @@ function PWCDashboard() {
   })
 
   // État pour les données du tableau
-  const [cards, setCards] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [activeFilter, setActiveFilter] = useState('all')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
-  const [viewingCard, setViewingCard] = useState<any>(null)
-  const [modalViewMode, setModalViewMode] = useState<'table' | 'json'>('table')
+  const [cards, setCards] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(false)
+  const [activeFilter, setActiveFilter] = React.useState('all')
+  const [searchTerm, setSearchTerm] = React.useState('')
+  const [isViewModalOpen, setIsViewModalOpen] = React.useState(false)
+  const [viewingCard, setViewingCard] = React.useState<any>(null)
+  const [modalViewMode, setModalViewMode] = React.useState<'table' | 'json'>('table')
 
   // État pour Checking Events
-  const [events, setEvents] = useState<any[]>([])
-  const [loadingEvents, setLoadingEvents] = useState(false)
-  const [activeEventFilter, setActiveEventFilter] = useState('all')
-  const [showSettingsPassword, setShowSettingsPassword] = useState(false)
-  const [settingsSubTab, setSettingsSubTab] = useState<'profile' | 'theme' | 'monitoring'>('profile')
-  const [eventSearchTerm, setEventSearchTerm] = useState('')
+  const [events, setEvents] = React.useState<any[]>([])
+  const [loadingEvents, setLoadingEvents] = React.useState(false)
+  const [activeEventFilter, setActiveEventFilter] = React.useState('all')
+  const [activeSourceFilter, setActiveSourceFilter] = React.useState('all')
+  const [showSettingsPassword, setShowSettingsPassword] = React.useState(false)
+  const [settingsSubTab, setSettingsSubTab] = React.useState<'profile' | 'theme' | 'monitoring'>('profile')
+  const [eventSearchTerm, setEventSearchTerm] = React.useState('')
 
   // État pour le formulaire d'édition
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [editFormData, setEditFormData] = useState({
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false)
+  const [editFormData, setEditFormData] = React.useState({
     id_Card: '',
     PAN: '',
     F_Name: '',
@@ -70,14 +71,14 @@ function PWCDashboard() {
   }
 
   // Générer au chargement ou au changement d'onglet
-  useEffect(() => {
+  React.useEffect(() => {
     if (activeTab === 'create') {
       generateIDs()
     }
   }, [activeTab])
 
   // Charger les données quand on est sur le dashboard
-  useEffect(() => {
+  React.useEffect(() => {
     if (activeTab === 'dashboard' && isLoggedIn) {
       fetchCards()
     }
@@ -728,53 +729,97 @@ function PWCDashboard() {
               </div>
             </header>
 
-            <div className="stats-grid events-audit-grid">
-              <div className={`stat-card all ${activeEventFilter === 'all' ? 'active' : ''}`} onClick={() => setActiveEventFilter('all')}>
-                <div className="stat-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <path d="M7 8h10M7 12h10M7 16h10"></path>
+            <div className="events-dashboard-layout">
+              {/* Graphique Circulaire à Gauche (Remplace les filtres Opérations) */}
+              <div className="events-chart-container glass-card">
+                <h3>Operations Overview</h3>
+                <div className="chart-wrapper">
+                  <svg viewBox="0 0 36 36" className="circular-chart">
+                    {/* Background Circle */}
+                    <path className="circle-bg"
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    {/* Delete Slice (Red) */}
+                    <path className="circle-delete"
+                      strokeDasharray={`${(events.filter(e => e.OPERATION?.toLowerCase() === 'delete').length / (events.length || 1)) * 100} 100`}
+                      strokeDashoffset={0}
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    {/* Update Slice (Orange) */}
+                    <path className="circle-update"
+                      strokeDasharray={`${(events.filter(e => e.OPERATION?.toLowerCase() === 'update').length / (events.length || 1)) * 100} 100`}
+                      strokeDashoffset={-((events.filter(e => e.OPERATION?.toLowerCase() === 'delete').length / (events.length || 1)) * 100)}
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    {/* Create Slice (Green) */}
+                    <path className="circle-create"
+                      strokeDasharray={`${(events.filter(e => e.OPERATION?.toLowerCase() === 'create').length / (events.length || 1)) * 100} 100`}
+                      strokeDashoffset={-((events.filter(e => e.OPERATION?.toLowerCase() === 'delete').length / (events.length || 1)) * 100) - ((events.filter(e => e.OPERATION?.toLowerCase() === 'update').length / (events.length || 1)) * 100)}
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <text x="18" y="20.35" className="chart-total">{events.length}</text>
                   </svg>
-                </div>
-                <div className="stat-info">
-                  <span className="stat-label">All Events</span>
-                  <span className="stat-value">{events.length}</span>
+                  
+                  <div className="chart-legend">
+                    <div className={`legend-item ${activeEventFilter === 'all' && activeSourceFilter === 'all' ? 'active' : ''}`} onClick={() => { setActiveEventFilter('all'); setActiveSourceFilter('all'); }}>
+                      <span className="legend-color legend-all"></span> All ({events.length})
+                    </div>
+                    <div className={`legend-item ${activeEventFilter === 'create' ? 'active' : ''}`} onClick={() => setActiveEventFilter('create')}>
+                      <span className="legend-color legend-create"></span> Create ({events.filter(e => e.OPERATION?.toLowerCase() === 'create').length})
+                    </div>
+                    <div className={`legend-item ${activeEventFilter === 'update' ? 'active' : ''}`} onClick={() => setActiveEventFilter('update')}>
+                      <span className="legend-color legend-update"></span> Update ({events.filter(e => e.OPERATION?.toLowerCase() === 'update').length})
+                    </div>
+                    <div className={`legend-item ${activeEventFilter === 'delete' ? 'active' : ''}`} onClick={() => setActiveEventFilter('delete')}>
+                      <span className="legend-color legend-delete"></span> Delete ({events.filter(e => e.OPERATION?.toLowerCase() === 'delete').length})
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className={`stat-card create ${activeEventFilter === 'create' ? 'active' : ''}`} onClick={() => setActiveEventFilter('create')}>
-                <div className="stat-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 5v14M5 12h14"></path>
-                  </svg>
+              {/* Filtres de Sources à Droite */}
+              <div className="source-filters-container">
+                <div className={`stat-card source-pwc ${activeSourceFilter === 'PWC_System' ? 'active' : ''}`} onClick={() => setActiveSourceFilter(activeSourceFilter === 'PWC_System' ? 'all' : 'PWC_System')}>
+                  <div className="stat-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                      <rect x="9" y="9" width="6" height="6"></rect>
+                      <line x1="9" y1="1" x2="9" y2="4"></line>
+                      <line x1="15" y1="1" x2="15" y2="4"></line>
+                      <line x1="9" y1="20" x2="9" y2="23"></line>
+                      <line x1="15" y1="20" x2="15" y2="23"></line>
+                      <line x1="20" y1="9" x2="23" y2="9"></line>
+                      <line x1="20" y1="14" x2="23" y2="14"></line>
+                      <line x1="1" y1="9" x2="4" y2="9"></line>
+                      <line x1="1" y1="14" x2="4" y2="14"></line>
+                    </svg>
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-label">PWC System</span>
+                    <span className="stat-value">{events.filter(e => e.SOURCE === 'PWC_System').length}</span>
+                  </div>
                 </div>
-                <div className="stat-info">
-                  <span className="stat-label">Create</span>
-                  <span className="stat-value">{events.filter(e => e.OPERATION?.toLowerCase() === 'create').length}</span>
-                </div>
-              </div>
 
-              <div className={`stat-card update ${activeEventFilter === 'update' ? 'active' : ''}`} onClick={() => setActiveEventFilter('update')}>
-                <div className="stat-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M23 4v6h-6M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                  </svg>
-                </div>
-                <div className="stat-info">
-                  <span className="stat-label">Update</span>
-                  <span className="stat-value">{events.filter(e => e.OPERATION?.toLowerCase() === 'update').length}</span>
-                </div>
-              </div>
-
-              <div className={`stat-card delete ${activeEventFilter === 'delete' ? 'active' : ''}`} onClick={() => setActiveEventFilter('delete')}>
-                <div className="stat-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
-                </div>
-                <div className="stat-info">
-                  <span className="stat-label">Delete</span>
-                  <span className="stat-value">{events.filter(e => e.OPERATION?.toLowerCase() === 'delete').length}</span>
+                <div className={`stat-card source-ext ${activeSourceFilter === 'Externel_System' ? 'active' : ''}`} onClick={() => setActiveSourceFilter(activeSourceFilter === 'Externel_System' ? 'all' : 'Externel_System')}>
+                  <div className="stat-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="2" y1="12" x2="22" y2="12"></line>
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-label">External System</span>
+                    <span className="stat-value">{events.filter(e => e.SOURCE === 'Externel_System').length}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -807,10 +852,11 @@ function PWCDashboard() {
                       {(() => {
                         const filteredEvents = events.filter(e => {
                           const matchesFilter = activeEventFilter === 'all' || e.OPERATION?.toLowerCase() === activeEventFilter;
+                          const matchesSource = activeSourceFilter === 'all' || e.SOURCE === activeSourceFilter;
                           const matchesSearch = e.ID_CARD?.toLowerCase().includes(eventSearchTerm.toLowerCase()) || 
                                               e.F_NAME?.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
                                               e.L_NAME?.toLowerCase().includes(eventSearchTerm.toLowerCase());
-                          return matchesFilter && matchesSearch;
+                          return matchesFilter && matchesSource && matchesSearch;
                         });
                           
                         return filteredEvents.length > 0 ? (

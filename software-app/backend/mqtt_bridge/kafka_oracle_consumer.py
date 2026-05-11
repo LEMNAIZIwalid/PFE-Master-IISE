@@ -57,7 +57,7 @@ consumer.subscribe([KAFKA_TOPIC])
 # ─────────────────────────────────────────────
 ORACLE_USER = "POS"
 ORACLE_PASSWORD = "Izinm123W"
-ORACLE_DSN = "localhost:1521/XE"  # ← Adapter selon ta config (XE, ORCL, XEPDB1...)
+ORACLE_DSN = "172.22.32.1:1521/XE"  # ← Adapter selon ta config (XE, ORCL, XEPDB1...)
 
 # ─────────────────────────────────────────────
 # 4. Fonction : Avro binaire → Dictionnaire Python (JSON)
