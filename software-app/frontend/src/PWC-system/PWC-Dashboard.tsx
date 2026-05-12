@@ -40,6 +40,9 @@ function PWCDashboard() {
   const [showSettingsPassword, setShowSettingsPassword] = React.useState(false)
   const [settingsSubTab, setSettingsSubTab] = React.useState<'profile' | 'theme' | 'monitoring'>('profile')
   const [eventSearchTerm, setEventSearchTerm] = React.useState('')
+  const [selectedEvent, setSelectedEvent] = React.useState<any>(null)
+  const [isEventModalOpen, setIsEventModalOpen] = React.useState(false)
+  const [eventModalTab, setEventModalTab] = React.useState<'overview' | 'json'>('overview')
 
   // État pour le formulaire d'édition
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false)
@@ -53,7 +56,8 @@ function PWCDashboard() {
     ATM_limit: '',
     Status: '',
     Source: 'PWC_System',
-    Operation: 'Update'
+    Operation: 'Update',
+    event_id: ''
   })
 
 
@@ -143,25 +147,32 @@ function PWCDashboard() {
     setIsViewModalOpen(true)
     setModalViewMode('table')
   }
-  const handleEditCard = (card: any) => {
+
+  const handleEventClick = (event: any) => {
+    setSelectedEvent(event)
+    setEventModalTab('overview')
+    setIsEventModalOpen(true)
+  }
+  const handleEditCard = (card: any, eventId?: string) => {
     // Vérifier si n'importe quelle ligne de cette carte est marquée comme DELETE
     const isDeleted = cards.some(c => c.ID_CARD === card.ID_CARD && c.OPERATION === 'DELETE');
-
     if (isDeleted) {
-      alert(`Authorization Denied: The card ${card.ID_CARD} has been deleted in a previous operation and cannot be modified anymore.`);
+      alert("Cette carte est marquée pour suppression et ne peut pas être modifiée.");
       return;
     }
+
     setEditFormData({
       id_Card: card.ID_CARD,
       PAN: card.PAN,
       F_Name: card.F_NAME,
       L_Name: card.L_NAME,
-      Amount: card.AMOUNT,
-      POS_limit: card.POS_LIMIT || '9000.00',
-      ATM_limit: card.ATM_LIMIT || '5000.00',
-      Status: card.STATUS || 'Active',
-      Source: 'PWC_System',
-      Operation: 'Update'
+      Amount: card.AMOUNT !== undefined ? card.AMOUNT : card.AMOUNTS, // Handle both card and event objects
+      POS_limit: card.POS_LIMIT,
+      ATM_limit: card.ATM_LIMIT,
+      Status: card.STATUS,
+      Source: card.SOURCE || 'PWC_System',
+      Operation: 'Update',
+      event_id: eventId || ''
     })
     setIsEditModalOpen(true)
   }
@@ -224,10 +235,10 @@ function PWCDashboard() {
             PAN: card.PAN,
             F_Name: card.F_NAME,
             L_Name: card.L_NAME,
-            Amount: card.AMOUNT,
+            Amount: card.AMOUNT !== undefined ? card.AMOUNT : card.AMOUNTS,
             POS_limit: card.POS_LIMIT,
             ATM_limit: card.ATM_LIMIT,
-            Source: 'PWC_System'
+            Source: card.SOURCE || 'PWC_System'
           })
         })
 
@@ -743,7 +754,7 @@ function PWCDashboard() {
                     />
                     {/* Delete Slice (Red) */}
                     <path className="circle-delete"
-                      strokeDasharray={`${(events.filter(e => e.OPERATION?.toLowerCase() === 'delete').length / (events.length || 1)) * 100} 100`}
+                      strokeDasharray={`${(events.filter(e => e.OPERATION?.toLowerCase().includes('delete')).length / (events.length || 1)) * 100} 100`}
                       strokeDashoffset={0}
                       d="M18 2.0845
                         a 15.9155 15.9155 0 0 1 0 31.831
@@ -751,8 +762,8 @@ function PWCDashboard() {
                     />
                     {/* Update Slice (Orange) */}
                     <path className="circle-update"
-                      strokeDasharray={`${(events.filter(e => e.OPERATION?.toLowerCase() === 'update').length / (events.length || 1)) * 100} 100`}
-                      strokeDashoffset={-((events.filter(e => e.OPERATION?.toLowerCase() === 'delete').length / (events.length || 1)) * 100)}
+                      strokeDasharray={`${(events.filter(e => e.OPERATION?.toLowerCase().includes('update')).length / (events.length || 1)) * 100} 100`}
+                      strokeDashoffset={-((events.filter(e => e.OPERATION?.toLowerCase().includes('delete')).length / (events.length || 1)) * 100)}
                       d="M18 2.0845
                         a 15.9155 15.9155 0 0 1 0 31.831
                         a 15.9155 15.9155 0 0 1 0 -31.831"
@@ -760,7 +771,7 @@ function PWCDashboard() {
                     {/* Create Slice (Green) */}
                     <path className="circle-create"
                       strokeDasharray={`${(events.filter(e => e.OPERATION?.toLowerCase() === 'create').length / (events.length || 1)) * 100} 100`}
-                      strokeDashoffset={-((events.filter(e => e.OPERATION?.toLowerCase() === 'delete').length / (events.length || 1)) * 100) - ((events.filter(e => e.OPERATION?.toLowerCase() === 'update').length / (events.length || 1)) * 100)}
+                      strokeDashoffset={-((events.filter(e => e.OPERATION?.toLowerCase().includes('delete')).length / (events.length || 1)) * 100) - ((events.filter(e => e.OPERATION?.toLowerCase().includes('update')).length / (events.length || 1)) * 100)}
                       d="M18 2.0845
                         a 15.9155 15.9155 0 0 1 0 31.831
                         a 15.9155 15.9155 0 0 1 0 -31.831"
@@ -776,10 +787,10 @@ function PWCDashboard() {
                       <span className="legend-color legend-create"></span> Create ({events.filter(e => e.OPERATION?.toLowerCase() === 'create').length})
                     </div>
                     <div className={`legend-item ${activeEventFilter === 'update' ? 'active' : ''}`} onClick={() => setActiveEventFilter('update')}>
-                      <span className="legend-color legend-update"></span> Update ({events.filter(e => e.OPERATION?.toLowerCase() === 'update').length})
+                      <span className="legend-color legend-update"></span> Update ({events.filter(e => e.OPERATION?.toLowerCase().includes('update')).length})
                     </div>
                     <div className={`legend-item ${activeEventFilter === 'delete' ? 'active' : ''}`} onClick={() => setActiveEventFilter('delete')}>
-                      <span className="legend-color legend-delete"></span> Delete ({events.filter(e => e.OPERATION?.toLowerCase() === 'delete').length})
+                      <span className="legend-color legend-delete"></span> Delete ({events.filter(e => e.OPERATION?.toLowerCase().includes('delete')).length})
                     </div>
                   </div>
                 </div>
@@ -851,7 +862,7 @@ function PWCDashboard() {
                     <tbody>
                       {(() => {
                         const filteredEvents = events.filter(e => {
-                          const matchesFilter = activeEventFilter === 'all' || e.OPERATION?.toLowerCase() === activeEventFilter;
+                          const matchesFilter = activeEventFilter === 'all' || e.OPERATION?.toLowerCase().includes(activeEventFilter);
                           const matchesSource = activeSourceFilter === 'all' || e.SOURCE === activeSourceFilter;
                           const matchesSearch = e.ID_CARD?.toLowerCase().includes(eventSearchTerm.toLowerCase()) || 
                                               e.F_NAME?.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
@@ -859,9 +870,9 @@ function PWCDashboard() {
                           return matchesFilter && matchesSource && matchesSearch;
                         });
                           
-                        return filteredEvents.length > 0 ? (
-                          filteredEvents.map((event, idx) => (
-                            <tr key={idx}>
+                          return filteredEvents.length > 0 ? (
+                            filteredEvents.map((event, idx) => (
+                              <tr key={idx} onClick={() => handleEventClick(event)} className="clickable-row">
                               <td className="id-cell">#{event.ID_EVENT}</td>
                               <td className="pan-cell">{event.ID_CARD}</td>
                               <td className="name-cell">{event.F_NAME} {event.L_NAME}</td>
@@ -1129,6 +1140,12 @@ function PWCDashboard() {
                       <label>PAN Number</label>
                       <input name="PAN" value={editFormData.PAN} disabled className="locked-input" />
                     </div>
+                    {editFormData.event_id && (
+                      <div className="input-group readonly">
+                        <label>Reference Event ID</label>
+                        <input name="event_id" value={editFormData.event_id} disabled className="locked-input" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Colonne MILIEU - Client Details */}
@@ -1176,6 +1193,136 @@ function PWCDashboard() {
                 <button type="submit" className="primary-btn">Save Changes</button>
               </footer>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal View Event Details */}
+      {isEventModalOpen && selectedEvent && (
+        <div className="modal-overlay" onClick={() => setIsEventModalOpen(false)}>
+          <div className="modal-content event-details-modal premium-modal animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <header className="modal-header event-modal-header">
+              <div className="modal-title-group">
+                <div className="event-badge-wrapper">
+                  <span className={`op-badge ${selectedEvent.OPERATION?.toLowerCase()}`}>
+                    {selectedEvent.OPERATION}
+                  </span>
+                  <span className="event-id-label">Audit Entry #{selectedEvent.ID_EVENT}</span>
+                </div>
+                <h2>Audit Log Explorer</h2>
+              </div>
+              <button className="close-modal" onClick={() => setIsEventModalOpen(false)}>✕</button>
+            </header>
+
+            <div className="modal-tabs">
+              <button 
+                className={`modal-tab ${eventModalTab === 'overview' ? 'active' : ''}`}
+                onClick={() => setEventModalTab('overview')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px'}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                Overview
+              </button>
+              <button 
+                className={`modal-tab ${eventModalTab === 'json' ? 'active' : ''}`}
+                onClick={() => setEventModalTab('json')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px'}}><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                Raw JSON
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {eventModalTab === 'overview' ? (
+                <div className="event-details-grid">
+                  {/* Section 1: Transaction Context */}
+                  <div className="detail-section glass-effect">
+                    <h3 className="section-subtitle">Transaction Context</h3>
+                    <div className="detail-row">
+                      <span className="detail-label">Event Reference</span>
+                      <span className="detail-value">#{selectedEvent.ID_EVENT}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Target Card</span>
+                      <span className="detail-value mono highlight-pwc">{selectedEvent.ID_CARD}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Execution Date</span>
+                      <span className="detail-value">{new Date(selectedEvent.TIMETMP).toLocaleString('fr-FR')}</span>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Administrative Info */}
+                  <div className="detail-section glass-effect">
+                    <h3 className="section-subtitle">Client Information</h3>
+                    <div className="detail-row">
+                      <span className="detail-label">Account Holder</span>
+                      <span className="detail-value">{selectedEvent.F_NAME} {selectedEvent.L_NAME}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Account Status</span>
+                      <span className={`status-badge ${selectedEvent.STATUS?.toLowerCase()}`}>
+                        {selectedEvent.STATUS}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Section 3: Technical Metadata */}
+                  <div className="detail-section glass-effect full-width">
+                    <h3 className="section-subtitle">Technical Metadata</h3>
+                    <div className="metadata-flex">
+                      <div className="metadata-item">
+                        <span className="detail-label">Origin System</span>
+                        <span className={`source-badge ${selectedEvent.SOURCE?.toLowerCase()}`}>
+                          {selectedEvent.SOURCE}
+                        </span>
+                      </div>
+                      <div className="metadata-item">
+                        <span className="detail-label">Operation ID</span>
+                        <span className={`op-badge ${selectedEvent.OPERATION?.toLowerCase()}`}>
+                          {selectedEvent.OPERATION}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="event-raw-data-premium animate-fade-in">
+                  <div className="json-header">
+                    <span>System Record Dump</span>
+                    <button className="copy-btn" onClick={() => navigator.clipboard.writeText(JSON.stringify(selectedEvent, null, 2))}>Copy JSON</button>
+                  </div>
+                  <div className="raw-json-container-premium">
+                    <pre>{JSON.stringify(selectedEvent, null, 2)}</pre>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <footer className="modal-footer premium-footer">
+              <div className="footer-left">
+                <button className="action-btn-pwc modify" onClick={() => {
+                  const cardInView = cards.find(c => c.ID_CARD === selectedEvent.ID_CARD);
+                  setIsEventModalOpen(false);
+                  // Use card in view if found, otherwise use selectedEvent data
+                  handleEditCard(cardInView || selectedEvent, selectedEvent.ID_EVENT);
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  Modify Card
+                </button>
+                <button className="action-btn-pwc delete" onClick={() => {
+                  const cardInView = cards.find(c => c.ID_CARD === selectedEvent.ID_CARD);
+                  setIsEventModalOpen(false);
+                  // Use card in view if found, otherwise use selectedEvent data
+                  handleDeleteCard(cardInView || selectedEvent);
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                  Delete Card
+                </button>
+              </div>
+              <div className="footer-right">
+                <button className="secondary-btn" onClick={() => setIsEventModalOpen(false)}>Close</button>
+              </div>
+            </footer>
           </div>
         </div>
       )}

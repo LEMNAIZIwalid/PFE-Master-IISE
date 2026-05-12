@@ -108,6 +108,7 @@ def update_card():
         """
         
         # Préparation des paramètres
+        source = data.get('Source', 'PWC_System')
         params = {
             "id_Card":   data.get('id_Card'),
             "PAN":       data.get('PAN'),
@@ -117,16 +118,38 @@ def update_card():
             "POS_limit": float(data.get('POS_limit')) if data.get('POS_limit') else 0.0,
             "ATM_limit": float(data.get('ATM_limit')) if data.get('ATM_limit') else 0.0,
             "Status":    data.get('Status', 'Active'),
-            "Source":    data.get('Source', 'PWC_System'),
+            "Source":    source,
             "Operation": "Update"
         }
         
         cursor.execute(sql_pwc, params)
-        cursor.execute(sql_events, params)
+        
+        # Pour l'audit (Events), si c'est une carte externe modifiée par PWC,
+        # on garde l'opération standard pour éviter les erreurs de contrainte
+        # mais on marque la source comme PWC_System pour savoir qui a fait l'action
+        event_params = params.copy()
+        if source == 'Externel_System':
+            event_params["Source"] = 'PWC_System'
+        
+        cursor.execute(sql_events, event_params)
+
+        # 3. Synchronisation avec Externel_System si nécessaire
+        if source == 'Externel_System':
+            sql_ext = """
+                INSERT INTO POS.Externel_System (
+                    id_Card, PAN, F_Name, L_Name, Amount, 
+                    POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+                ) VALUES (
+                    :id_Card, :PAN, :F_Name, :L_Name, :Amount, 
+                    :POS_limit, :ATM_limit, :Status, :Source, :Operation, CURRENT_TIMESTAMP
+                )
+            """
+            cursor.execute(sql_ext, params)
+        
         connection.commit()
         
-        print(f"Card {data.get('id_Card')} update successfully registered (PWC & Events).")
-        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} updated successfully in both tables"}), 200
+        print(f"Card {data.get('id_Card')} update successfully registered (PWC & Events & Ext Sync).")
+        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} updated successfully and synced"}), 200
         
     except Exception as e:
         print(f"Oracle Error during update : {e}")
@@ -152,7 +175,7 @@ def delete_card():
                 POS_limit, ATM_limit, Status, Source, Operation, TIMESTMP
             ) VALUES (
                 :id_Card, :PAN, :F_Name, :L_Name, :Amount, 
-                :POS_limit, :ATM_limit, 'blocked', :Source, 'DELETE', CURRENT_TIMESTAMP
+                :POS_limit, :ATM_limit, 'blocked', :Source, :Operation, CURRENT_TIMESTAMP
             )
         """
 
@@ -163,11 +186,12 @@ def delete_card():
                 POS_limit, ATM_limit, Status, Source, Operation, Timetmp
             ) VALUES (
                 :id_Card, :PAN, :F_Name, :L_Name, :Amount, 
-                :POS_limit, :ATM_limit, 'blocked', :Source, 'DELETE', CURRENT_TIMESTAMP
+                :POS_limit, :ATM_limit, 'blocked', :Source, :Operation, CURRENT_TIMESTAMP
             )
         """
         
         # Préparation des paramètres
+        source = data.get('Source', 'PWC_System')
         params = {
             "id_Card":   data.get('id_Card'),
             "PAN":       data.get('PAN'),
@@ -176,15 +200,35 @@ def delete_card():
             "Amount":    float(data.get('Amount')) if data.get('Amount') else 0.0,
             "POS_limit": float(data.get('POS_limit')) if data.get('POS_limit') else 0.0,
             "ATM_limit": float(data.get('ATM_limit')) if data.get('ATM_limit') else 0.0,
-            "Source":    data.get('Source', 'PWC_System')
+            "Source":    source,
+            "Operation": "DELETE"
         }
         
         cursor.execute(sql_pwc, params)
-        cursor.execute(sql_events, params)
+        
+        event_params = params.copy()
+        if source == 'Externel_System':
+            event_params["Source"] = 'PWC_System'
+            
+        cursor.execute(sql_events, event_params)
+
+        # 3. Synchronisation avec Externel_System si nécessaire
+        if source == 'Externel_System':
+            sql_ext = """
+                INSERT INTO POS.Externel_System (
+                    id_Card, PAN, F_Name, L_Name, Amount, 
+                    POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+                ) VALUES (
+                    :id_Card, :PAN, :F_Name, :L_Name, :Amount, 
+                    :POS_limit, :ATM_limit, 'blocked', :Source, :Operation, CURRENT_TIMESTAMP
+                )
+            """
+            cursor.execute(sql_ext, params)
+
         connection.commit()
         
-        print(f"Card {data.get('id_Card')} deletion (log) successfully registered (PWC & Events).")
-        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} deleted successfully in both tables"}), 200
+        print(f"Card {data.get('id_Card')} deletion successfully registered and synced.")
+        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} deleted successfully and synced"}), 200
         
     except Exception as e:
         print(f"Oracle Error during deletion : {e}")
@@ -344,6 +388,176 @@ def get_external_cards():
     finally:
         if connection:
             connection.close()
+
+@app.route('/api/external/update', methods=['PUT'])
+def external_update_card():
+    data = request.json
+    card_id = data.get('id_Card')
+    print(f"[EXTERNAL] Update request received for card : {card_id}")
+
+    connection = None
+    try:
+        connection = get_oracle_connection()
+        cursor = connection.cursor()
+
+        # ── 1. Récupérer le PAN actuel de la carte (non modifiable) ──
+        cursor.execute(
+            "SELECT PAN FROM POS.Externel_System WHERE ID_CARD = :id ORDER BY TIMESTMP DESC FETCH FIRST 1 ROWS ONLY",
+            {"id": card_id}
+        )
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"status": "error", "message": f"Card {card_id} not found in External System"}), 404
+        current_pan = row[0]
+
+        # ── 2. INSERT nouvelle ligne dans Externel_System (Operation = Update) ──
+        sql_ext = """
+            INSERT INTO POS.Externel_System (
+                id_Card, PAN, F_Name, L_Name, Amount,
+                POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+            ) VALUES (
+                :id_Card, :PAN, :F_Name, :L_Name, :Amount,
+                :POS_limit, :ATM_limit, :Status, :Source, 'Update', CURRENT_TIMESTAMP
+            )
+        """
+
+        # ── 3. INSERT audit dans Events ──
+        sql_events = """
+            INSERT INTO POS.Events (
+                id_card, PAN, F_Name, L_Name, Amounts,
+                POS_limit, ATM_limit, Status, Source, Operation, Timetmp
+            ) VALUES (
+                :id_Card, :PAN, :F_Name, :L_Name, :Amount,
+                :POS_limit, :ATM_limit, :Status, :Source, 'Update', CURRENT_TIMESTAMP
+            )
+        """
+
+        params = {
+            "id_Card":   card_id,
+            "PAN":       current_pan,
+            "F_Name":    data.get('F_Name'),
+            "L_Name":    data.get('L_Name'),
+            "Amount":    float(data.get('Amount'))    if data.get('Amount')    else 0.0,
+            "POS_limit": float(data.get('POS_limit')) if data.get('POS_limit') else 0.0,
+            "ATM_limit": float(data.get('ATM_limit')) if data.get('ATM_limit') else 0.0,
+            "Status":    data.get('Status', 'Active'),
+            "Source":    'Externel_System',
+        }
+
+        cursor.execute(sql_ext, params)
+        cursor.execute(sql_events, params)
+        connection.commit()
+
+        print(f"[EXTERNAL] Card {card_id} updated and logged in Events.")
+        return jsonify({"status": "success", "message": f"Card {card_id} updated in External System and Events"}), 200
+
+    except Exception as e:
+        print(f"Oracle Error [EXT UPDATE]: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        if connection:
+            connection.close()
+
+@app.route('/api/external/delete', methods=['DELETE'])
+def external_delete_card():
+    data = request.json
+    card_id = data.get('id_Card')
+    print(f"[EXTERNAL] Delete request received for card : {card_id}")
+
+    connection = None
+    try:
+        connection = get_oracle_connection()
+        cursor = connection.cursor()
+
+        # ── 1. Récupérer PAN + données actuelles de la carte ──
+        cursor.execute("""
+            SELECT PAN, F_NAME, L_NAME, AMOUNT, POS_LIMIT, ATM_LIMIT
+            FROM POS.Externel_System
+            WHERE ID_CARD = :id
+            ORDER BY TIMESTMP DESC
+            FETCH FIRST 1 ROWS ONLY
+        """, {"id": card_id})
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"status": "error", "message": f"Card {card_id} not found"}), 404
+
+        pan, f_name, l_name, amount, pos_limit, atm_limit = row
+
+        # ── 2. INSERT dans Externel_System (Operation=Delete, Status=Blocked) ──
+        sql_ext = """
+            INSERT INTO POS.Externel_System (
+                id_Card, PAN, F_Name, L_Name, Amount,
+                POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+            ) VALUES (
+                :id_Card, :PAN, :F_Name, :L_Name, :Amount,
+                :POS_limit, :ATM_limit, 'blocked', 'Externel_System', 'DELETE', CURRENT_TIMESTAMP
+            )
+        """
+
+        # ── 3. INSERT audit dans Events ──
+        sql_events = """
+            INSERT INTO POS.Events (
+                id_card, PAN, F_Name, L_Name, Amounts,
+                POS_limit, ATM_limit, Status, Source, Operation, Timetmp
+            ) VALUES (
+                :id_Card, :PAN, :F_Name, :L_Name, :Amount,
+                :POS_limit, :ATM_limit, 'blocked', 'Externel_System', 'DELETE', CURRENT_TIMESTAMP
+            )
+        """
+
+        params = {
+            "id_Card":   card_id,
+            "PAN":       pan,
+            "F_Name":    f_name,
+            "L_Name":    l_name,
+            "Amount":    float(amount)    if amount    else 0.0,
+            "POS_limit": float(pos_limit) if pos_limit else 0.0,
+            "ATM_limit": float(atm_limit) if atm_limit else 0.0,
+        }
+
+        cursor.execute(sql_ext, params)
+        cursor.execute(sql_events, params)
+        connection.commit()
+
+        print(f"[EXTERNAL] Card {card_id} marked as Deleted (Blocked) in External System and Events.")
+        return jsonify({"status": "success", "message": f"Card {card_id} deleted from External System"}), 200
+
+    except Exception as e:
+        print(f"Oracle Error [EXT DELETE]: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        if connection:
+            connection.close()
+@app.route('/api/external/events', methods=['GET'])
+def get_external_events():
+    connection = None
+    try:
+        connection = get_oracle_connection()
+        cursor = connection.cursor()
+        
+        # Récupérer les événements liés à External System OU MODIFIÉS par PWC sur des cartes Externes
+        cursor.execute("""
+            SELECT ID_EVENT, ID_CARD, PAN, F_NAME, L_NAME, AMOUNTS, 
+                   POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMETMP 
+            FROM POS.Events 
+            WHERE SOURCE = 'Externel_System' 
+               OR (SOURCE = 'PWC_System' AND ID_CARD IN (SELECT ID_CARD FROM POS.Externel_System))
+            ORDER BY TIMETMP DESC
+        """)
+        
+        columns = [col[0] for col in cursor.description]
+        events = []
+        for row in cursor:
+            events.append(dict(zip(columns, row)))
+            
+        return jsonify(events), 200
+    except Exception as e:
+        print(f"Oracle External Events Error : {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        if connection:
+            connection.close()
+
 
 if __name__ == '__main__':
     print("API PowerCard System started on http://localhost:5001")
