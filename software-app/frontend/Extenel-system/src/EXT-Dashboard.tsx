@@ -106,16 +106,16 @@ const EXTDashboard: React.FC = () => {
     const { name, value } = e.target;
     setEditData((prev: any) => ({ ...prev, [name]: value }));
   };
-  
+
   const handleAuditClick = (event: any) => {
     // Find the previous state of this card to show the difference
     const cardHistory = externalEvents
       .filter(e => e.ID_CARD === event.ID_CARD)
       .sort((a, b) => new Date(b.TIMETMP).getTime() - new Date(a.TIMETMP).getTime());
-    
+
     const currentIdx = cardHistory.findIndex(e => e.ID_EVENT === event.ID_EVENT);
     const prev = cardHistory[currentIdx + 1]; // Next one in DESC order is the previous state
-    
+
     setSelectedAudit({ current: event, previous: prev });
     setIsAuditModalOpen(true);
   };
@@ -531,8 +531,8 @@ const EXTDashboard: React.FC = () => {
 
                   {/* View Actions */}
                   <div className="modal-footer-actions">
-                    <button 
-                      className="modal-action-btn modal-modify-btn" 
+                    <button
+                      className="modal-action-btn modal-modify-btn"
                       onClick={() => {
                         if (selectedCard.OPERATION === 'DELETE') {
                           alert("This card is permanently deleted, you do not have the right to modify it.");
@@ -547,8 +547,8 @@ const EXTDashboard: React.FC = () => {
                       </svg>
                       Modify Card
                     </button>
-                    <button 
-                      className="modal-action-btn modal-delete-btn" 
+                    <button
+                      className="modal-action-btn modal-delete-btn"
                       onClick={() => {
                         if (selectedCard.STATUS?.toLowerCase() === 'blocked' || selectedCard.OPERATION === 'DELETE') {
                           alert("This card is already deleted, you do not have the right.");
@@ -827,42 +827,42 @@ const EXTDashboard: React.FC = () => {
                     <svg width="160" height="160" viewBox="0 0 100 100">
                       {/* Background circle */}
                       <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
-                      
+
                       {(() => {
                         const filtered = externalEvents.filter(e => supervisorFilter === 'All' || e.SOURCE === supervisorFilter);
                         const total = filtered.length || 1;
                         const cCount = filtered.filter(e => e.OPERATION === 'Create').length;
                         const uCount = filtered.filter(e => e.OPERATION === 'Update').length;
                         const dCount = filtered.filter(e => e.OPERATION === 'DELETE').length;
-                        
+
                         const circumference = 2 * Math.PI * 40; // 251.32
-                        
+
                         // Segments (Green, Amber, Rose)
                         const cDash = (cCount / total) * circumference;
                         const uDash = (uCount / total) * circumference;
                         const dDash = (dCount / total) * circumference;
-                        
+
                         return (
                           <>
                             {/* Create Segment */}
-                            <circle 
-                              cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="12" 
+                            <circle
+                              cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="12"
                               strokeDasharray={`${cDash} ${circumference - cDash}`}
                               strokeDashoffset="0"
                               transform="rotate(-90 50 50)"
                               strokeLinecap={cCount === total ? 'butt' : 'round'}
                             />
                             {/* Update Segment */}
-                            <circle 
-                              cx="50" cy="50" r="40" fill="transparent" stroke="#f59e0b" strokeWidth="12" 
+                            <circle
+                              cx="50" cy="50" r="40" fill="transparent" stroke="#f59e0b" strokeWidth="12"
                               strokeDasharray={`${uDash} ${circumference - uDash}`}
                               strokeDashoffset={-cDash}
                               transform="rotate(-90 50 50)"
                               strokeLinecap={uCount === total ? 'butt' : 'round'}
                             />
                             {/* Delete Segment */}
-                            <circle 
-                              cx="50" cy="50" r="40" fill="transparent" stroke="#ef4444" strokeWidth="12" 
+                            <circle
+                              cx="50" cy="50" r="40" fill="transparent" stroke="#ef4444" strokeWidth="12"
                               strokeDasharray={`${dDash} ${circumference - dDash}`}
                               strokeDashoffset={-(cDash + uDash)}
                               transform="rotate(-90 50 50)"
@@ -874,7 +874,7 @@ const EXTDashboard: React.FC = () => {
                       })()}
                     </svg>
                   </div>
-                  
+
                   <div className="ops-legend">
                     {[
                       { id: 'All', label: 'All', color: '#94a3b8', count: externalEvents.filter(e => supervisorFilter === 'All' || e.SOURCE === supervisorFilter).length },
@@ -882,8 +882,8 @@ const EXTDashboard: React.FC = () => {
                       { id: 'Update', label: 'Update', color: '#f59e0b', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && e.OPERATION === 'Update').length },
                       { id: 'DELETE', label: 'Delete', color: '#ef4444', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && e.OPERATION === 'DELETE').length }
                     ].map(item => (
-                      <div 
-                        key={item.id} 
+                      <div
+                        key={item.id}
                         className={`legend-item ${supervisorOperationFilter === item.id ? 'active' : ''}`}
                         onClick={() => setSupervisorOperationFilter(item.id)}
                       >
@@ -911,9 +911,9 @@ const EXTDashboard: React.FC = () => {
                       event.PAN?.toLowerCase().includes(supervisorSearchTerm.toLowerCase())
                     )
                     .map((event, idx) => (
-                      <div 
-                        key={idx} 
-                        className="audit-log-card animate-slide-up clickable" 
+                      <div
+                        key={idx}
+                        className="audit-log-card animate-slide-up clickable"
                         style={{ animationDelay: `${idx * 0.08}s` }}
                         onClick={() => handleAuditClick(event)}
                       >
@@ -1002,7 +1002,7 @@ const EXTDashboard: React.FC = () => {
                 <div className="profile-details">
                   <div className="detail-item">
                     <label>Employee ID</label>
-                    <span>HPS-99283</span>
+                    <span>99283</span>
                   </div>
                   <div className="detail-item">
                     <label>Department</label>
@@ -1229,18 +1229,18 @@ const EXTDashboard: React.FC = () => {
                   <p className="audit-summary-text">
                     The <span className={selectedAudit.current.SOURCE === 'PWC_System' ? 'pwc-tag' : 'ext-tag'}>
                       {selectedAudit.current.SOURCE === 'PWC_System' ? 'PWC Administrator' : 'External System'}
-                    </span> 
-                    performed a 
+                    </span>
+                    performed a
                     <span className={`op-badge op-${selectedAudit.current.OPERATION?.toLowerCase()}`}>
                       {selectedAudit.current.OPERATION}
-                    </span> 
+                    </span>
                     operation on card <span className="card-ref bold-black">#{selectedAudit.current.ID_CARD}</span>.
                   </p>
                 </div>
 
                 <div className="audit-comparison-grid">
                   <h4 className="comparison-title">Detailed Modifications</h4>
-                  
+
                   {selectedAudit.current.OPERATION === 'Create' ? (
                     <div className="audit-initial-state">
                       <p>This is the <strong>initial registration</strong> of the card in the system.</p>
@@ -1263,7 +1263,7 @@ const EXTDashboard: React.FC = () => {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Compare Name */}
                       {(selectedAudit.current.F_NAME !== selectedAudit.previous.F_NAME || selectedAudit.current.L_NAME !== selectedAudit.previous.L_NAME) && (
                         <div className="mod-item">
@@ -1301,14 +1301,14 @@ const EXTDashboard: React.FC = () => {
                       )}
 
                       {/* If no detectable difference in these fields */}
-                      {Number(selectedAudit.current.AMOUNTS) === Number(selectedAudit.previous.AMOUNTS) && 
-                       selectedAudit.current.F_NAME === selectedAudit.previous.F_NAME && 
-                       selectedAudit.current.L_NAME === selectedAudit.previous.L_NAME && 
-                       selectedAudit.current.STATUS === selectedAudit.previous.STATUS &&
-                       Number(selectedAudit.current.POS_LIMIT) === Number(selectedAudit.previous.POS_LIMIT) &&
-                       Number(selectedAudit.current.ATM_LIMIT) === Number(selectedAudit.previous.ATM_LIMIT) && (
-                        <div className="empty-mod">No specific field changes detected in this synchronization step.</div>
-                      )}
+                      {Number(selectedAudit.current.AMOUNTS) === Number(selectedAudit.previous.AMOUNTS) &&
+                        selectedAudit.current.F_NAME === selectedAudit.previous.F_NAME &&
+                        selectedAudit.current.L_NAME === selectedAudit.previous.L_NAME &&
+                        selectedAudit.current.STATUS === selectedAudit.previous.STATUS &&
+                        Number(selectedAudit.current.POS_LIMIT) === Number(selectedAudit.previous.POS_LIMIT) &&
+                        Number(selectedAudit.current.ATM_LIMIT) === Number(selectedAudit.previous.ATM_LIMIT) && (
+                          <div className="empty-mod">No specific field changes detected in this synchronization step.</div>
+                        )}
                     </div>
                   ) : (
                     <div className="empty-mod">Initial record or previous state not found in current cache.</div>
