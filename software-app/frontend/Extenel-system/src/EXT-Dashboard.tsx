@@ -26,6 +26,7 @@ const EXTDashboard: React.FC = () => {
   const [externalEvents, setExternalEvents] = useState<any[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [supervisorSearchTerm, setSupervisorSearchTerm] = useState('');
+  const [supervisorFilter, setSupervisorFilter] = useState('All');
 
   // Modal State
   const [selectedCard, setSelectedCard] = useState<any>(null);
@@ -487,7 +488,10 @@ const EXTDashboard: React.FC = () => {
                       <div className="modal-info-row">
                         <span className="modal-info-key">Operation</span>
                         <span className={`op-badge op-${(selectedCard.OPERATION ?? '').toLowerCase()}`}>
-                          {selectedCard.OPERATION ?? 'N/A'}
+                          {String(selectedCard.OPERATION ?? 'N/A').toLowerCase() === 'create' ? 'Create' :
+                            String(selectedCard.OPERATION ?? 'N/A').toLowerCase() === 'update' ? 'Update' :
+                              String(selectedCard.OPERATION ?? 'N/A').toLowerCase() === 'delete' ? 'Delete' :
+                                selectedCard.OPERATION ?? 'N/A'}
                         </span>
                       </div>
                       <div className="modal-info-row">
@@ -609,15 +613,20 @@ const EXTDashboard: React.FC = () => {
                     <div className="modal-edit-section">
                       <div className="modal-section-tag">CARD STATUS</div>
                       <div className="edit-status-row">
-                        {['Active', 'suspended', 'blocked'].map(s => (
+                        {[
+                          { id: 'Active', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> },
+                          { id: 'suspended', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg> },
+                          { id: 'blocked', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> }
+                        ].map(s => (
                           <button
-                            key={s}
+                            key={s.id}
                             type="button"
-                            className={`edit-status-btn ${editData.STATUS === s ? `status-selected-${s.toLowerCase()}` : ''}`}
-                            onClick={() => setEditData((prev: any) => ({ ...prev, STATUS: s }))}
+                            className={`edit-status-btn ${editData.STATUS === s.id ? `status-selected-${s.id.toLowerCase()}` : ''}`}
+                            onClick={() => setEditData((prev: any) => ({ ...prev, STATUS: s.id }))}
                           >
                             <span className="status-dot"></span>
-                            {s.charAt(0).toUpperCase() + s.slice(1)}
+                            {s.icon}
+                            {s.id.charAt(0).toUpperCase() + s.id.slice(1)}
                           </button>
                         ))}
                       </div>
@@ -758,16 +767,28 @@ const EXTDashboard: React.FC = () => {
             <div className="audit-feed-container animate-fade-in">
               <div className="feed-header">
                 <h3>Modification Activity Feed</h3>
+                <div className="source-filter-pills">
+                  {['All', 'Externel_System', 'PWC_System'].map(f => (
+                    <button
+                      key={f}
+                      className={`filter-pill ${supervisorFilter === f ? 'active' : ''}`}
+                      onClick={() => setSupervisorFilter(f)}
+                    >
+                      {f === 'All' ? 'All Sources' : f.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
                 <span className="feed-count">{externalEvents.length} Logs</span>
               </div>
 
               {loadingEvents ? (
                 <div className="loading-cell">Fetching system logs...</div>
               ) : externalEvents.length === 0 ? (
-                <div className="empty-cell">No recent modifications from PWC System.</div>
+                <div className="empty-cell">No recent modifications from the system.</div>
               ) : (
                 <div className="audit-feed">
                   {externalEvents
+                    .filter(event => supervisorFilter === 'All' || event.SOURCE === supervisorFilter)
                     .filter(event =>
                       event.ID_CARD?.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
                       event.F_NAME?.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
@@ -777,7 +798,14 @@ const EXTDashboard: React.FC = () => {
                     .map((event, idx) => (
                       <div key={idx} className="audit-log-card animate-slide-up" style={{ animationDelay: `${idx * 0.08}s` }}>
                         <div className="log-indicator-side">
-                          <div className={`log-dot ${event.OPERATION?.toLowerCase().includes('delete') ? 'danger' : 'warning'}`}></div>
+                          <div
+                            className={`log-dot ${event.OPERATION?.toLowerCase().includes('delete')
+                              ? 'op-deleted'
+                              : event.OPERATION?.toLowerCase().includes('update')
+                                ? 'op-updated'
+                                : 'op-created'
+                              }`}
+                          ></div>
                           <div className="log-line"></div>
                         </div>
 
@@ -785,11 +813,15 @@ const EXTDashboard: React.FC = () => {
                           <div className="log-message">
                             {event.SOURCE === 'PWC_System' ? (
                               <>
-                                L'administrateur <span className="pwc-tag">PWC Admin</span> a
-                                <span className={`action-word ${event.OPERATION?.toLowerCase().includes('delete') ? 'deleted' : 'modified'}`}>
-                                  {event.OPERATION?.toLowerCase().includes('delete') ? ' supprimé (DELETE) ' : ' modifié (MODIFY) '}
+                                The administrator <span className="pwc-tag">PWC Admin</span>
+                                <span
+                                  className={`action-word ${event.OPERATION?.toLowerCase().includes('delete') ? 'deleted' : event.OPERATION?.toLowerCase().includes('update') ? 'updated' : 'created'}`}
+                                >
+                                  <span> </span>
+                                  {event.OPERATION?.toLowerCase().includes('delete') ? 'Deleted' : 'Updated'}
                                 </span>
-                                la carte : <span className="card-ref">#{event.ID_CARD}</span>
+                                <span> </span> the card: <span className="card-ref bold-black">#{event.ID_CARD}</span>
+
                                 <span className="change-details">
                                   via <span className="pwc-tag">PWC System</span>
                                   [Limits: {event.POS_LIMIT}€ / {event.ATM_LIMIT}€ | Status: {event.STATUS}]
@@ -797,11 +829,15 @@ const EXTDashboard: React.FC = () => {
                               </>
                             ) : (
                               <>
-                                Le système <span className="ext-tag">External</span> a
-                                <span className={`action-word ${event.OPERATION?.toLowerCase().includes('delete') ? 'deleted' : 'modified'}`}>
-                                  {event.OPERATION?.toLowerCase().includes('delete') ? ' supprimé ' : event.OPERATION === 'Create' ? ' créé ' : ' modifié '}
+                                The <span className="ext-tag">External</span> system
+                                <span
+                                  className={`action-word ${event.OPERATION?.toLowerCase().includes('delete') ? 'deleted' : event.OPERATION?.toLowerCase().includes('update') ? 'updated' : 'created'}`}
+                                >
+                                  <span> </span>
+                                  {event.OPERATION?.toLowerCase().includes('delete') ? 'Deleted' : event.OPERATION === 'Create' ? 'Created' : 'Updated'}
                                 </span>
-                                la carte : <span className="card-ref">#{event.ID_CARD}</span>
+                                <span> </span> the card: <span className="card-ref bold-black">#{event.ID_CARD}</span>
+
                                 <span className="change-details">
                                   [Source: {event.SOURCE}]
                                 </span>
@@ -812,7 +848,7 @@ const EXTDashboard: React.FC = () => {
                           <div className="log-meta">
                             <span className="meta-item timestamp">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                              {new Date(event.TIMETMP).toLocaleString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              {new Date(event.TIMETMP).toLocaleString('en-US', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </span>
                             <span className="meta-item ref-id">Audit Reference: #{event.ID_EVENT}</span>
                             <span className={`meta-item status-badge ${event.STATUS?.toLowerCase()}`}>{event.STATUS}</span>
@@ -836,10 +872,10 @@ const EXTDashboard: React.FC = () => {
             <div className="settings-grid">
               <div className="settings-card profile-card">
                 <div className="profile-header">
-                  <div className="profile-avatar-large">PA</div>
+                  <div className="profile-avatar-large">ES</div>
                   <div className="profile-info">
-                    <h3>PWC Administrator</h3>
-                    <p>admin.pwc@hps-worldwide.com</p>
+                    <h3>External System Admin</h3>
+                    <p>admin.external@gmail.com</p>
                     <span className="role-badge">Super Admin</span>
                   </div>
                 </div>
@@ -1029,7 +1065,7 @@ const EXTDashboard: React.FC = () => {
                 <div className="session-list">
                   <div className="session-item">
                     <div className="session-info">
-                      <p className="session-user">pwc_admin_1 (You)</p>
+                      <p className="session-user">ext_admin_1 (You)</p>
                       <p className="session-ip">192.168.1.45</p>
                     </div>
                     <span className="session-tag current">Active</span>
