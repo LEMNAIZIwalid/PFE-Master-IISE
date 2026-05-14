@@ -1157,48 +1157,7 @@ const EXTDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="settings-card monitoring-chart-card">
-                <div className="card-header">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                  <h3>Transaction Throughput</h3>
-                </div>
-                <div className="mock-chart">
-                  {/* Visualizing a small line chart with CSS/SVG */}
-                  <svg width="100%" height="150" viewBox="0 0 400 150">
-                    <path d="M0 120 L50 110 L100 130 L150 70 L200 90 L250 40 L300 60 L350 20 L400 30" fill="none" stroke="#6366f1" strokeWidth="3" />
-                    <rect x="0" y="0" width="400" height="150" fill="url(#chart-grad)" opacity="0.1" />
-                    <defs>
-                      <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366f1" />
-                        <stop offset="100%" stopColor="transparent" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </div>
-              </div>
 
-              <div className="settings-card">
-                <div className="card-header">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                  <h3>Active Admin Sessions</h3>
-                </div>
-                <div className="session-list">
-                  <div className="session-item">
-                    <div className="session-info">
-                      <p className="session-user">ext_admin_1 (You)</p>
-                      <p className="session-ip">192.168.1.45</p>
-                    </div>
-                    <span className="session-tag current">Active</span>
-                  </div>
-                  <div className="session-item">
-                    <div className="session-info">
-                      <p className="session-user">hps_support</p>
-                      <p className="session-ip">10.0.4.122</p>
-                    </div>
-                    <span className="session-tag">Idle</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         )}
