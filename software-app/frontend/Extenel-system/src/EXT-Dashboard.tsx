@@ -27,12 +27,17 @@ const EXTDashboard: React.FC = () => {
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [supervisorSearchTerm, setSupervisorSearchTerm] = useState('');
   const [supervisorFilter, setSupervisorFilter] = useState('All');
+  const [supervisorOperationFilter, setSupervisorOperationFilter] = useState('All');
+
 
   // Modal State
   const [selectedCard, setSelectedCard] = useState<any>(null);
+  const [selectedAudit, setSelectedAudit] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editData, setEditData] = useState<any>({});
+
 
   const generateNewCardData = () => {
     setGeneratedId(`CRD-${Math.floor(100000 + Math.random() * 900000)}`);
@@ -100,6 +105,19 @@ const EXTDashboard: React.FC = () => {
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEditData((prev: any) => ({ ...prev, [name]: value }));
+  };
+  
+  const handleAuditClick = (event: any) => {
+    // Find the previous state of this card to show the difference
+    const cardHistory = externalEvents
+      .filter(e => e.ID_CARD === event.ID_CARD)
+      .sort((a, b) => new Date(b.TIMETMP).getTime() - new Date(a.TIMETMP).getTime());
+    
+    const currentIdx = cardHistory.findIndex(e => e.ID_EVENT === event.ID_EVENT);
+    const prev = cardHistory[currentIdx + 1]; // Next one in DESC order is the previous state
+    
+    setSelectedAudit({ current: event, previous: prev });
+    setIsAuditModalOpen(true);
   };
 
   const handleSaveEdit = async () => {
@@ -513,14 +531,32 @@ const EXTDashboard: React.FC = () => {
 
                   {/* View Actions */}
                   <div className="modal-footer-actions">
-                    <button className="modal-action-btn modal-modify-btn" onClick={() => setIsEditMode(true)}>
+                    <button 
+                      className="modal-action-btn modal-modify-btn" 
+                      onClick={() => {
+                        if (selectedCard.OPERATION === 'DELETE') {
+                          alert("This card is permanently deleted, you do not have the right to modify it.");
+                        } else {
+                          setIsEditMode(true);
+                        }
+                      }}
+                    >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
                       Modify Card
                     </button>
-                    <button className="modal-action-btn modal-delete-btn" onClick={handleDeleteCard}>
+                    <button 
+                      className="modal-action-btn modal-delete-btn" 
+                      onClick={() => {
+                        if (selectedCard.STATUS?.toLowerCase() === 'blocked' || selectedCard.OPERATION === 'DELETE') {
+                          alert("This card is already deleted, you do not have the right.");
+                        } else {
+                          handleDeleteCard();
+                        }
+                      }}
+                    >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -772,13 +808,91 @@ const EXTDashboard: React.FC = () => {
                     <button
                       key={f}
                       className={`filter-pill ${supervisorFilter === f ? 'active' : ''}`}
-                      onClick={() => setSupervisorFilter(f)}
+                      onClick={() => {
+                        setSupervisorFilter(f);
+                        setSupervisorOperationFilter('All');
+                      }}
                     >
                       {f === 'All' ? 'All Sources' : f.replace('_', ' ')}
                     </button>
                   ))}
                 </div>
-                <span className="feed-count">{externalEvents.length} Logs</span>
+                <span className="feed-count">{externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && (supervisorOperationFilter === 'All' || e.OPERATION === supervisorOperationFilter)).length} Logs</span>
+              </div>
+
+              {/* Operations Overview Donut Chart */}
+              <div className="supervisor-ops-card animate-fade-in">
+                <div className="ops-overview-content">
+                  <div className="donut-chart-wrapper">
+                    <svg width="160" height="160" viewBox="0 0 100 100">
+                      {/* Background circle */}
+                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
+                      
+                      {(() => {
+                        const filtered = externalEvents.filter(e => supervisorFilter === 'All' || e.SOURCE === supervisorFilter);
+                        const total = filtered.length || 1;
+                        const cCount = filtered.filter(e => e.OPERATION === 'Create').length;
+                        const uCount = filtered.filter(e => e.OPERATION === 'Update').length;
+                        const dCount = filtered.filter(e => e.OPERATION === 'DELETE').length;
+                        
+                        const circumference = 2 * Math.PI * 40; // 251.32
+                        
+                        // Segments (Green, Amber, Rose)
+                        const cDash = (cCount / total) * circumference;
+                        const uDash = (uCount / total) * circumference;
+                        const dDash = (dCount / total) * circumference;
+                        
+                        return (
+                          <>
+                            {/* Create Segment */}
+                            <circle 
+                              cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="12" 
+                              strokeDasharray={`${cDash} ${circumference - cDash}`}
+                              strokeDashoffset="0"
+                              transform="rotate(-90 50 50)"
+                              strokeLinecap={cCount === total ? 'butt' : 'round'}
+                            />
+                            {/* Update Segment */}
+                            <circle 
+                              cx="50" cy="50" r="40" fill="transparent" stroke="#f59e0b" strokeWidth="12" 
+                              strokeDasharray={`${uDash} ${circumference - uDash}`}
+                              strokeDashoffset={-cDash}
+                              transform="rotate(-90 50 50)"
+                              strokeLinecap={uCount === total ? 'butt' : 'round'}
+                            />
+                            {/* Delete Segment */}
+                            <circle 
+                              cx="50" cy="50" r="40" fill="transparent" stroke="#ef4444" strokeWidth="12" 
+                              strokeDasharray={`${dDash} ${circumference - dDash}`}
+                              strokeDashoffset={-(cDash + uDash)}
+                              transform="rotate(-90 50 50)"
+                              strokeLinecap={dCount === total ? 'butt' : 'round'}
+                            />
+                            <text x="50" y="55" textAnchor="middle" className="donut-center-text">{filtered.length}</text>
+                          </>
+                        );
+                      })()}
+                    </svg>
+                  </div>
+                  
+                  <div className="ops-legend">
+                    {[
+                      { id: 'All', label: 'All', color: '#94a3b8', count: externalEvents.filter(e => supervisorFilter === 'All' || e.SOURCE === supervisorFilter).length },
+                      { id: 'Create', label: 'Create', color: '#10b981', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && e.OPERATION === 'Create').length },
+                      { id: 'Update', label: 'Update', color: '#f59e0b', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && e.OPERATION === 'Update').length },
+                      { id: 'DELETE', label: 'Delete', color: '#ef4444', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && e.OPERATION === 'DELETE').length }
+                    ].map(item => (
+                      <div 
+                        key={item.id} 
+                        className={`legend-item ${supervisorOperationFilter === item.id ? 'active' : ''}`}
+                        onClick={() => setSupervisorOperationFilter(item.id)}
+                      >
+                        <div className="legend-dot" style={{ background: item.color }}></div>
+                        <span className="legend-label">{item.label} ({item.count})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {loadingEvents ? (
@@ -789,6 +903,7 @@ const EXTDashboard: React.FC = () => {
                 <div className="audit-feed">
                   {externalEvents
                     .filter(event => supervisorFilter === 'All' || event.SOURCE === supervisorFilter)
+                    .filter(event => supervisorOperationFilter === 'All' || event.OPERATION === supervisorOperationFilter)
                     .filter(event =>
                       event.ID_CARD?.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
                       event.F_NAME?.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
@@ -796,7 +911,12 @@ const EXTDashboard: React.FC = () => {
                       event.PAN?.toLowerCase().includes(supervisorSearchTerm.toLowerCase())
                     )
                     .map((event, idx) => (
-                      <div key={idx} className="audit-log-card animate-slide-up" style={{ animationDelay: `${idx * 0.08}s` }}>
+                      <div 
+                        key={idx} 
+                        className="audit-log-card animate-slide-up clickable" 
+                        style={{ animationDelay: `${idx * 0.08}s` }}
+                        onClick={() => handleAuditClick(event)}
+                      >
                         <div className="log-indicator-side">
                           <div
                             className={`log-dot ${event.OPERATION?.toLowerCase().includes('delete')
@@ -1082,7 +1202,124 @@ const EXTDashboard: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            AUDIT EXPLANATION MODAL (High Fidelity)
+            ══════════════════════════════════════════════════════════════════ */}
+        {isAuditModalOpen && selectedAudit && (
+          <div className="ext-modal-overlay animate-fade-in" onClick={() => setIsAuditModalOpen(false)}>
+            <div className="ext-modal-content audit-modal animate-scale-up" onClick={e => e.stopPropagation()}>
+              <div className="modal-top-bar audit-bar">
+                <div className="modal-top-left">
+                  <div className="audit-icon-wrapper">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  </div>
+                  <div>
+                    <div className="modal-client-name">Audit Event Analysis</div>
+                    <div className="modal-card-id-tag">Reference ID: #{selectedAudit.current.ID_EVENT}</div>
+                  </div>
+                </div>
+                <button className="modal-close-x" onClick={() => setIsAuditModalOpen(false)}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+              </div>
+
+              <div className="audit-modal-body">
+                <div className="audit-summary-box">
+                  <p className="audit-summary-text">
+                    The <span className={selectedAudit.current.SOURCE === 'PWC_System' ? 'pwc-tag' : 'ext-tag'}>
+                      {selectedAudit.current.SOURCE === 'PWC_System' ? 'PWC Administrator' : 'External System'}
+                    </span> 
+                    performed a 
+                    <span className={`op-badge op-${selectedAudit.current.OPERATION?.toLowerCase()}`}>
+                      {selectedAudit.current.OPERATION}
+                    </span> 
+                    operation on card <span className="card-ref bold-black">#{selectedAudit.current.ID_CARD}</span>.
+                  </p>
+                </div>
+
+                <div className="audit-comparison-grid">
+                  <h4 className="comparison-title">Detailed Modifications</h4>
+                  
+                  {selectedAudit.current.OPERATION === 'Create' ? (
+                    <div className="audit-initial-state">
+                      <p>This is the <strong>initial registration</strong> of the card in the system.</p>
+                      <div className="initial-details">
+                        <div className="detail-row"><span>Owner:</span> <strong>{selectedAudit.current.F_NAME} {selectedAudit.current.L_NAME}</strong></div>
+                        <div className="detail-row"><span>Initial Balance:</span> <strong>{selectedAudit.current.AMOUNTS}€</strong></div>
+                        <div className="detail-row"><span>Status:</span> <strong>{selectedAudit.current.STATUS}</strong></div>
+                      </div>
+                    </div>
+                  ) : selectedAudit.previous ? (
+                    <div className="modifications-list">
+                      {/* Compare Amount */}
+                      {Number(selectedAudit.current.AMOUNTS) !== Number(selectedAudit.previous.AMOUNTS) && (
+                        <div className="mod-item">
+                          <div className="mod-label">Balance Amount</div>
+                          <div className="mod-diff">
+                            <span className="old-val">{selectedAudit.previous.AMOUNTS}€</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            <span className="new-val">{selectedAudit.current.AMOUNTS}€</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Compare Name */}
+                      {(selectedAudit.current.F_NAME !== selectedAudit.previous.F_NAME || selectedAudit.current.L_NAME !== selectedAudit.previous.L_NAME) && (
+                        <div className="mod-item">
+                          <div className="mod-label">Client Name</div>
+                          <div className="mod-diff">
+                            <span className="old-val">{selectedAudit.previous.F_NAME} {selectedAudit.previous.L_NAME}</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            <span className="new-val">{selectedAudit.current.F_NAME} {selectedAudit.current.L_NAME}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Compare Limits */}
+                      {(Number(selectedAudit.current.POS_LIMIT) !== Number(selectedAudit.previous.POS_LIMIT) || Number(selectedAudit.current.ATM_LIMIT) !== Number(selectedAudit.previous.ATM_LIMIT)) && (
+                        <div className="mod-item">
+                          <div className="mod-label">Transaction Limits</div>
+                          <div className="mod-diff">
+                            <span className="old-val">POS: {selectedAudit.previous.POS_LIMIT}€ | ATM: {selectedAudit.previous.ATM_LIMIT}€</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            <span className="new-val">POS: {selectedAudit.current.POS_LIMIT}€ | ATM: {selectedAudit.current.ATM_LIMIT}€</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Compare Status */}
+                      {selectedAudit.current.STATUS !== selectedAudit.previous.STATUS && (
+                        <div className="mod-item">
+                          <div className="mod-label">Card Status</div>
+                          <div className="mod-diff">
+                            <span className={`status-pill ${selectedAudit.previous.STATUS?.toLowerCase()}`}>{selectedAudit.previous.STATUS}</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            <span className={`status-pill ${selectedAudit.current.STATUS?.toLowerCase()}`}>{selectedAudit.current.STATUS}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* If no detectable difference in these fields */}
+                      {Number(selectedAudit.current.AMOUNTS) === Number(selectedAudit.previous.AMOUNTS) && 
+                       selectedAudit.current.F_NAME === selectedAudit.previous.F_NAME && 
+                       selectedAudit.current.L_NAME === selectedAudit.previous.L_NAME && 
+                       selectedAudit.current.STATUS === selectedAudit.previous.STATUS &&
+                       Number(selectedAudit.current.POS_LIMIT) === Number(selectedAudit.previous.POS_LIMIT) &&
+                       Number(selectedAudit.current.ATM_LIMIT) === Number(selectedAudit.previous.ATM_LIMIT) && (
+                        <div className="empty-mod">No specific field changes detected in this synchronization step.</div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="empty-mod">Initial record or previous state not found in current cache.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
+
     </div>
   );
 };

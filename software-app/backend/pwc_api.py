@@ -2,11 +2,84 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import oracledb
 import datetime
+import json
+import io
+from fastavro import writer, parse_schema
+from confluent_kafka import Producer
 
 app = Flask(__name__)
 CORS(app) # Autorise le Frontend React à communiquer avec cette API
 
-# Configuration Oracle (Identique à tes autres scripts)
+# --- CONFIGURATION KAFKA & AVRO ---
+KAFKA_BROKER = "localhost:9092"
+KAFKA_TOPIC = "card-events"
+
+CARD_EVENT_SCHEMA = {
+    "namespace": "com.pfe.pos",
+    "type": "record",
+    "name": "CardEvent",
+    "fields": [
+        {"name": "id_card", "type": "string"},
+        {"name": "PAN", "type": "string"},
+        {"name": "F_name", "type": "string"},
+        {"name": "L_name", "type": "string"},
+        {"name": "Amount", "type": "float"},
+        {"name": "POS_limit", "type": "float"},
+        {"name": "ATM_limit", "type": "float"},
+        {"name": "Status", "type": "string"},
+        {"name": "Source", "type": "string"},
+        {"name": "Operation", "type": "string"},
+        {"name": "timestmp", "type": "string"}
+    ]
+}
+parsed_schema = parse_schema(CARD_EVENT_SCHEMA)
+
+# Initialisation du Producer Kafka
+try:
+    producer = Producer({'bootstrap.servers': KAFKA_BROKER})
+    print(f"✅ Kafka Producer initialized (Broker: {KAFKA_BROKER})")
+except Exception as e:
+    print(f"❌ Failed to initialize Kafka Producer: {e}")
+    producer = None
+
+def send_to_kafka(data, topic=KAFKA_TOPIC):
+    """Convertit les données en Avro et les envoie à Kafka."""
+    if not producer:
+        return
+    
+    try:
+        # Préparation des données pour Avro
+        avro_data = {
+            "id_card":   str(data.get('id_Card', '')),
+            "PAN":       str(data.get('PAN', '')),
+            "F_name":    str(data.get('F_Name', '')),
+            "L_name":    str(data.get('L_Name', '')),
+            "Amount":    float(data.get('Amount', 0.0)) if data.get('Amount') else 0.0,
+            "POS_limit": float(data.get('POS_limit', 0.0)) if data.get('POS_limit') else 0.0,
+            "ATM_limit": float(data.get('ATM_limit', 0.0)) if data.get('ATM_limit') else 0.0,
+            "Status":    str(data.get('Status', 'Active')),
+            "Source":    str(data.get('Source', 'Unknown')),
+            "Operation": str(data.get('Operation', 'Unknown')),
+            "timestmp":  datetime.datetime.now().isoformat()
+        }
+        
+        # Sérialisation Avro
+        bytes_io = io.BytesIO()
+        writer(bytes_io, parsed_schema, [avro_data])
+        avro_binary = bytes_io.getvalue()
+        
+        # Envoi
+        producer.produce(
+            topic=topic,
+            key=str(avro_data['id_card']),
+            value=avro_binary
+        )
+        producer.flush(1)
+        print(f"🚀 [KAFKA] Event sent (Avro) to topic '{topic}' for card {avro_data['id_card']}")
+    except Exception as e:
+        print(f"❌ Error sending to Kafka: {e}")
+
+# --- CONFIGURATION ORACLE ---
 ORACLE_USER = "POS"
 ORACLE_PASSWORD = "Izinm123W"
 ORACLE_DSN = "172.22.32.1:1521/XE"
@@ -68,8 +141,11 @@ def create_card():
         cursor.execute(sql_events, params)
         connection.commit()
         
-        print(f"Card {data.get('id_Card')} successfully registered in PWC_System and Events.")
-        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} created successfully in both tables"}), 201
+        # Stream to Kafka (Avro) -> Topic HPOS for creation
+        send_to_kafka(params, topic="HPOS")
+        
+        print(f"Card {data.get('id_Card')} successfully registered in PWC_System and Events (HPOS stream).")
+        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} created and streamed to HPOS"}), 201
         
     except Exception as e:
         print(f"Oracle Error : {e}")
@@ -124,21 +200,17 @@ def update_card():
         
         cursor.execute(sql_pwc, params)
         
-        # Pour l'audit (Events), si c'est une carte externe modifiée par PWC,
-        # on garde l'opération standard pour éviter les erreurs de contrainte
-        # mais on marque la source comme PWC_System pour savoir qui a fait l'action
         event_params = params.copy()
         if source == 'Externel_System':
             event_params["Source"] = 'PWC_System'
         
         cursor.execute(sql_events, event_params)
 
-        # 3. Synchronisation avec Externel_System si nécessaire
         if source == 'Externel_System':
             sql_ext = """
                 INSERT INTO POS.Externel_System (
                     id_Card, PAN, F_Name, L_Name, Amount, 
-                    POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+                    POS_limit, ATM_limit, Status, Source, Operation, Timstmp
                 ) VALUES (
                     :id_Card, :PAN, :F_Name, :L_Name, :Amount, 
                     :POS_limit, :ATM_limit, :Status, :Source, :Operation, CURRENT_TIMESTAMP
@@ -148,8 +220,11 @@ def update_card():
         
         connection.commit()
         
-        print(f"Card {data.get('id_Card')} update successfully registered (PWC & Events & Ext Sync).")
-        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} updated successfully and synced"}), 200
+        # Stream to Kafka (Avro) -> Topic HPOS for updates by PWC Admin
+        send_to_kafka(params, topic="HPOS")
+        
+        print(f"Card {data.get('id_Card')} update successfully registered (HPOS stream).")
+        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} updated successfully"}), 200
         
     except Exception as e:
         print(f"Oracle Error during update : {e}")
@@ -168,7 +243,6 @@ def delete_card():
         connection = get_oracle_connection()
         cursor = connection.cursor()
         
-        # 1. Insertion dans PowerCard_System
         sql_pwc = """
             INSERT INTO POS.PowerCard_System (
                 id_Card, PAN, F_Name, L_Name, Amount, 
@@ -179,7 +253,6 @@ def delete_card():
             )
         """
 
-        # 2. Insertion dans Events (Audit)
         sql_events = """
             INSERT INTO POS.Events (
                 id_card, PAN, F_Name, L_Name, Amounts, 
@@ -190,7 +263,6 @@ def delete_card():
             )
         """
         
-        # Préparation des paramètres
         source = data.get('Source', 'PWC_System')
         params = {
             "id_Card":   data.get('id_Card'),
@@ -212,7 +284,6 @@ def delete_card():
             
         cursor.execute(sql_events, event_params)
 
-        # 3. Synchronisation avec Externel_System si nécessaire
         if source == 'Externel_System':
             sql_ext = """
                 INSERT INTO POS.Externel_System (
@@ -227,8 +298,11 @@ def delete_card():
 
         connection.commit()
         
-        print(f"Card {data.get('id_Card')} deletion successfully registered and synced.")
-        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} deleted successfully and synced"}), 200
+        # Stream to Kafka (Avro) -> Topic HPOS for deletion by PWC Admin
+        params["Status"] = "blocked"
+        send_to_kafka(params, topic="HPOS")
+
+        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} deleted"}), 200
         
     except Exception as e:
         print(f"Oracle Error during deletion : {e}")
@@ -244,7 +318,6 @@ def get_cards():
         connection = get_oracle_connection()
         cursor = connection.cursor()
         
-        # On utilise une sous-requête avec ROW_NUMBER() pour ne récupérer que la dernière opération de chaque carte
         sql = """
             SELECT ID_CARD, PAN, F_NAME, L_NAME, OPERATION, AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT
             FROM (
@@ -256,7 +329,6 @@ def get_cards():
         """
         cursor.execute(sql)
 
-        
         columns = [col[0] for col in cursor.description]
         cards = []
         for row in cursor:
@@ -277,7 +349,6 @@ def get_events():
         connection = get_oracle_connection()
         cursor = connection.cursor()
         
-        # Récupérer les événements depuis la table POS.Events
         cursor.execute("""
             SELECT ID_EVENT, ID_CARD, PAN, F_NAME, L_NAME, AMOUNTS, 
                    POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMETMP 
@@ -301,14 +372,11 @@ def get_events():
 @app.route('/api/external/create', methods=['POST'])
 def external_create_card():
     data = request.json
-    print(f"[EXTERNAL] Request received for card creation : {data.get('id_Card')}")
-    
     connection = None
     try:
         connection = get_oracle_connection()
         cursor = connection.cursor()
         
-        # 1. Insertion dans Externel_System (Table spécifique)
         sql_ext = """
             INSERT INTO POS.Externel_System (
                 id_Card, PAN, F_Name, L_Name, Amount, 
@@ -319,7 +387,6 @@ def external_create_card():
             )
         """
         
-        # 2. Insertion dans Events (Audit global du projet)
         sql_events = """
             INSERT INTO POS.Events (
                 id_card, PAN, F_Name, L_Name, Amounts, 
@@ -347,9 +414,10 @@ def external_create_card():
         cursor.execute(sql_events, params)
         connection.commit()
         
-        print(f"Card [EXT] {data.get('id_Card')} successfully registered.")
-        return jsonify({"status": "success", "message": f"Card {data.get('id_Card')} created in External System"}), 201
+        # Stream to Kafka (Avro) -> Topic HPOS for external card creation
+        send_to_kafka(params, topic="HPOS")
         
+        return jsonify({"status": "success", "message": "External card created"}), 201
     except Exception as e:
         print(f"Oracle Error [EXT] : {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -364,7 +432,6 @@ def get_external_cards():
         connection = get_oracle_connection()
         cursor = connection.cursor()
         
-        # Récupérer la dernière opération de chaque carte dans Externel_System
         sql = """
             SELECT ID_CARD, PAN, F_NAME, L_NAME, OPERATION, AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT
             FROM (
@@ -393,24 +460,20 @@ def get_external_cards():
 def external_update_card():
     data = request.json
     card_id = data.get('id_Card')
-    print(f"[EXTERNAL] Update request received for card : {card_id}")
-
     connection = None
     try:
         connection = get_oracle_connection()
         cursor = connection.cursor()
 
-        # ── 1. Récupérer le PAN actuel de la carte (non modifiable) ──
         cursor.execute(
             "SELECT PAN FROM POS.Externel_System WHERE ID_CARD = :id ORDER BY TIMESTMP DESC FETCH FIRST 1 ROWS ONLY",
             {"id": card_id}
         )
         row = cursor.fetchone()
         if not row:
-            return jsonify({"status": "error", "message": f"Card {card_id} not found in External System"}), 404
+            return jsonify({"status": "error", "message": "Card not found"}), 404
         current_pan = row[0]
 
-        # ── 2. INSERT nouvelle ligne dans Externel_System (Operation = Update) ──
         sql_ext = """
             INSERT INTO POS.Externel_System (
                 id_Card, PAN, F_Name, L_Name, Amount,
@@ -421,7 +484,6 @@ def external_update_card():
             )
         """
 
-        # ── 3. INSERT audit dans Events ──
         sql_events = """
             INSERT INTO POS.Events (
                 id_card, PAN, F_Name, L_Name, Amounts,
@@ -448,9 +510,11 @@ def external_update_card():
         cursor.execute(sql_events, params)
         connection.commit()
 
-        print(f"[EXTERNAL] Card {card_id} updated and logged in Events.")
-        return jsonify({"status": "success", "message": f"Card {card_id} updated in External System and Events"}), 200
+        # Stream to Kafka (Avro) -> Topic HPOS for external updates
+        params["Operation"] = "Update"
+        send_to_kafka(params, topic="HPOS")
 
+        return jsonify({"status": "success", "message": "Updated"}), 200
     except Exception as e:
         print(f"Oracle Error [EXT UPDATE]: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -462,14 +526,11 @@ def external_update_card():
 def external_delete_card():
     data = request.json
     card_id = data.get('id_Card')
-    print(f"[EXTERNAL] Delete request received for card : {card_id}")
-
     connection = None
     try:
         connection = get_oracle_connection()
         cursor = connection.cursor()
 
-        # ── 1. Récupérer PAN + données actuelles de la carte ──
         cursor.execute("""
             SELECT PAN, F_NAME, L_NAME, AMOUNT, POS_LIMIT, ATM_LIMIT
             FROM POS.Externel_System
@@ -479,11 +540,10 @@ def external_delete_card():
         """, {"id": card_id})
         row = cursor.fetchone()
         if not row:
-            return jsonify({"status": "error", "message": f"Card {card_id} not found"}), 404
+            return jsonify({"status": "error", "message": "Not found"}), 404
 
         pan, f_name, l_name, amount, pos_limit, atm_limit = row
 
-        # ── 2. INSERT dans Externel_System (Operation=Delete, Status=Blocked) ──
         sql_ext = """
             INSERT INTO POS.Externel_System (
                 id_Card, PAN, F_Name, L_Name, Amount,
@@ -494,7 +554,6 @@ def external_delete_card():
             )
         """
 
-        # ── 3. INSERT audit dans Events ──
         sql_events = """
             INSERT INTO POS.Events (
                 id_card, PAN, F_Name, L_Name, Amounts,
@@ -519,15 +578,19 @@ def external_delete_card():
         cursor.execute(sql_events, params)
         connection.commit()
 
-        print(f"[EXTERNAL] Card {card_id} marked as Deleted (Blocked) in External System and Events.")
-        return jsonify({"status": "success", "message": f"Card {card_id} deleted from External System"}), 200
+        # Stream to Kafka (Avro) -> Topic HPOS for external deletion
+        params["Operation"] = "DELETE"
+        params["Status"] = "blocked"
+        send_to_kafka(params, topic="HPOS")
 
+        return jsonify({"status": "success", "message": "Deleted"}), 200
     except Exception as e:
         print(f"Oracle Error [EXT DELETE]: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         if connection:
             connection.close()
+
 @app.route('/api/external/events', methods=['GET'])
 def get_external_events():
     connection = None
@@ -535,7 +598,6 @@ def get_external_events():
         connection = get_oracle_connection()
         cursor = connection.cursor()
         
-        # Récupérer les événements liés à External System OU MODIFIÉS par PWC sur des cartes Externes
         cursor.execute("""
             SELECT ID_EVENT, ID_CARD, PAN, F_NAME, L_NAME, AMOUNTS, 
                    POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMETMP 
