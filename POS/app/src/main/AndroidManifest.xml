@@ -37,8 +37,13 @@
         <activity
             android:name=".Views.MainActivity"
             android:exported="false"
-            android:label="Tableau de Bord"
+            android:label="BANK Dashboard"
             android:theme="@style/Theme.POS" />
+
+        <activity android:name=".Views.ProfileActivity" android:exported="false" android:theme="@style/Theme.POS" />
+        <activity android:name=".Views.TransferActivity" android:exported="false" android:theme="@style/Theme.POS" />
+        <activity android:name=".Views.HistoryActivity" android:exported="false" android:theme="@style/Theme.POS" />
+        <activity android:name=".Views.ReceiptActivity" android:exported="false" android:theme="@style/Theme.POS" />
 
     </application>
 
