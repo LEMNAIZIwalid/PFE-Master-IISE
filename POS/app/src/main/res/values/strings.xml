@@ -1,4 +1,7 @@
 <resources>
-    <string name="app_name">POS</string>
-    <string name="welcome_pos">WELCOME POS</string>
+    <string name="app_name">BANK</string>
+    <string name="welcome_message">Bienvenue sur BANK</string>
+    <string name="login_title">Connectez-vous à votre compte</string>
+    <string name="forgot_password">Mot de passe oublié ?</string>
+    <string name="error_login">Identifiants incorrects</string>
 </resources>

@@ -80,9 +80,9 @@ def send_to_kafka(data, topic=KAFKA_TOPIC):
         print(f"❌ Error sending to Kafka: {e}")
 
 # --- CONFIGURATION ORACLE ---
-ORACLE_USER = "###"
-ORACLE_PASSWORD = "###"
-ORACLE_DSN = "####"
+ORACLE_USER = "POS"
+ORACLE_PASSWORD = "Izinm123W"
+ORACLE_DSN = "172.22.32.1:1521/XE"
 
 def get_oracle_connection():
     return oracledb.connect(
