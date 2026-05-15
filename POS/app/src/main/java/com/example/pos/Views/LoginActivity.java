@@ -16,16 +16,23 @@ public class LoginActivity extends AppCompatActivity {
     private TextView tvForgotPassword;
 
     private static final String VALID_USER = "bankclient";
-    private static final String VALID_PASS = "133016";
+
+    // Dynamic password: starts with default, can be updated via "Forgot Password"
+    private static String currentPassword = "133016";
+
+    /** Called by ResetPasswordActivity to update the password */
+    public static void updatePassword(String newPassword) {
+        currentPassword = newPassword;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        etUsername     = findViewById(R.id.etUsername);
-        etPassword     = findViewById(R.id.etPassword);
-        btnLogin       = findViewById(R.id.btnLogin);
+        etUsername       = findViewById(R.id.etUsername);
+        etPassword       = findViewById(R.id.etPassword);
+        btnLogin         = findViewById(R.id.btnLogin);
         tvForgotPassword = findViewById(R.id.tvForgotPassword);
 
         btnLogin.setOnClickListener(v -> {
@@ -37,7 +44,7 @@ public class LoginActivity extends AppCompatActivity {
                 return;
             }
 
-            if (user.equals(VALID_USER) && pass.equals(VALID_PASS)) {
+            if (user.equals(VALID_USER) && pass.equals(currentPassword)) {
                 Toast.makeText(this, "Welcome, " + VALID_USER + "!", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                 startActivity(intent);
@@ -47,8 +54,10 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
-        tvForgotPassword.setOnClickListener(v ->
-            Toast.makeText(this, "Please contact your local branch for support.", Toast.LENGTH_LONG).show()
-        );
+        // Navigate to Forgot Password flow
+        tvForgotPassword.setOnClickListener(v -> {
+            Intent intent = new Intent(LoginActivity.this, ForgotPasswordActivity.class);
+            startActivity(intent);
+        });
     }
 }

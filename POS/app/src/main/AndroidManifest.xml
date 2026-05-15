@@ -44,6 +44,8 @@
         <activity android:name=".Views.TransferActivity" android:exported="false" android:theme="@style/Theme.POS" />
         <activity android:name=".Views.HistoryActivity" android:exported="false" android:theme="@style/Theme.POS" />
         <activity android:name=".Views.ReceiptActivity" android:exported="false" android:theme="@style/Theme.POS" />
+        <activity android:name=".Views.ForgotPasswordActivity" android:exported="false" android:theme="@style/Theme.POS" />
+        <activity android:name=".Views.ResetPasswordActivity" android:exported="false" android:theme="@style/Theme.POS" />
 
     </application>
 
