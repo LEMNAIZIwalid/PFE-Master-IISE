@@ -210,7 +210,7 @@ def update_card():
             sql_ext = """
                 INSERT INTO POS.Externel_System (
                     id_Card, PAN, F_Name, L_Name, Amount, 
-                    POS_limit, ATM_limit, Status, Source, Operation, Timstmp
+                    POS_limit, ATM_limit, Status, Source, Operation, Timestmp
                 ) VALUES (
                     :id_Card, :PAN, :F_Name, :L_Name, :Amount, 
                     :POS_limit, :ATM_limit, :Status, :Source, :Operation, CURRENT_TIMESTAMP
@@ -616,6 +616,102 @@ def get_external_events():
     except Exception as e:
         print(f"Oracle External Events Error : {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        if connection:
+            connection.close()
+
+
+@app.route('/api/mobile/login', methods=['POST'])
+def mobile_login():
+    data = request.json or {}
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({"status": "error", "message": "Veuillez remplir tous les champs"}), 400
+        
+    if password != "110011":
+        return jsonify({"status": "error", "message": "Mot de passe incorrect"}), 401
+        
+    # Check if username is the default mock client
+    if username == "bankclient":
+        return jsonify({
+            "status": "success", 
+            "message": "Connexion réussie (bankclient)", 
+            "card_id": username,
+            "type": "client",
+            "f_name": "Bank",
+            "l_name": "Client",
+            "amount": 2450.75,
+            "pan": "xxxx  xxxx  8842  9173"
+        }), 200
+        
+    connection = None
+    try:
+        connection = get_oracle_connection()
+        cursor = connection.cursor()
+        
+        # 1. Vérifier dans Externel_System (cartes créées par le système externe)
+        sql_ext = """
+            SELECT STATUS, F_NAME, L_NAME, AMOUNT, PAN
+            FROM (
+                SELECT STATUS, F_NAME, L_NAME, AMOUNT, PAN,
+                       ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
+                FROM POS.Externel_System
+                WHERE ID_CARD = :id_card
+            ) WHERE rn = 1
+        """
+        cursor.execute(sql_ext, {"id_card": username})
+        row_ext = cursor.fetchone()
+        
+        if row_ext:
+            status, f_name, l_name, amount, pan = row_ext
+            if status.lower() == 'blocked':
+                return jsonify({"status": "error", "message": "Cette carte est bloquée"}), 403
+            return jsonify({
+                "status": "success", 
+                "message": "Connexion réussie (Carte Externe)", 
+                "card_id": username,
+                "type": "external_card",
+                "f_name": f_name or "",
+                "l_name": l_name or "",
+                "amount": float(amount) if amount is not None else 0.0,
+                "pan": pan or ""
+            }), 200
+            
+        # 2. Vérifier aussi dans PowerCard_System (pour toutes les cartes / clients)
+        sql_pwc = """
+            SELECT STATUS, F_NAME, L_NAME, AMOUNT, PAN
+            FROM (
+                SELECT STATUS, F_NAME, L_NAME, AMOUNT, PAN,
+                       ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
+                FROM POS.PowerCard_System
+                WHERE ID_CARD = :id_card
+            ) WHERE rn = 1
+        """
+        cursor.execute(sql_pwc, {"id_card": username})
+        row_pwc = cursor.fetchone()
+        
+        if row_pwc:
+            status, f_name, l_name, amount, pan = row_pwc
+            if status.lower() == 'blocked':
+                return jsonify({"status": "error", "message": "Cette carte est bloquée"}), 403
+            return jsonify({
+                "status": "success", 
+                "message": "Connexion réussie (PowerCard)", 
+                "card_id": username,
+                "type": "powercard",
+                "f_name": f_name or "",
+                "l_name": l_name or "",
+                "amount": float(amount) if amount is not None else 0.0,
+                "pan": pan or ""
+            }), 200
+            
+        return jsonify({"status": "error", "message": "Identifiants incorrects (Carte non trouvée)"}), 404
+        
+    except Exception as e:
+        print(f"Oracle Error during mobile login: {e}")
+        return jsonify({"status": "error", "message": f"Erreur de base de données : {str(e)}"}), 500
     finally:
         if connection:
             connection.close()

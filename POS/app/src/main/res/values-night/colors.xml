@@ -1,14 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark Mode: Eerie Black / Floral White palette -->
-    <color name="bg_color">#252422</color>
-    <color name="text_primary">#FFFCF2</color>
-    <color name="text_secondary">#CCC5B9</color>
-    
-    <!-- Accent Color (Replaces Blue) -->
-    <color name="brand_blue">#EB5E28</color>
-    <color name="text_on_brand">#FFFCF2</color>
-    
-    <color name="divider_color">#403D39</color>
-    <color name="success_green">#EB5E28</color>
+    <!-- ═══ Dark Mode Color Overrides ═══ -->
+    <!-- Calm, deep dark green palette — all data remains clearly visible -->
+
+    <!-- Backgrounds -->
+    <color name="bg_page">#111A15</color>
+    <color name="bg_surface">#1A2820</color>
+    <color name="bg_surface_accent">#1C2E22</color>
+    <color name="bg_input">#1E3028</color>
+    <color name="bg_header">#0D1F17</color>
+    <color name="bg_divider">#1F3029</color>
+    <color name="bg_divider_strong">#253D2E</color>
+
+    <!-- Text -->
+    <color name="text_primary">#E0F0E5</color>
+    <color name="text_secondary">#88B89A</color>
+    <color name="text_label">#95D13C</color>
+    <color name="text_hint">#4A6858</color>
+    <color name="text_on_dark">#FFFFFF</color>
+    <color name="text_muted_on_dark">#7AA88A</color>
+    <color name="text_version">#4A6858</color>
+
+    <!-- Cards -->
+    <color name="card_bg">#1A2820</color>
+    <color name="card_border">#253D2E</color>
+    <color name="icon_tint">#88B89A</color>
 </resources>

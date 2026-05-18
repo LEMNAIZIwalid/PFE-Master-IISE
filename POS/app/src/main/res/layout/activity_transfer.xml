@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F7F9F8"
+    android:background="@color/bg_page"
     android:orientation="vertical">
 
+    <!-- Header -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:background="#FFFFFF"
+        android:background="@color/bg_surface"
         android:elevation="4dp"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp">
+        android:paddingEnd="20dp">
 
         <ImageButton
             android:id="@+id/btnBack"
@@ -19,28 +21,149 @@
             android:layout_height="48dp"
             android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_revert" />
+            android:src="@android:drawable/ic_menu_revert"
+            android:contentDescription="Back" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:text="TRANSFER"
-            android:textColor="#1B4332"
-            android:textSize="18sp"
+            android:textColor="@color/text_primary"
+            android:textSize="17sp"
             android:fontFamily="sans-serif-black"
-            android:letterSpacing="0.08" />
+            android:letterSpacing="0.1" />
     </RelativeLayout>
 
-    <FrameLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-        <TextView
-            android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="Transfer Page Content"
-            android:textColor="#52796F"
-            android:textSize="16sp" />
-    </FrameLayout>
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Send Money"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:fontFamily="sans-serif-black" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Transfer funds to any bank account or card safely."
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <!-- Recipient Info -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:text="RECIPIENT (IBAN / RIB / CARD)"
+                android:textColor="@color/text_label"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.1" />
+
+            <EditText
+                android:id="@+id/etRecipient"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/input_field_bg"
+                android:hint="Enter IBAN or Card Number"
+                android:textColorHint="@color/text_hint"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:fontFamily="monospace" />
+
+            <!-- Amount -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="AMOUNT (€)"
+                android:textColor="@color/text_label"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.1" />
+
+            <EditText
+                android:id="@+id/etAmount"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/input_field_bg"
+                android:hint="0.00"
+                android:textColorHint="@color/text_hint"
+                android:inputType="numberDecimal"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <!-- Justification -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="JUSTIFICATION / REFERENCE"
+                android:textColor="@color/text_label"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.1" />
+
+            <EditText
+                android:id="@+id/etJustification"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/input_field_bg"
+                android:hint="e.g. Rent payment, Gift..."
+                android:textColorHint="@color/text_hint"
+                android:gravity="top"
+                android:padding="16dp"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp" />
+
+            <!-- Error Message -->
+            <TextView
+                android:id="@+id/tvError"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text=""
+                android:textColor="@color/danger"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+
+            <!-- Send Button -->
+            <Button
+                android:id="@+id/btnSendTransfer"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_marginTop="32dp"
+                android:backgroundTint="@color/bank_primary"
+                android:text="SEND TRANSFER"
+                android:textColor="@color/text_on_dark"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                app:cornerRadius="14dp" />
+
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>

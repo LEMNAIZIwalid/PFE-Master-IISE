@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F7F9F8"
+    android:background="@color/bg_page"
     android:orientation="vertical">
 
+    <!-- Header -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:background="#FFFFFF"
+        android:background="@color/bg_surface"
         android:elevation="4dp"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp">
+        android:paddingEnd="20dp">
 
         <ImageButton
             android:id="@+id/btnBack"
@@ -23,28 +25,288 @@
             android:contentDescription="Back" />
 
         <TextView
-            android:id="@+id/tvPageTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:text="PROFILE"
-            android:textColor="#1B4332"
-            android:textSize="18sp"
+            android:textColor="@color/text_primary"
+            android:textSize="17sp"
             android:fontFamily="sans-serif-black"
-            android:letterSpacing="0.08" />
+            android:letterSpacing="0.1" />
     </RelativeLayout>
 
-    <FrameLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center">
+        android:layout_height="match_parent">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="Profile Page Content"
-            android:textColor="#52796F"
-            android:textSize="16sp" />
-    </FrameLayout>
+            android:orientation="vertical"
+            android:paddingBottom="40dp">
+
+            <!-- Avatar Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
+                android:background="@color/bg_header"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    app:cardCornerRadius="36dp"
+                    app:cardElevation="6dp"
+                    app:cardBackgroundColor="@color/bg_surface_accent">
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="14dp"
+                        android:src="@drawable/ic_profile"
+                        app:tint="@color/bank_primary" />
+                </androidx.cardview.widget.CardView>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="bankclient"
+                    android:textColor="@color/text_on_dark"
+                    android:textSize="18sp"
+                    android:fontFamily="sans-serif-black" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Premium Account  ·  Active"
+                    android:textColor="@color/bank_accent"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Section: Account Settings -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="28dp"
+                android:layout_marginBottom="8dp"
+                android:text="ACCOUNT SETTINGS"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.12" />
+
+            <!-- Change Password -->
+            <LinearLayout
+                android:id="@+id/rowChangePassword"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:background="@color/bg_surface"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="24dp"
+                android:paddingEnd="20dp"
+                android:foreground="?attr/selectableItemBackground">
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/bg_surface_accent">
+                    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@drawable/ic_security" app:tint="@color/bank_primary" />
+                </androidx.cardview.widget.CardView>
+
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="16dp" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Change Password" android:textColor="@color/text_primary" android:textSize="15sp" android:fontFamily="sans-serif-medium" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Update your login credentials" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                </LinearLayout>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="›" android:textColor="@color/bank_accent" android:textSize="22sp" />
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginStart="80dp" android:background="@color/bg_divider" />
+
+            <!-- Theme -->
+            <LinearLayout
+                android:id="@+id/rowChangeTheme"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:background="@color/bg_surface"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="24dp"
+                android:paddingEnd="20dp"
+                android:foreground="?attr/selectableItemBackground">
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/bg_surface_accent">
+                    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@drawable/ic_display" app:tint="@color/bank_primary" />
+                </androidx.cardview.widget.CardView>
+
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="16dp" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Theme" android:textColor="@color/text_primary" android:textSize="15sp" android:fontFamily="sans-serif-medium" />
+                    <TextView android:id="@+id/tvCurrentTheme" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Light Mode (current)" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchDarkMode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false" />
+            </LinearLayout>
+
+            <!-- Section: Documents -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="28dp"
+                android:layout_marginBottom="8dp"
+                android:text="MY DOCUMENTS"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.12" />
+
+            <!-- RIB Row -->
+            <LinearLayout
+                android:id="@+id/rowDownloadRIB"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/bg_surface"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="24dp"
+                android:paddingEnd="20dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:foreground="?attr/selectableItemBackground">
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/bg_surface_accent">
+                    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@drawable/ic_archives" app:tint="@color/bank_secondary" />
+                </androidx.cardview.widget.CardView>
+
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="16dp" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Bank Account Details (RIB)" android:textColor="@color/text_primary" android:textSize="15sp" android:fontFamily="sans-serif-medium" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="View or download your bank statement" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                </LinearLayout>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="›" android:textColor="@color/bank_accent" android:textSize="22sp" />
+            </LinearLayout>
+
+            <!-- RIB Card (expandable) -->
+            <LinearLayout
+                android:id="@+id/cardRIB"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginTop="12dp"
+                android:background="@color/bg_surface"
+                android:elevation="3dp"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:visibility="gone">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="BANK — Account Statement" android:textColor="@color/text_primary" android:textSize="14sp" android:fontFamily="sans-serif-black" />
+                <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="12dp" android:layout_marginBottom="12dp" android:background="@color/bg_divider_strong" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Account Holder" android:textColor="@color/text_secondary" android:textSize="13sp" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="bankclient" android:textColor="@color/text_primary" android:textSize="13sp" android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Bank" android:textColor="@color/text_secondary" android:textSize="13sp" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="BANK — External System" android:textColor="@color/text_primary" android:textSize="13sp" android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="IBAN" android:textColor="@color/text_secondary" android:textSize="13sp" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="MA64 0011 0000 8842 9173 0028" android:textColor="@color/text_primary" android:textSize="12sp" android:fontFamily="monospace" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="BIC / SWIFT" android:textColor="@color/text_secondary" android:textSize="13sp" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="EXTSYSMA" android:textColor="@color/text_primary" android:textSize="13sp" android:fontFamily="monospace" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Account Number" android:textColor="@color/text_secondary" android:textSize="13sp" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="884291730028" android:textColor="@color/text_primary" android:textSize="13sp" android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="16dp" android:layout_marginBottom="16dp" android:background="@color/bg_divider_strong" />
+
+                <Button
+                    android:id="@+id/btnDownloadRIB"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:backgroundTint="@color/bank_secondary"
+                    android:text="⬇  Download RIB (PDF)"
+                    android:textColor="@color/text_on_dark"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="10dp" />
+            </LinearLayout>
+
+            <!-- Section: Session -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="28dp"
+                android:layout_marginBottom="8dp"
+                android:text="SESSION"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.12" />
+
+            <LinearLayout
+                android:id="@+id/rowLogout"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:background="@color/bg_surface"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="24dp"
+                android:paddingEnd="20dp"
+                android:foreground="?attr/selectableItemBackground">
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/danger_bg">
+                    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_lock_power_off" app:tint="@color/danger" />
+                </androidx.cardview.widget.CardView>
+
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="16dp" android:text="Sign Out" android:textColor="@color/danger" android:textSize="15sp" android:fontFamily="sans-serif-medium" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="›" android:textColor="@color/danger" android:textSize="22sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="32dp"
+                android:gravity="center"
+                android:text="BANK v1.0.0  ·  External System&#10;🔒 Secured Connection"
+                android:textColor="@color/text_version"
+                android:textSize="11sp"
+                android:layout_marginStart="24dp"
+                android:layout_marginEnd="24dp" />
+
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>

@@ -1,21 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Branding External System (Basé sur le logo) -->
-    <color name="bank_primary">#1B4332</color>   <!-- Vert Foncé -->
-    <color name="bank_secondary">#2D6A4F</color>  <!-- Vert Moyen -->
-    <color name="bank_accent">#95D13C</color>     <!-- Vert Lime / Pomme -->
-    <color name="ext_lime">#95D13C</color>        <!-- Lime du logo -->
-    
-    <!-- UI Colors -->
+    <!-- ═══ Branding (never change between themes) ═══ -->
+    <color name="bank_primary">#1B4332</color>
+    <color name="bank_secondary">#2D6A4F</color>
+    <color name="bank_accent">#95D13C</color>
+    <color name="ext_lime">#95D13C</color>
+    <color name="danger">#C0392B</color>
+    <color name="danger_bg">#FDECEA</color>
+    <color name="success">#2D6A4F</color>
+
+    <!-- ═══ Semantic UI Colors (Light Mode defaults) ═══ -->
+    <!-- Backgrounds -->
+    <color name="bg_page">#F7F9F8</color>
+    <color name="bg_surface">#FFFFFF</color>
+    <color name="bg_surface_accent">#EDFAED</color>
+    <color name="bg_input">#FFFFFF</color>
+    <color name="bg_header">#1B4332</color>
+    <color name="bg_divider">#F0F4F0</color>
+    <color name="bg_divider_strong">#DAE5DC</color>
+
+    <!-- Text -->
+    <color name="text_primary">#1B4332</color>
+    <color name="text_secondary">#52796F</color>
+    <color name="text_label">#2D6A4F</color>
+    <color name="text_hint">#A0B0A8</color>
+    <color name="text_on_dark">#FFFFFF</color>
+    <color name="text_muted_on_dark">#CCDDCC</color>
+    <color name="text_version">#A0B0A8</color>
+
+    <!-- Cards -->
+    <color name="card_bg">#FFFFFF</color>
+    <color name="card_border">#DAE5DC</color>
+    <color name="icon_tint">#52796F</color>
+
+    <!-- Legacy (keep for compatibility) -->
     <color name="white">#FFFFFF</color>
-    <color name="bg_soft">#F0F4F2</color>
-    <color name="divider">#D1D9E0</color>
-    
-    <!-- Text Colors -->
-    <color name="text_dark">#081C15</color>
+    <color name="bg_soft">#F7F9F8</color>
+    <color name="divider">#DAE5DC</color>
+    <color name="text_dark">#1B4332</color>
     <color name="text_muted">#52796F</color>
-    
-    <!-- Status Colors -->
-    <color name="success">#40916C</color>
-    <color name="danger">#A4161A</color>
 </resources>
