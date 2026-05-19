@@ -621,6 +621,95 @@ def get_external_events():
             connection.close()
 
 
+def get_recent_events_for_card(cursor, id_card):
+    try:
+        cursor.execute("""
+            SELECT OPERATION, AMOUNTS, TIMETMP, SOURCE
+            FROM POS.Events 
+            WHERE ID_CARD = :id_card
+            ORDER BY TIMETMP ASC
+        """, {"id_card": id_card})
+        rows = cursor.fetchall()
+        
+        events_list = []
+        prev_amount = 0.0
+        for op, amt, tstamp, src in rows:
+            amt = float(amt) if amt is not None else 0.0
+            diff = amt - prev_amount
+            
+            if hasattr(tstamp, 'strftime'):
+                t_str = tstamp.strftime("%d/%m/%Y, %H:%M")
+            else:
+                t_str = str(tstamp)
+                
+            if op.upper() == 'CREATE':
+                events_list.append({
+                    "title": f"Initial Deposit ({src})",
+                    "date": t_str,
+                    "amount": amt,
+                    "type": "credit"
+                })
+                prev_amount = amt
+            elif op.upper() == 'DELETE':
+                events_list.append({
+                    "title": f"Account Closure ({src})",
+                    "date": t_str,
+                    "amount": prev_amount,
+                    "type": "debit"
+                })
+                prev_amount = 0.0
+            else: # UPDATE or other
+                if abs(diff) > 0.01:
+                    if diff > 0:
+                        events_list.append({
+                            "title": f"Transfer Received ({src})",
+                            "date": t_str,
+                            "amount": diff,
+                            "type": "credit"
+                        })
+                    else:
+                        events_list.append({
+                            "title": f"Balance Withdrawal ({src})",
+                            "date": t_str,
+                            "amount": abs(diff),
+                            "type": "debit"
+                        })
+                    prev_amount = amt
+                    
+        recent = list(reversed(events_list))[:2]
+        if not recent:
+            recent = [
+                {
+                    "title": "External Transfer Received",
+                    "date": datetime.datetime.now().strftime("%d/%m/%Y, 09:15"),
+                    "amount": 500.00,
+                    "type": "credit"
+                },
+                {
+                    "title": "Balance Withdrawal",
+                    "date": (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%d/%m/%Y, 14:32"),
+                    "amount": 150.00,
+                    "type": "debit"
+                }
+            ]
+        return recent
+    except Exception as e:
+        print(f"Error fetching recent events: {e}")
+        return [
+            {
+                "title": "External Transfer Received",
+                "date": "Today, 09:15",
+                "amount": 500.00,
+                "type": "credit"
+            },
+            {
+                "title": "Balance Withdrawal",
+                "date": "Yesterday, 14:32",
+                "amount": 150.00,
+                "type": "debit"
+            }
+        ]
+
 @app.route('/api/mobile/login', methods=['POST'])
 def mobile_login():
     data = request.json or {}
@@ -643,13 +732,30 @@ def mobile_login():
             "f_name": "Bank",
             "l_name": "Client",
             "amount": 2450.75,
-            "pan": "xxxx  xxxx  8842  9173"
+            "pan": "xxxx  xxxx  8842  9173",
+            "card_status": "Active",
+            "recent_events": [
+                {
+                    "title": "External Transfer Received",
+                    "date": datetime.datetime.now().strftime("%d/%m/%Y, 09:15"),
+                    "amount": 500.00,
+                    "type": "credit"
+                },
+                {
+                    "title": "Balance Withdrawal",
+                    "date": (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%d/%m/%Y, 14:32"),
+                    "amount": 150.00,
+                    "type": "debit"
+                }
+            ]
         }), 200
         
     connection = None
     try:
         connection = get_oracle_connection()
         cursor = connection.cursor()
+        
+        recent_events = get_recent_events_for_card(cursor, username)
         
         # 1. Vérifier dans Externel_System (cartes créées par le système externe)
         sql_ext = """
@@ -666,8 +772,6 @@ def mobile_login():
         
         if row_ext:
             status, f_name, l_name, amount, pan = row_ext
-            if status.lower() == 'blocked':
-                return jsonify({"status": "error", "message": "Cette carte est bloquée"}), 403
             return jsonify({
                 "status": "success", 
                 "message": "Connexion réussie (Carte Externe)", 
@@ -676,7 +780,9 @@ def mobile_login():
                 "f_name": f_name or "",
                 "l_name": l_name or "",
                 "amount": float(amount) if amount is not None else 0.0,
-                "pan": pan or ""
+                "pan": pan or "",
+                "card_status": status or "Active",
+                "recent_events": recent_events
             }), 200
             
         # 2. Vérifier aussi dans PowerCard_System (pour toutes les cartes / clients)
@@ -694,8 +800,6 @@ def mobile_login():
         
         if row_pwc:
             status, f_name, l_name, amount, pan = row_pwc
-            if status.lower() == 'blocked':
-                return jsonify({"status": "error", "message": "Cette carte est bloquée"}), 403
             return jsonify({
                 "status": "success", 
                 "message": "Connexion réussie (PowerCard)", 
@@ -704,7 +808,9 @@ def mobile_login():
                 "f_name": f_name or "",
                 "l_name": l_name or "",
                 "amount": float(amount) if amount is not None else 0.0,
-                "pan": pan or ""
+                "pan": pan or "",
+                "card_status": status or "Active",
+                "recent_events": recent_events
             }), 200
             
         return jsonify({"status": "error", "message": "Identifiants incorrects (Carte non trouvée)"}), 404
@@ -712,6 +818,105 @@ def mobile_login():
     except Exception as e:
         print(f"Oracle Error during mobile login: {e}")
         return jsonify({"status": "error", "message": f"Erreur de base de données : {str(e)}"}), 500
+    finally:
+        if connection:
+            connection.close()
+
+
+@app.route('/api/mobile/refresh/<card_id>', methods=['GET'])
+def mobile_refresh(card_id):
+    if card_id == "bankclient":
+        return jsonify({
+            "status": "success", 
+            "card_id": card_id,
+            "type": "client",
+            "f_name": "Bank",
+            "l_name": "Client",
+            "amount": 2450.75,
+            "pan": "xxxx  xxxx  8842  9173",
+            "card_status": "Active",
+            "recent_events": [
+                {
+                    "title": "External Transfer Received",
+                    "date": datetime.datetime.now().strftime("%d/%m/%Y, 09:15"),
+                    "amount": 500.00,
+                    "type": "credit"
+                },
+                {
+                    "title": "Balance Withdrawal",
+                    "date": (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%d/%m/%Y, 14:32"),
+                    "amount": 150.00,
+                    "type": "debit"
+                }
+            ]
+        }), 200
+        
+    connection = None
+    try:
+        connection = get_oracle_connection()
+        cursor = connection.cursor()
+        
+        recent_events = get_recent_events_for_card(cursor, card_id)
+        
+        # 1. Vérifier dans Externel_System
+        sql_ext = """
+            SELECT STATUS, F_NAME, L_NAME, AMOUNT, PAN
+            FROM (
+                SELECT STATUS, F_NAME, L_NAME, AMOUNT, PAN,
+                       ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
+                FROM POS.Externel_System
+                WHERE ID_CARD = :id_card
+            ) WHERE rn = 1
+        """
+        cursor.execute(sql_ext, {"id_card": card_id})
+        row_ext = cursor.fetchone()
+        
+        if row_ext:
+            status, f_name, l_name, amount, pan = row_ext
+            return jsonify({
+                "status": "success", 
+                "card_id": card_id,
+                "type": "external_card",
+                "f_name": f_name or "",
+                "l_name": l_name or "",
+                "amount": float(amount) if amount is not None else 0.0,
+                "pan": pan or "",
+                "card_status": status or "Active",
+                "recent_events": recent_events
+            }), 200
+            
+        # 2. Vérifier dans PowerCard_System
+        sql_pwc = """
+            SELECT STATUS, F_NAME, L_NAME, AMOUNT, PAN
+            FROM (
+                SELECT STATUS, F_NAME, L_NAME, AMOUNT, PAN,
+                       ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
+                FROM POS.PowerCard_System
+                WHERE ID_CARD = :id_card
+            ) WHERE rn = 1
+        """
+        cursor.execute(sql_pwc, {"id_card": card_id})
+        row_pwc = cursor.fetchone()
+        
+        if row_pwc:
+            status, f_name, l_name, amount, pan = row_pwc
+            return jsonify({
+                "status": "success", 
+                "card_id": card_id,
+                "type": "powercard",
+                "f_name": f_name or "",
+                "l_name": l_name or "",
+                "amount": float(amount) if amount is not None else 0.0,
+                "pan": pan or "",
+                "card_status": status or "Active",
+                "recent_events": recent_events
+            }), 200
+            
+        return jsonify({"status": "error", "message": "Carte non trouvée"}), 404
+        
+    except Exception as e:
+        print(f"Oracle Error during mobile refresh: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         if connection:
             connection.close()

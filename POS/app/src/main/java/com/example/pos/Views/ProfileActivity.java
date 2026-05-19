@@ -10,6 +10,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 import com.example.pos.R;
 
 public class ProfileActivity extends AppCompatActivity {
@@ -20,6 +22,46 @@ public class ProfileActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
+
+        // Get cardholder name and status passed from MainActivity
+        String cardholderName = getIntent().getStringExtra("CARDHOLDER_NAME");
+        String cardStatus = getIntent().getStringExtra("CARD_STATUS");
+        if (cardStatus == null || cardStatus.trim().isEmpty()) {
+            cardStatus = "Active";
+        }
+
+        // Bind layout views
+        TextView tvProfileName = findViewById(R.id.tvProfileName);
+        TextView tvRIBHolderName = findViewById(R.id.tvRIBHolderName);
+        CardView cardStatusBadge = findViewById(R.id.cardStatusBadge);
+        TextView tvCardStatus = findViewById(R.id.tvCardStatus);
+
+        // Update profile names dynamically
+        if (cardholderName != null && !cardholderName.trim().isEmpty()) {
+            tvProfileName.setText(cardholderName);
+            tvRIBHolderName.setText(cardholderName);
+        } else {
+            tvProfileName.setText("bankclient");
+            tvRIBHolderName.setText("bankclient");
+        }
+
+        // Update status badge dynamically
+        String displayStatus = cardStatus.substring(0, 1).toUpperCase() + cardStatus.substring(1).toLowerCase();
+        tvCardStatus.setText(displayStatus);
+
+        if (cardStatus.equalsIgnoreCase("active")) {
+            cardStatusBadge.setCardBackgroundColor(ContextCompat.getColor(this, R.color.status_active_bg));
+            tvCardStatus.setTextColor(ContextCompat.getColor(this, R.color.status_active_text));
+        } else if (cardStatus.equalsIgnoreCase("suspended")) {
+            cardStatusBadge.setCardBackgroundColor(ContextCompat.getColor(this, R.color.status_suspended_bg));
+            tvCardStatus.setTextColor(ContextCompat.getColor(this, R.color.status_suspended_text));
+        } else if (cardStatus.equalsIgnoreCase("blocked")) {
+            cardStatusBadge.setCardBackgroundColor(ContextCompat.getColor(this, R.color.status_blocked_bg));
+            tvCardStatus.setTextColor(ContextCompat.getColor(this, R.color.status_blocked_text));
+        } else {
+            cardStatusBadge.setCardBackgroundColor(ContextCompat.getColor(this, R.color.status_active_bg));
+            tvCardStatus.setTextColor(ContextCompat.getColor(this, R.color.status_active_text));
+        }
 
         // Back button
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());

@@ -39,4 +39,12 @@
     <color name="divider">#DAE5DC</color>
     <color name="text_dark">#1B4332</color>
     <color name="text_muted">#52796F</color>
+
+    <!-- Status Badge Colors (Optimized for dark green header background) -->
+    <color name="status_active_bg">#2D6A4F</color>
+    <color name="status_active_text">#95D13C</color>
+    <color name="status_suspended_bg">#4A3E15</color>
+    <color name="status_suspended_text">#F4D03F</color>
+    <color name="status_blocked_bg">#5A2A28</color>
+    <color name="status_blocked_text">#F1948A</color>
 </resources>

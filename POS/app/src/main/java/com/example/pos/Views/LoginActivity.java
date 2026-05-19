@@ -80,6 +80,8 @@ public class LoginActivity extends AppCompatActivity {
             final String[] holderName = {""};
             final double[] balance = {0.0};
             final String[] cardPan = {""};
+            final String[] cardStatus = {"Active"};
+            final String[] recentEventsJson = {""};
 
             try {
                 // Flask API running on host machine, accessed via 10.0.2.2 inside emulator
@@ -118,6 +120,13 @@ public class LoginActivity extends AppCompatActivity {
                         }
                         balance[0] = jsonObj.optDouble("amount", 0.0);
                         cardPan[0] = jsonObj.optString("pan", "xxxx  xxxx  xxxx  xxxx");
+                        cardStatus[0] = jsonObj.optString("card_status", "Active");
+                        org.json.JSONArray eventsArr = jsonObj.optJSONArray("recent_events");
+                        if (eventsArr != null) {
+                            recentEventsJson[0] = eventsArr.toString();
+                        } else {
+                            recentEventsJson[0] = "";
+                        }
                         loginSuccess = true;
                     }
                 } else {
@@ -133,9 +142,9 @@ public class LoginActivity extends AppCompatActivity {
                             if (resp.contains("\"message\"")) {
                                 int index = resp.indexOf("\"message\"");
                                 int start = resp.indexOf("\"", index + 10);
-                                int end = resp.indexOf("\"", start + 1);
-                                if (start != -1 && end != -1) {
-                                    errorMessage = resp.substring(start + 1, end);
+                                int startQuote = resp.indexOf("\"", start + 1);
+                                if (start != -1 && startQuote != -1) {
+                                    errorMessage = resp.substring(start + 1, startQuote);
                                 }
                             }
                         }
@@ -163,8 +172,11 @@ public class LoginActivity extends AppCompatActivity {
                     Toast.makeText(LoginActivity.this, "Welcome, " + holderName[0] + "!", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                     intent.putExtra("CARDHOLDER_NAME", holderName[0]);
+                    intent.putExtra("CARD_ID", username);
                     intent.putExtra("CARD_BALANCE", balance[0]);
                     intent.putExtra("CARD_PAN", cardPan[0]);
+                    intent.putExtra("CARD_STATUS", cardStatus[0]);
+                    intent.putExtra("RECENT_EVENTS_JSON", recentEventsJson[0]);
                     startActivity(intent);
                     finish();
                 } else if (finalServerError) {
@@ -174,17 +186,24 @@ public class LoginActivity extends AppCompatActivity {
                             holderName[0] = "Bank Client";
                             balance[0] = 2450.75;
                             cardPan[0] = "xxxx  xxxx  8842  9173";
+                            cardStatus[0] = "Active";
                         } else {
                             holderName[0] = "Cardholder " + username;
                             balance[0] = 750.00;
                             cardPan[0] = "xxxx  xxxx  xxxx  " + (username.length() > 4 ? username.substring(username.length() - 4) : username);
+                            cardStatus[0] = "Active";
                         }
 
                         Toast.makeText(LoginActivity.this, "Offline Mode: Local authentication successful.", Toast.LENGTH_LONG).show();
                         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                         intent.putExtra("CARDHOLDER_NAME", holderName[0]);
+                        intent.putExtra("CARD_ID", username);
                         intent.putExtra("CARD_BALANCE", balance[0]);
                         intent.putExtra("CARD_PAN", cardPan[0]);
+                        intent.putExtra("CARD_STATUS", cardStatus[0]);
+                        String fallbackEvents = "[{\"title\":\"External Transfer Received\",\"date\":\"Today, 09:15\",\"amount\":500.0,\"type\":\"credit\"}," +
+                                "{\"title\":\"Balance Withdrawal\",\"date\":\"Yesterday, 14:32\",\"amount\":150.0,\"type\":\"debit\"}]";
+                        intent.putExtra("RECENT_EVENTS_JSON", fallbackEvents);
                         startActivity(intent);
                         finish();
                     } else {

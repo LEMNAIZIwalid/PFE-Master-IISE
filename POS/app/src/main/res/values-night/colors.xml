@@ -25,4 +25,12 @@
     <color name="card_bg">#1A2820</color>
     <color name="card_border">#253D2E</color>
     <color name="icon_tint">#88B89A</color>
+
+    <!-- Status Badge Colors (Optimized for dark green header background) -->
+    <color name="status_active_bg">#1B3B2B</color>
+    <color name="status_active_text">#95D13C</color>
+    <color name="status_suspended_bg">#3D3415</color>
+    <color name="status_suspended_text">#F4D03F</color>
+    <color name="status_blocked_bg">#4A1C1A</color>
+    <color name="status_blocked_text">#E74C3C</color>
 </resources>

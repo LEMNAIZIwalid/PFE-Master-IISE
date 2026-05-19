@@ -179,23 +179,23 @@
             </LinearLayout>
 
             <!-- Transaction 1 -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" android:layout_marginTop="12dp" android:background="@color/bg_surface" android:elevation="2dp" android:gravity="center_vertical" android:orientation="horizontal" android:padding="16dp">
-                <TextView android:layout_width="44dp" android:layout_height="44dp" android:background="@color/bg_surface_accent" android:gravity="center" android:text="↑" android:textColor="@color/text_primary" android:textSize="20sp" />
+            <LinearLayout android:id="@+id/layoutTx1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" android:layout_marginTop="12dp" android:background="@color/bg_surface" android:elevation="2dp" android:gravity="center_vertical" android:orientation="horizontal" android:padding="16dp">
+                <TextView android:id="@+id/tvTx1Icon" android:layout_width="44dp" android:layout_height="44dp" android:background="@color/bg_surface_accent" android:gravity="center" android:text="↑" android:textColor="@color/text_primary" android:textSize="20sp" />
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="External Transfer Received" android:textColor="@color/text_primary" android:textSize="14sp" android:fontFamily="sans-serif-medium" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Today, 09:15" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                    <TextView android:id="@+id/tvTx1Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="External Transfer Received" android:textColor="@color/text_primary" android:textSize="14sp" android:fontFamily="sans-serif-medium" />
+                    <TextView android:id="@+id/tvTx1Date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Today, 09:15" android:textColor="@color/text_secondary" android:textSize="12sp" />
                 </LinearLayout>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="+ €500.00" android:textColor="@color/success" android:textSize="14sp" android:textStyle="bold" />
+                <TextView android:id="@+id/tvTx1Amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="+ €500.00" android:textColor="@color/success" android:textSize="14sp" android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Transaction 2 -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" android:layout_marginTop="2dp" android:background="@color/bg_surface" android:elevation="2dp" android:gravity="center_vertical" android:orientation="horizontal" android:padding="16dp">
-                <TextView android:layout_width="44dp" android:layout_height="44dp" android:background="@color/danger_bg" android:gravity="center" android:text="↓" android:textColor="@color/danger" android:textSize="20sp" />
+            <LinearLayout android:id="@+id/layoutTx2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" android:layout_marginTop="2dp" android:background="@color/bg_surface" android:elevation="2dp" android:gravity="center_vertical" android:orientation="horizontal" android:padding="16dp">
+                <TextView android:id="@+id/tvTx2Icon" android:layout_width="44dp" android:layout_height="44dp" android:background="@color/danger_bg" android:gravity="center" android:text="↓" android:textColor="@color/danger" android:textSize="20sp" />
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Balance Withdrawal" android:textColor="@color/text_primary" android:textSize="14sp" android:fontFamily="sans-serif-medium" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Yesterday, 14:32" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                    <TextView android:id="@+id/tvTx2Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Balance Withdrawal" android:textColor="@color/text_primary" android:textSize="14sp" android:fontFamily="sans-serif-medium" />
+                    <TextView android:id="@+id/tvTx2Date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Yesterday, 14:32" android:textColor="@color/text_secondary" android:textSize="12sp" />
                 </LinearLayout>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="- €150.00" android:textColor="@color/danger" android:textSize="14sp" android:textStyle="bold" />
+                <TextView android:id="@+id/tvTx2Amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="- €150.00" android:textColor="@color/danger" android:textSize="14sp" android:textStyle="bold" />
             </LinearLayout>
 
         </LinearLayout>
