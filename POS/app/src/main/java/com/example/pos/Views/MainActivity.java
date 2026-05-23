@@ -95,6 +95,8 @@ public class MainActivity extends AppCompatActivity {
         // History button
         findViewById(R.id.btnHistory).setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
+            intent.putExtra("CARD_ID", cardId);
+            intent.putExtra("CARD_PAN", cardPAN);
             startActivity(intent);
         });
 

@@ -922,6 +922,222 @@ def mobile_refresh(card_id):
             connection.close()
 
 
+@app.route('/api/mobile/history/<card_id>', methods=['GET'])
+def mobile_history(card_id):
+    """Return full modification history for a card, with change detection."""
+    connection = None
+    try:
+        connection = get_oracle_connection()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT ID_EVENT, ID_CARD, PAN, F_NAME, L_NAME, AMOUNTS,
+                   POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMETMP
+            FROM POS.Events
+            WHERE ID_CARD = :id_card
+            ORDER BY TIMETMP ASC
+        """, {"id_card": card_id})
+
+        columns = [col[0] for col in cursor.description]
+        rows = []
+        for row in cursor:
+            rows.append(dict(zip(columns, row)))
+
+        if not rows:
+            return jsonify([]), 200
+
+        history = []
+        prev = None
+
+        for rec in rows:
+            operation = (rec.get('OPERATION') or 'Unknown').strip()
+            source = (rec.get('SOURCE') or 'Unknown').strip()
+            tstamp = rec.get('TIMETMP')
+
+            # Format date and time
+            if hasattr(tstamp, 'strftime'):
+                date_str = tstamp.strftime("%d %B %Y")
+                time_str = tstamp.strftime("%H:%M")
+                iso_str = tstamp.isoformat()
+            else:
+                date_str = str(tstamp)
+                time_str = ""
+                iso_str = str(tstamp)
+
+            # Source label
+            if 'Externel' in source or 'External' in source:
+                source_label = "External Admin"
+            else:
+                source_label = "PWC Admin"
+
+            # Current values
+            cur_amount = float(rec.get('AMOUNTS') or 0)
+            cur_status = (rec.get('STATUS') or 'Active').strip()
+            cur_pos = float(rec.get('POS_LIMIT') or 0)
+            cur_atm = float(rec.get('ATM_LIMIT') or 0)
+            cur_fname = (rec.get('F_NAME') or '').strip()
+            cur_lname = (rec.get('L_NAME') or '').strip()
+
+            changes = []
+            icon_type = "create"
+
+            if operation.upper() == 'CREATE':
+                icon_type = "create"
+                changes.append({
+                    "field": "Account",
+                    "old_value": "",
+                    "new_value": "Card Created"
+                })
+                if cur_amount > 0:
+                    changes.append({
+                        "field": "Initial Balance",
+                        "old_value": "",
+                        "new_value": f"€{cur_amount:,.2f}"
+                    })
+                if cur_status:
+                    changes.append({
+                        "field": "Status",
+                        "old_value": "",
+                        "new_value": cur_status
+                    })
+                if cur_pos > 0:
+                    changes.append({
+                        "field": "POS Limit",
+                        "old_value": "",
+                        "new_value": f"€{cur_pos:,.2f}"
+                    })
+                if cur_atm > 0:
+                    changes.append({
+                        "field": "ATM Limit",
+                        "old_value": "",
+                        "new_value": f"€{cur_atm:,.2f}"
+                    })
+
+            elif operation.upper() == 'DELETE':
+                icon_type = "delete"
+                changes.append({
+                    "field": "Status",
+                    "old_value": (prev.get('STATUS') or 'Active').strip() if prev else "Active",
+                    "new_value": "Blocked"
+                })
+                changes.append({
+                    "field": "Account",
+                    "old_value": "",
+                    "new_value": "Card Blocked / Deleted"
+                })
+
+            else:  # UPDATE or other
+                if prev:
+                    prev_amount = float(prev.get('AMOUNTS') or 0)
+                    prev_status = (prev.get('STATUS') or 'Active').strip()
+                    prev_pos = float(prev.get('POS_LIMIT') or 0)
+                    prev_atm = float(prev.get('ATM_LIMIT') or 0)
+                    prev_fname = (prev.get('F_NAME') or '').strip()
+                    prev_lname = (prev.get('L_NAME') or '').strip()
+
+                    # Detect status change
+                    if cur_status.lower() != prev_status.lower():
+                        icon_type = "status"
+                        changes.append({
+                            "field": "Status",
+                            "old_value": prev_status,
+                            "new_value": cur_status
+                        })
+
+                    # Detect balance change
+                    if abs(cur_amount - prev_amount) > 0.01:
+                        if icon_type == "create":
+                            icon_type = "balance"
+                        changes.append({
+                            "field": "Balance",
+                            "old_value": f"€{prev_amount:,.2f}",
+                            "new_value": f"€{cur_amount:,.2f}"
+                        })
+
+                    # Detect POS limit change
+                    if abs(cur_pos - prev_pos) > 0.01:
+                        if icon_type in ("create",):
+                            icon_type = "limits"
+                        changes.append({
+                            "field": "POS Limit",
+                            "old_value": f"€{prev_pos:,.2f}",
+                            "new_value": f"€{cur_pos:,.2f}"
+                        })
+
+                    # Detect ATM limit change
+                    if abs(cur_atm - prev_atm) > 0.01:
+                        if icon_type in ("create",):
+                            icon_type = "limits"
+                        changes.append({
+                            "field": "ATM Limit",
+                            "old_value": f"€{prev_atm:,.2f}",
+                            "new_value": f"€{cur_atm:,.2f}"
+                        })
+
+                    # Detect name change
+                    if cur_fname.lower() != prev_fname.lower() or cur_lname.lower() != prev_lname.lower():
+                        if icon_type in ("create",):
+                            icon_type = "profile"
+                        changes.append({
+                            "field": "Cardholder Name",
+                            "old_value": f"{prev_fname} {prev_lname}".strip(),
+                            "new_value": f"{cur_fname} {cur_lname}".strip()
+                        })
+
+                    # If no specific change was detected, log a generic update
+                    if not changes:
+                        icon_type = "balance"
+                        changes.append({
+                            "field": "Card Profile",
+                            "old_value": "",
+                            "new_value": "Updated"
+                        })
+                else:
+                    icon_type = "balance"
+                    changes.append({
+                        "field": "Card Profile",
+                        "old_value": "",
+                        "new_value": "Updated"
+                    })
+
+            # Build title based on icon_type
+            title_map = {
+                "create": "Card Created",
+                "delete": "Card Blocked",
+                "status": "Status Updated",
+                "balance": "Balance Adjusted",
+                "limits": "Limits Modified",
+                "profile": "Profile Updated"
+            }
+            title = title_map.get(icon_type, "Card Updated")
+
+            history.append({
+                "date": date_str,
+                "time": time_str,
+                "timestamp": iso_str,
+                "operation": operation,
+                "source": source,
+                "source_label": source_label,
+                "icon_type": icon_type,
+                "title": title,
+                "changes": changes
+            })
+
+            prev = rec
+
+        # Reverse so most recent is first
+        history.reverse()
+
+        return jsonify(history), 200
+
+    except Exception as e:
+        print(f"Oracle Error [MOBILE HISTORY]: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        if connection:
+            connection.close()
+
+
 if __name__ == '__main__':
     print("API PowerCard System started on http://localhost:5001")
     app.run(port=5001, debug=True)

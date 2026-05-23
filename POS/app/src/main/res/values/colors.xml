@@ -47,4 +47,25 @@
     <color name="status_suspended_text">#F4D03F</color>
     <color name="status_blocked_bg">#5A2A28</color>
     <color name="status_blocked_text">#F1948A</color>
+
+    <!-- ═══ History Timeline Colors ═══ -->
+    <color name="history_create">#27AE60</color>
+    <color name="history_create_bg">#E8F8F0</color>
+    <color name="history_update">#2980B9</color>
+    <color name="history_update_bg">#EBF5FB</color>
+    <color name="history_delete">#E74C3C</color>
+    <color name="history_delete_bg">#FDEDEC</color>
+    <color name="history_status">#F39C12</color>
+    <color name="history_status_bg">#FEF9E7</color>
+    <color name="history_limits">#8E44AD</color>
+    <color name="history_limits_bg">#F4ECF7</color>
+    <color name="history_profile">#1ABC9C</color>
+    <color name="history_profile_bg">#E8F6F3</color>
+    <color name="badge_pwc_bg">#EBF5FB</color>
+    <color name="badge_pwc_text">#2471A3</color>
+    <color name="badge_ext_bg">#FEF9E7</color>
+    <color name="badge_ext_text">#B7950B</color>
+    <color name="timeline_line">#DAE5DC</color>
+    <color name="change_arrow">#A0B0A8</color>
+    <color name="date_header_bg">#F0F4F0</color>
 </resources>
