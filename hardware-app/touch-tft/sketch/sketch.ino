@@ -1,5 +1,7 @@
 #include "TFT_eSPI.h"
 #include "Arduino_RouterBridge.h"
+#include <Wire.h>
+#include <Adafruit_PN532.h>
 
 // ╔══════════════════════════════════════════════╗
 // ║  METTEZ VOS IDENTIFIANTS WIFI ICI           ║
@@ -23,6 +25,12 @@ char   g_op       = '\0'; // opérateur en attente : '+' ou '*'
 bool   g_newNum   = true; // vrai = prochain chiffre démarre un nouveau nombre
 String g_exprDisp = "";   // expression figee affichée en bas (ex: "12 + 5 * ")
 
+// --- État Scanner ---
+bool   g_scannerActive = false; // true = scanner allumé en mode commande
+bool   g_scannerPending = false; // true = pending amount addition
+unsigned long g_scannerStartTime = 0; // millis() when scanner activated
+long   g_pendingAmount = 0; // amount generated during activation
+
 // --- Couleurs ─────────────────────────────────────────────────
 #define COLOR_NAVY    0x018C
 #define COLOR_GREY_LT 0xDEFB
@@ -31,8 +39,58 @@ String g_exprDisp = "";   // expression figee affichée en bas (ex: "12 + 5 * ")
 #define COLOR_BTN_SHD 0xBDD7   // ombre boutons
 #define COLOR_PAYER   0x2D05   // vert
 #define COLOR_SCANNER 0xEF00   // jaune
+#define COLOR_CANCEL  0xC618   // gris moyen pour bouton ANNULER
 #define COLOR_BTN_DEL 0xC67F   // bleu doux  pour bouton <
 #define COLOR_BTN_CLR 0xFD14   // rouge doux pour bouton C
+
+// --- Configuration du Scanner Barcode (Bit Bang A2/A1) ────────
+#define PIN_RX A2
+#define PIN_TX A1
+#define BIT_DELAY 104 // Délai pour 9600 baud (1000000/9600)
+
+byte triggerScannerStart[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x02, 0x01, 0xAB, 0xCD};
+byte triggerScannerStop[]  = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x02, 0x00, 0xAB, 0xCD};
+String barcodeBuffer = "";
+
+// --- Configuration du Buzzer et du PN532 (SPI) ────────
+#define PIN_BUZZER 4
+#define PN532_SCK  6
+#define PN532_MISO 3
+#define PN532_MOSI 5
+#define PN532_SS   A0
+
+Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
+bool g_nfcFound = false;
+bool g_paymentActive = false;
+
+void drawPaymentPrompt() {
+    int px = 30;
+    int py = 160;
+    int pw = 260;
+    int ph = 160;
+
+    // Ombre
+    tft.fillRoundRect(px + 4, py + 4, pw, ph, 8, COLOR_BTN_SHD);
+    // Fond
+    tft.fillRoundRect(px, py, pw, ph, 8, TFT_WHITE);
+    // Bordure
+    tft.drawRoundRect(px, py, pw, ph, 8, COLOR_NAVY);
+
+    // Bouton de fermeture "X" rouge
+    int xx = px + pw - 30;
+    int xy = py + 6;
+    tft.fillRoundRect(xx, xy, 24, 24, 4, TFT_RED);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("X", xx + 12, xy + 12, 2);
+
+    // Message
+    tft.setTextColor(COLOR_NAVY);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("ATTENTE CARTE NFC...", px + pw / 2, py + ph / 2, 2);
+}
+
+
 
 // --- Dessins d'Icônes ─────────────────────────────────────────
 void drawWiFiIcon(int x, int y, uint16_t color) {
@@ -65,16 +123,24 @@ void drawWiFiIcon(int x, int y, uint16_t color) {
     }
 }
 
-// --- Calibration du Tactile (ORIGINAL) ────────────────────────
+// --- Calibration du Tactile (Valeurs Fixes) ──────────────────
+// Le calibrage interactif (calibrateTouch) est perturbé par le bruit
+// électrique du module PN532 câblé sur les pins adjacents (3,5,6).
+// On utilise des valeurs de calibration fixes à la place.
+// Si le tactile n'est pas précis, lancez le sketch de calibration
+// ci-dessous UNE SEULE FOIS (sans le PN532 branché), notez les 5
+// valeurs affichées dans le Serial Monitor, et remplacez-les ici.
+//
+// Pour recalibrer, décommentez le bloc #if 0 ci-dessous, uploadez,
 void touch_calibrate() {
-    uint16_t calData[5];
-    tft.fillScreen(TFT_BLACK);
-    tft.setCursor(20, 0);
-    tft.setTextFont(2);
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.println("Calibration...");
-    tft.calibrateTouch(calData, TFT_MAGENTA, TFT_BLACK, 15);
-    tft.fillScreen(TFT_WHITE);
+    // La calibration interactive saute toute seule à cause d'un faux contact matériel.
+    // On utilise donc des valeurs fixes.
+    // Le 5ème chiffre est à 4 :
+    // - Pas de Swap XY (écran vertical)
+    // - Inversion Haut/Bas (Y) corrigée
+    // - Inversion Gauche/Droite (X) corrigée
+    uint16_t calData[5] = {438, 3500, 300, 3500, 4};
+    tft.setTouch(calData);
 }
 
 // --- Formater Date & Heure ─────────────────────────────────────
@@ -201,6 +267,69 @@ void drawBtn(int x, int y, int w, int h, const char* label,
     tft.drawString(String(label), x + w / 2, y + h / 2, 4);
 }
 
+// --- Fonction d'écriture Bit-Bang pour envoyer un caractère (TX) ──
+void manualWrite(byte b) {
+    digitalWrite(PIN_TX, LOW); // Start bit
+    delayMicroseconds(BIT_DELAY);
+    for (int i = 0; i < 8; i++) {
+        digitalWrite(PIN_TX, (b >> i) & 0x01);
+        delayMicroseconds(BIT_DELAY);
+    }
+    digitalWrite(PIN_TX, HIGH); // Stop bit
+    delayMicroseconds(BIT_DELAY);
+}
+
+// --- Envoyer commande UART au scanner barcode (Bit-Bang) ──────
+void sendScannerCommand(bool activate) {
+    barcodeBuffer = ""; // Vider le buffer
+    if (activate) {
+        // Commande START (7E 00 08 01 00 02 01 AB CD)
+        for (unsigned int i = 0; i < sizeof(triggerScannerStart); i++) {
+            manualWrite(triggerScannerStart[i]);
+        }
+        Serial.println("[Scanner] Commande START bit-bang envoyee sur A2");
+    } else {
+        // Commande STOP (7E 00 08 01 00 02 00 AB CD)
+        for (unsigned int i = 0; i < sizeof(triggerScannerStop); i++) {
+            manualWrite(triggerScannerStop[i]);
+        }
+        Serial.println("[Scanner] Commande STOP bit-bang envoyee sur A2");
+    }
+}
+
+// --- Dessiner le bouton SCANNER selon son état ───────────────
+void addScannedAmount(long val) {
+  if (val <= 0) return;
+  // Injecter la valeur scannée dans la machine à calculer :
+  // → g_amount reçoit la valeur (comme si l'utilisateur l'avait tapée au clavier)
+  // → g_newNum = false : le nombre est prêt pour un opérateur ou pour =
+  // NOTE: ne pas appender manuellement à g_exprDisp ;
+  //       refreshAmountZone() l'ajoute automatiquement via "if (!g_newNum) exprFull += String(g_amount)"
+  g_amount = val;
+  g_newNum = false;
+  refreshAmountZone();
+}
+
+
+    void drawScannerBtn() {
+    if (g_scannerActive) {
+        // Etat actif → bouton gris avec texte ANNULER
+        tft.fillRoundRect(162, 384, 154, 80, 14, COLOR_CANCEL);
+        tft.drawRoundRect(162, 384, 154, 80, 14, 0x8410);
+        tft.setTextColor(TFT_WHITE);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("ANNULER", 239, 424, 4);
+    } else {
+        // Etat inactif → bouton jaune avec texte SCANNER
+        tft.fillRoundRect(162, 384, 154, 80, 14, COLOR_SCANNER);
+        tft.drawRoundRect(162, 384, 154, 80, 14, 0xC500);
+        tft.setTextColor(COLOR_NAVY);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("SCANNER", 239, 424, 4);
+    }
+}
+
+
 // --- Dessiner l'écran CAISSE ──────────────────────────────────
 void drawScreen() {
     tft.fillScreen(TFT_WHITE);
@@ -252,12 +381,8 @@ void drawScreen() {
     tft.setTextDatum(MC_DATUM);
     tft.drawString("PAYER", 80, 424, 4);
 
-    // ── SCANNER (jaune) ──
-    tft.fillRoundRect(162, 384, 154, 80, 14, COLOR_SCANNER);
-    tft.drawRoundRect(162, 384, 154, 80, 14, 0xC500);
-    tft.setTextColor(COLOR_NAVY);
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString("SCANNER", 239, 424, 4);
+    // ── SCANNER (état initial = jaune) ──
+    drawScannerBtn();
 }
 
 // --- Bridge callback ──────────────────────────────────────────
@@ -318,14 +443,36 @@ void showConnectingScreen(const char* msg, uint16_t dotColor) {
 // --- Setup ────────────────────────────────────────────────────
 void setup() {
     Serial.begin(115200);
-    delay(500);
+    
+    // Configuration manuelle du Buzzer
+    pinMode(PIN_BUZZER, OUTPUT);
+    digitalWrite(PIN_BUZZER, LOW);
+
+    // Configuration manuelle des pins pour le Scanner Barcode
+    pinMode(PIN_RX, INPUT);
+    pinMode(PIN_TX, OUTPUT);
+    digitalWrite(PIN_TX, HIGH); // État de repos (Idle)
 
     tft.init();
     tft.setRotation(0);
     delay(200);
 
-    // 1. Calibration tactile
+    // 1. Calibration tactile (faite en premier, PN532 non encore actif pour éviter le bruit)
     touch_calibrate();
+
+    // 2. Initialisation du PN532 (après la calibration)
+    nfc.begin();
+    uint32_t versiondata = nfc.getFirmwareVersion();
+    if (!versiondata) {
+        Serial.println("Warning: Didn't find PN532 board");
+        g_nfcFound = false;
+    } else {
+        Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX);
+        nfc.SAMConfig();
+        g_nfcFound = true;
+    }
+    
+    delay(200);
 
     // 2. Écran de connexion (Vert par défaut si identifiants corrects, sinon Rouge)
     if (String(ssid) == "hamad" && String(password) == "7867H7867") {
@@ -377,7 +524,125 @@ void loop() {
         updateHeader();
     }
 
+    // Détection NFC non-bloquante si le mode paiement est actif
+    if (g_paymentActive && g_nfcFound) {
+        uint8_t success;
+        uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };
+        uint8_t uidLength;
+
+        success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 50);
+        if (success) {
+            // Bip du buzzer
+            digitalWrite(PIN_BUZZER, HIGH);
+            delay(150);
+            digitalWrite(PIN_BUZZER, LOW);
+
+            // Formater l'UID
+            String tag_uid = "";
+            for (uint8_t i = 0; i < uidLength; i++) {
+                if (uid[i] < 0x10) tag_uid += "0";
+                tag_uid += String(uid[i], HEX);
+            }
+            tag_uid.toUpperCase();
+
+            // Afficher le succès sur le prompt
+            int px = 30;
+            int py = 160;
+            int pw = 260;
+            int ph = 160;
+            tft.fillRoundRect(px, py, pw, ph, 8, TFT_GREEN);
+            tft.drawRoundRect(px, py, pw, ph, 8, COLOR_NAVY);
+            tft.setTextColor(TFT_WHITE);
+            tft.setTextDatum(MC_DATUM);
+            tft.drawString("PAIEMENT VALIDE !", px + pw / 2, py + ph / 2 - 10, 2);
+            tft.drawString("UID: " + tag_uid, px + pw / 2, py + ph / 2 + 15, 2);
+
+            // Envoyer au Bridge Python
+            Bridge.call("notify_payment", tag_uid);
+
+            delay(1500);
+
+            // Revenir à l'état initial
+            g_paymentActive = false;
+            g_amount = 0;
+            g_lhs = 0;
+            g_op = '\0';
+            g_newNum = true;
+            g_exprDisp = "";
+            drawScreen();
+        }
+    }
+
+    // ── Lecture manuelle Bit-Bang du Scanner Barcode (A1) ──
+    if (g_scannerActive && digitalRead(PIN_RX) == LOW) {
+        delayMicroseconds(BIT_DELAY + (BIT_DELAY / 2)); // Se placer au milieu du bit
+        byte received = 0;
+        for (int i = 0; i < 8; i++) {
+            if (digitalRead(PIN_RX) == HIGH) {
+                received |= (1 << i);
+            }
+            delayMicroseconds(BIT_DELAY);
+        }
+        char c = (char)received;
+        
+        if (c == '\r' || c == '\n') {
+            if (barcodeBuffer.length() > 0) {
+                // Notifier Python via le Bridge
+                Bridge.call("barcode_received", barcodeBuffer);
+                
+                // Affichage temporaire de succès en vert
+                tft.fillScreen(TFT_GREEN);
+                tft.setTextColor(TFT_WHITE);
+                tft.setTextDatum(MC_DATUM);
+                tft.drawString("CODE SCANNE :", 160, 200, 4);
+                tft.drawString(barcodeBuffer, 160, 260, 4);
+                
+                delay(2000);
+                
+                // Réinitialiser les états et redessiner l'écran
+                barcodeBuffer = "";
+                g_scannerActive = false;
+                drawScreen();
+            }
+        } else if (c >= 32 && c <= 126) {
+            barcodeBuffer += c;
+        }
+    }
+
+    // ── Vérification timer scanner (DOIT s'exécuter à chaque loop, pas seulement au touch) ──
+    if (g_scannerPending) {
+        unsigned long elapsed = millis() - g_scannerStartTime;
+        if (elapsed >= 2000) {
+            // 2s écoulées → ajouter le montant dans la zone des opérations
+            addScannedAmount(g_pendingAmount);
+            // Arrêter le scanner et réinitialiser
+            sendScannerCommand(false);
+            g_scannerActive = false;
+            g_scannerPending = false;
+            drawScannerBtn();
+        }
+    }
+
     if (!tft.getTouch(&tx, &ty)) {
+        Bridge.update();
+        return;
+    }
+
+    // DEBUG : afficher les coordonnées tactiles dans le Serial Monitor
+    Serial.print("[Touch] x="); Serial.print(tx);
+    Serial.print(" y="); Serial.println(ty);
+
+    // Si le mode paiement est actif, intercepter uniquement la croix de fermeture "X"
+    if (g_paymentActive) {
+        int px = 30;
+        int py = 160;
+        int pw = 260;
+        // Détecter si la touche est sur la croix rouge (en haut à droite du prompt)
+        if (tx >= px + pw - 45 && tx <= px + pw && ty >= py && ty <= py + 45) {
+            g_paymentActive = false;
+            drawScreen();
+            delay(250); // anti-rebond
+        }
         Bridge.update();
         return;
     }
@@ -460,7 +725,7 @@ void loop() {
         delay(150);
     }
 
-    // ── Bouton PAYER (flash visuel seulement) ──
+    // ── Bouton PAYER ──
     else if (ty >= 384 && ty <= 464 && tx >= 4 && tx <= 156) {
         tft.fillRoundRect(4, 384, 152, 80, 14, TFT_WHITE);
         delay(70);
@@ -469,25 +734,39 @@ void loop() {
         tft.setTextColor(TFT_WHITE);
         tft.setTextDatum(MC_DATUM);
         tft.drawString("PAYER", 80, 424, 4);
+        
+        // Activer le mode paiement et afficher le prompt
+        if (!g_paymentActive) {
+            g_paymentActive = true;
+            drawPaymentPrompt();
+        }
         delay(150);
     }
 
-    // ── Bouton SCANNER (flash visuel seulement) ──
-    else if (ty >= 384 && ty <= 464 && tx >= 162 && tx <= 316) {
-        tft.fillRoundRect(162, 384, 154, 80, 14, TFT_WHITE);
-        delay(70);
-        tft.fillRoundRect(162, 384, 154, 80, 14, COLOR_SCANNER);
-        tft.drawRoundRect(162, 384, 154, 80, 14, 0xC500);
-        tft.setTextColor(COLOR_NAVY);
-        tft.setTextDatum(MC_DATUM);
-        tft.drawString("SCANNER", 239, 424, 4);
-        delay(150);
+// ── Bouton SCANNER / ANNULER (toggle mode commande) ──
+// ── Bouton SCANNER / ANNULER (toggle mode commande) ──
+else if (ty >= 384 && ty <= 464 && tx >= 162 && tx <= 316) {
+    // If already pending, this press acts as cancel
+    if (g_scannerPending) {
+        // Cancel pending addition
+        g_scannerPending = false;
+        sendScannerCommand(false);
+        g_scannerActive = false;
+        drawScannerBtn();
+    } else {
+        // Start pending addition
+        g_scannerPending = true;
+        g_scannerStartTime = millis();
+        g_pendingAmount = random(1, 201);
+        g_scannerActive = true; // keep scanner active for visual state
+        sendScannerCommand(true);
+        drawScannerBtn();
     }
-
-    Bridge.update();
+    // Small debounce delay
+    delay(150);
 }
 
-
-
+Bridge.update();
+}
 
 
