@@ -44,8 +44,8 @@ long   g_pendingAmount = 0; // amount generated during activation
 #define COLOR_BTN_CLR 0xFD14   // rouge doux pour bouton C
 
 // --- Configuration du Scanner Barcode (Bit Bang A2/A1) ────────
-#define PIN_RX A2
-#define PIN_TX A1
+#define PIN_RX A1
+#define PIN_TX A2
 #define BIT_DELAY 104 // Délai pour 9600 baud (1000000/9600)
 
 byte triggerScannerStart[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x02, 0x01, 0xAB, 0xCD};
@@ -545,17 +545,39 @@ void loop() {
             }
             tag_uid.toUpperCase();
 
-            // Afficher le succès sur le prompt
+            // Afficher le prompt de succes stylis\u00e9
             int px = 30;
             int py = 160;
             int pw = 260;
             int ph = 160;
-            tft.fillRoundRect(px, py, pw, ph, 8, TFT_GREEN);
-            tft.drawRoundRect(px, py, pw, ph, 8, COLOR_NAVY);
-            tft.setTextColor(TFT_WHITE);
+            int cx = px + pw / 2; // centre X = 160
+
+            // Ombre
+            tft.fillRoundRect(px + 4, py + 4, pw, ph, 12, COLOR_BTN_SHD);
+            // Fond blanc
+            tft.fillRoundRect(px, py, pw, ph, 12, TFT_WHITE);
+            tft.drawRoundRect(px, py, pw, ph, 12, COLOR_GREY_NK);
+
+            // Grand cercle vert
+            tft.fillCircle(cx, py + 58, 36, 0x2D05);
+
+            // Checkmark (3 pixels d'\u00e9paisseur)
+            for (int t = -1; t <= 1; t++) {
+                tft.drawLine(cx - 15, py + 58 + t, cx - 3, py + 73 + t, TFT_WHITE);
+                tft.drawLine(cx - 3,  py + 73 + t, cx + 17, py + 42 + t, TFT_WHITE);
+            }
+
+            // Titre en vert
             tft.setTextDatum(MC_DATUM);
-            tft.drawString("PAIEMENT VALIDE !", px + pw / 2, py + ph / 2 - 10, 2);
-            tft.drawString("UID: " + tag_uid, px + pw / 2, py + ph / 2 + 15, 2);
+            tft.setTextColor(0x2D05);
+            tft.drawString("Paiement reussi !", cx, py + 108, 2);
+
+            // Sous-titre gris
+            tft.setTextColor(COLOR_GREY_NK);
+            tft.drawString("Merci pour votre paiement.", cx, py + 128, 1);
+
+            // UID en petit
+            tft.drawString("UID: " + tag_uid, cx, py + 146, 1);
 
             // Envoyer au Bridge Python
             Bridge.call("notify_payment", tag_uid);
