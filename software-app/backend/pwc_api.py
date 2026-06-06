@@ -317,14 +317,21 @@ def get_cards():
     try:
         connection = get_oracle_connection()
         cursor = connection.cursor()
-        
         sql = """
-            SELECT ID_CARD, PAN, F_NAME, L_NAME, OPERATION, AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT
+            SELECT ID_CARD, PAN, F_NAME, L_NAME,
+                   COALESCE(
+                       (SELECT OPERATION FROM (
+                            SELECT OPERATION, ROW_NUMBER() OVER (ORDER BY TIMESTMP DESC) as r_op
+                            FROM POS.PowerCard_System
+                            WHERE ID_CARD = outer_c.ID_CARD AND UPPER(OPERATION) NOT IN ('TRANSFER', 'VIREMENT')
+                       ) WHERE r_op = 1), 'Create'
+                   ) as OPERATION,
+                   AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT
             FROM (
-                SELECT ID_CARD, PAN, F_NAME, L_NAME, OPERATION, AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT,
+                SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT,
                        ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
                 FROM POS.PowerCard_System
-            ) WHERE rn = 1
+            ) outer_c WHERE rn = 1
             ORDER BY TIMESTMP DESC
         """
         cursor.execute(sql)
@@ -353,6 +360,7 @@ def get_events():
             SELECT ID_EVENT, ID_CARD, PAN, F_NAME, L_NAME, AMOUNTS, 
                    POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMETMP 
             FROM POS.Events 
+            WHERE UPPER(OPERATION) NOT IN ('TRANSFER', 'VIREMENT')
             ORDER BY TIMETMP DESC
         """)
         
@@ -433,12 +441,20 @@ def get_external_cards():
         cursor = connection.cursor()
         
         sql = """
-            SELECT ID_CARD, PAN, F_NAME, L_NAME, OPERATION, AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT
+            SELECT ID_CARD, PAN, F_NAME, L_NAME,
+                   COALESCE(
+                       (SELECT OPERATION FROM (
+                            SELECT OPERATION, ROW_NUMBER() OVER (ORDER BY TIMESTMP DESC) as r_op
+                            FROM POS.Externel_System
+                            WHERE ID_CARD = outer_c.ID_CARD AND UPPER(OPERATION) NOT IN ('TRANSFER', 'VIREMENT')
+                       ) WHERE r_op = 1), 'Create'
+                   ) as OPERATION,
+                   AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT
             FROM (
-                SELECT ID_CARD, PAN, F_NAME, L_NAME, OPERATION, AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT,
+                SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, POS_LIMIT, ATM_LIMIT,
                        ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
                 FROM POS.Externel_System
-            ) WHERE rn = 1
+            ) outer_c WHERE rn = 1
             ORDER BY TIMESTMP DESC
         """
         cursor.execute(sql)
@@ -602,8 +618,9 @@ def get_external_events():
             SELECT ID_EVENT, ID_CARD, PAN, F_NAME, L_NAME, AMOUNTS, 
                    POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMETMP 
             FROM POS.Events 
-            WHERE SOURCE = 'Externel_System' 
-               OR (SOURCE = 'PWC_System' AND ID_CARD IN (SELECT ID_CARD FROM POS.Externel_System))
+            WHERE (SOURCE = 'Externel_System' 
+               OR (SOURCE = 'PWC_System' AND ID_CARD IN (SELECT ID_CARD FROM POS.Externel_System)))
+               AND UPPER(OPERATION) NOT IN ('TRANSFER', 'VIREMENT')
             ORDER BY TIMETMP DESC
         """)
         
@@ -625,8 +642,19 @@ def get_recent_events_for_card(cursor, id_card):
     try:
         cursor.execute("""
             SELECT OPERATION, AMOUNTS, TIMETMP, SOURCE
-            FROM POS.Events 
-            WHERE ID_CARD = :id_card
+            FROM (
+                SELECT OPERATION, AMOUNTS, TIMETMP, SOURCE
+                FROM POS.Events 
+                WHERE ID_CARD = :id_card
+                UNION ALL
+                SELECT OPERATION, AMOUNT AS AMOUNTS, TIMESTMP AS TIMETMP, SOURCE
+                FROM POS.PowerCard_System
+                WHERE ID_CARD = :id_card AND UPPER(OPERATION) = 'VIREMENT'
+                UNION ALL
+                SELECT OPERATION, AMOUNT AS AMOUNTS, TIMESTMP AS TIMETMP, SOURCE
+                FROM POS.Externel_System
+                WHERE ID_CARD = :id_card AND UPPER(OPERATION) = 'VIREMENT'
+            )
             ORDER BY TIMETMP ASC
         """, {"id_card": id_card})
         rows = cursor.fetchall()
@@ -658,6 +686,23 @@ def get_recent_events_for_card(cursor, id_card):
                     "type": "debit"
                 })
                 prev_amount = 0.0
+            elif op.upper() == 'VIREMENT':
+                if abs(diff) > 0.01:
+                    if diff > 0:
+                        events_list.append({
+                            "title": "Transfer Received",
+                            "date": t_str,
+                            "amount": abs(diff),
+                            "type": "credit"
+                        })
+                    else:
+                        events_list.append({
+                            "title": "Transfer Sent",
+                            "date": t_str,
+                            "amount": abs(diff),
+                            "type": "debit"
+                        })
+                    prev_amount = amt
             else: # UPDATE or other
                 if abs(diff) > 0.01:
                     if diff > 0:
@@ -933,8 +978,22 @@ def mobile_history(card_id):
         cursor.execute("""
             SELECT ID_EVENT, ID_CARD, PAN, F_NAME, L_NAME, AMOUNTS,
                    POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMETMP
-            FROM POS.Events
-            WHERE ID_CARD = :id_card
+            FROM (
+                SELECT ID_EVENT, ID_CARD, PAN, F_NAME, L_NAME, AMOUNTS,
+                       POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMETMP
+                FROM POS.Events
+                WHERE ID_CARD = :id_card
+                UNION ALL
+                SELECT 0 AS ID_EVENT, ID_CARD, PAN, F_NAME, L_NAME, AMOUNT AS AMOUNTS,
+                       POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMESTMP AS TIMETMP
+                FROM POS.PowerCard_System
+                WHERE ID_CARD = :id_card AND UPPER(OPERATION) = 'VIREMENT'
+                UNION ALL
+                SELECT 0 AS ID_EVENT, ID_CARD, PAN, F_NAME, L_NAME, AMOUNT AS AMOUNTS,
+                       POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMESTMP AS TIMETMP
+                FROM POS.Externel_System
+                WHERE ID_CARD = :id_card AND UPPER(OPERATION) = 'VIREMENT'
+            )
             ORDER BY TIMETMP ASC
         """, {"id_card": card_id})
 
@@ -1013,18 +1072,24 @@ def mobile_history(card_id):
                         "new_value": f"€{cur_atm:,.2f}"
                     })
 
-            elif operation.upper() == 'DELETE':
-                icon_type = "delete"
-                changes.append({
-                    "field": "Status",
-                    "old_value": (prev.get('STATUS') or 'Active').strip() if prev else "Active",
-                    "new_value": "Blocked"
-                })
-                changes.append({
-                    "field": "Account",
-                    "old_value": "",
-                    "new_value": "Card Blocked / Deleted"
-                })
+            elif operation.upper() == 'VIREMENT':
+                icon_type = "balance"
+                prev_amount = float(prev.get('AMOUNTS') or 0) if prev else 0.0
+                diff = cur_amount - prev_amount
+                if diff > 0:
+                    title = "Transfer Received"
+                    changes.append({
+                        "field": "Transfer",
+                        "old_value": "",
+                        "new_value": f"+€{abs(diff):,.2f}"
+                    })
+                else:
+                    title = "Transfer Sent"
+                    changes.append({
+                        "field": "Transfer",
+                        "old_value": "",
+                        "new_value": f"-€{abs(diff):,.2f}"
+                    })
 
             else:  # UPDATE or other
                 if prev:
@@ -1109,7 +1174,11 @@ def mobile_history(card_id):
                 "limits": "Limits Modified",
                 "profile": "Profile Updated"
             }
-            title = title_map.get(icon_type, "Card Updated")
+            if operation.upper() == 'VIREMENT':
+                # Already computed title
+                pass
+            else:
+                title = title_map.get(icon_type, "Card Updated")
 
             history.append({
                 "date": date_str,
@@ -1138,6 +1207,400 @@ def mobile_history(card_id):
             connection.close()
 
 
+# =============================================
+# TRANSFER ENDPOINTS
+# =============================================
+
+@app.route('/api/mobile/transfer', methods=['POST'])
+def mobile_transfer():
+    """
+    Validate recipient PAN + name, check sender balance, execute transfer.
+    Pipeline: API → Kafka (Avro) → recorded in both tables.
+    """
+    data = request.json or {}
+    sender_card_id = data.get('sender_card_id', '').strip()
+    recipient_pan = data.get('recipient_pan', '').strip()
+    recipient_first_name = data.get('recipient_first_name', '').strip()
+    recipient_last_name = data.get('recipient_last_name', '').strip()
+    transfer_amount = data.get('amount', 0)
+
+    if not sender_card_id or not recipient_pan or not recipient_first_name or not recipient_last_name:
+        return jsonify({"status": "error", "message": "All fields are required."}), 400
+
+    try:
+        transfer_amount = float(transfer_amount)
+    except (ValueError, TypeError):
+        return jsonify({"status": "error", "message": "Invalid amount."}), 400
+
+    if transfer_amount <= 0:
+        return jsonify({"status": "error", "message": "Amount must be greater than zero."}), 400
+
+    connection = None
+    try:
+        connection = get_oracle_connection()
+        cursor = connection.cursor()
+
+        # ── 1. Find recipient by PAN in Externel_System ──
+        cursor.execute("""
+            SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS
+            FROM (
+                SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS,
+                       ROW_NUMBER() OVER (PARTITION BY PAN ORDER BY TIMESTMP DESC) as rn
+                FROM POS.Externel_System
+                WHERE PAN = :pan
+            ) WHERE rn = 1
+        """, {"pan": recipient_pan})
+        recipient_row = cursor.fetchone()
+        recipient_table = "Externel_System"
+
+        # ── 2. If not found, try PowerCard_System ──
+        if not recipient_row:
+            cursor.execute("""
+                SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS
+                FROM (
+                    SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS,
+                           ROW_NUMBER() OVER (PARTITION BY PAN ORDER BY TIMESTMP DESC) as rn
+                    FROM POS.PowerCard_System
+                    WHERE PAN = :pan
+                ) WHERE rn = 1
+            """, {"pan": recipient_pan})
+            recipient_row = cursor.fetchone()
+            recipient_table = "PowerCard_System"
+
+        if not recipient_row:
+            return jsonify({"status": "error", "message": "Invalid recipient. No account found with this PAN."}), 404
+
+        r_card_id, r_fname, r_lname, r_amount, r_pan, r_status = recipient_row
+
+        # ── 3. Verify first name and last name (case-insensitive) ──
+        if (r_fname or '').strip().lower() != recipient_first_name.lower() or \
+           (r_lname or '').strip().lower() != recipient_last_name.lower():
+            return jsonify({"status": "error", "message": "Invalid recipient. The first name or last name does not match."}), 400
+
+        # ── 4. Make sure recipient is not the sender ──
+        if str(r_card_id).strip() == sender_card_id:
+            return jsonify({"status": "error", "message": "You cannot transfer to your own account."}), 400
+
+        # ── 5. Find sender in Externel_System ──
+        cursor.execute("""
+            SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS, POS_LIMIT, ATM_LIMIT
+            FROM (
+                SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS, POS_LIMIT, ATM_LIMIT,
+                       ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
+                FROM POS.Externel_System
+                WHERE ID_CARD = :id_card
+            ) WHERE rn = 1
+        """, {"id_card": sender_card_id})
+        sender_row = cursor.fetchone()
+        sender_table = "Externel_System"
+
+        # ── 6. If not found, try PowerCard_System ──
+        if not sender_row:
+            cursor.execute("""
+                SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS, POS_LIMIT, ATM_LIMIT
+                FROM (
+                    SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS, POS_LIMIT, ATM_LIMIT,
+                           ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
+                    FROM POS.PowerCard_System
+                    WHERE ID_CARD = :id_card
+                ) WHERE rn = 1
+            """, {"id_card": sender_card_id})
+            sender_row = cursor.fetchone()
+            sender_table = "PowerCard_System"
+
+        if not sender_row:
+            return jsonify({"status": "error", "message": "Sender account not found."}), 404
+
+        s_card_id, s_fname, s_lname, s_amount, s_pan, s_status, s_pos, s_atm = sender_row
+        s_amount = float(s_amount) if s_amount else 0.0
+        r_amount = float(r_amount) if r_amount else 0.0
+
+        # ── 7. Check sender balance ──
+        if transfer_amount > s_amount:
+            return jsonify({"status": "error", "message": "Insufficient balance. Your current balance is €" + f"{s_amount:,.2f}"}), 400
+
+        # ── 8. Execute transfer: deduct from sender ──
+        new_sender_balance = s_amount - transfer_amount
+        now_ts = datetime.datetime.now()
+
+        sql_sender_insert = f"""
+            INSERT INTO POS.{sender_table} (
+                id_Card, PAN, F_Name, L_Name, Amount,
+                POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+            ) VALUES (
+                :id_Card, :PAN, :F_Name, :L_Name, :Amount,
+                :POS_limit, :ATM_limit, :Status, 'Mobile_App', 'Virement', :ts
+            )
+        """
+        sender_params = {
+            "id_Card":   s_card_id,
+            "PAN":       s_pan,
+            "F_Name":    s_fname,
+            "L_Name":    s_lname,
+            "Amount":    new_sender_balance,
+            "POS_limit": float(s_pos) if s_pos else 0.0,
+            "ATM_limit": float(s_atm) if s_atm else 0.0,
+            "Status":    s_status or 'Active',
+            "ts":        now_ts,
+        }
+        cursor.execute(sql_sender_insert, sender_params)
+
+        # ── 9. Execute transfer: add to recipient ──
+        new_recipient_balance = r_amount + transfer_amount
+        recipient_source = 'Externel_System' if recipient_table == 'Externel_System' else 'PWC_System'
+
+        # Get recipient's limits
+        if recipient_table == 'Externel_System':
+            cursor.execute("""
+                SELECT POS_LIMIT, ATM_LIMIT FROM (
+                    SELECT POS_LIMIT, ATM_LIMIT, ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
+                    FROM POS.Externel_System WHERE ID_CARD = :id_card
+                ) WHERE rn = 1
+            """, {"id_card": r_card_id})
+        else:
+            cursor.execute("""
+                SELECT POS_LIMIT, ATM_LIMIT FROM (
+                    SELECT POS_LIMIT, ATM_LIMIT, ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
+                    FROM POS.PowerCard_System WHERE ID_CARD = :id_card
+                ) WHERE rn = 1
+            """, {"id_card": r_card_id})
+        r_limits = cursor.fetchone()
+        r_pos = float(r_limits[0]) if r_limits and r_limits[0] else 0.0
+        r_atm = float(r_limits[1]) if r_limits and r_limits[1] else 0.0
+
+        sql_recipient_insert = f"""
+            INSERT INTO POS.{recipient_table} (
+                id_Card, PAN, F_Name, L_Name, Amount,
+                POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+            ) VALUES (
+                :id_Card, :PAN, :F_Name, :L_Name, :Amount,
+                :POS_limit, :ATM_limit, :Status, :Source, 'Virement', :ts
+            )
+        """
+        recipient_params = {
+            "id_Card":   r_card_id,
+            "PAN":       r_pan,
+            "F_Name":    r_fname,
+            "L_Name":    r_lname,
+            "Amount":    new_recipient_balance,
+            "POS_limit": r_pos,
+            "ATM_limit": r_atm,
+            "Status":    r_status or 'Active',
+            "Source":    recipient_source,
+            "ts":        now_ts,
+        }
+        cursor.execute(sql_recipient_insert, recipient_params)
+
+        connection.commit()
+
+        # ── 10. Send to Kafka (Avro) ──
+        sender_kafka = {
+            "id_Card": s_card_id, "PAN": s_pan, "F_Name": s_fname, "L_Name": s_lname,
+            "Amount": new_sender_balance, "POS_limit": float(s_pos) if s_pos else 0.0,
+            "ATM_limit": float(s_atm) if s_atm else 0.0, "Status": s_status or 'Active',
+            "Source": 'Mobile_App', "Operation": "Virement"
+        }
+        send_to_kafka(sender_kafka, topic="HPOS")
+
+        recipient_kafka = {
+            "id_Card": r_card_id, "PAN": r_pan, "F_Name": r_fname, "L_Name": r_lname,
+            "Amount": new_recipient_balance, "POS_limit": r_pos,
+            "ATM_limit": r_atm, "Status": r_status or 'Active',
+            "Source": recipient_source, "Operation": "Virement"
+        }
+        send_to_kafka(recipient_kafka, topic="HPOS")
+
+        return jsonify({
+            "status": "success",
+            "message": f"Transfer of €{transfer_amount:,.2f} to {r_fname} {r_lname} completed successfully.",
+            "new_balance": new_sender_balance
+        }), 200
+
+    except Exception as e:
+        print(f"Oracle Error [MOBILE TRANSFER]: {e}")
+        return jsonify({"status": "error", "message": f"Server error: {str(e)}"}), 500
+    finally:
+        if connection:
+            connection.close()
+
+
+@app.route('/api/transactions', methods=['GET'])
+def get_all_transactions():
+    """Return paired Transfer data from both systems for PWC dashboard."""
+    connection = None
+    try:
+        connection = get_oracle_connection()
+        cursor = connection.cursor()
+
+        # Get all Virement rows from both tables
+        cursor.execute("""
+            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'PowerCard_System' as TBL
+            FROM POS.PowerCard_System
+            WHERE UPPER(OPERATION) = 'VIREMENT'
+            UNION ALL
+            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'Externel_System' as TBL
+            FROM POS.Externel_System
+            WHERE UPPER(OPERATION) = 'VIREMENT'
+            ORDER BY TIMESTMP DESC
+        """)
+
+        all_rows = []
+        for row in cursor:
+            all_rows.append({
+                "ID_CARD": row[0], "PAN": row[1], "F_NAME": row[2], "L_NAME": row[3],
+                "AMOUNT": float(row[4]) if row[4] else 0.0, "STATUS": row[5],
+                "SOURCE": row[6], "TIMESTMP": row[7], "TBL": row[8]
+            })
+
+        # Pair sender (Source='Mobile_App') with recipient (same TIMESTMP)
+        transfers = []
+        used = set()
+        for i, r in enumerate(all_rows):
+            if i in used:
+                continue
+            if r["SOURCE"] == "Mobile_App":  # This is a sender
+                # Find matching recipient with same timestamp
+                recipient = None
+                for j, r2 in enumerate(all_rows):
+                    if j != i and j not in used and r2["SOURCE"] != "Mobile_App" and r2["TIMESTMP"] == r["TIMESTMP"]:
+                        recipient = r2
+                        used.add(j)
+                        break
+                # Compute transfer amount from sender's previous balance
+                prev_bal = _get_prev_balance(cursor, r["ID_CARD"], r["TIMESTMP"], r["TBL"])
+                trx_amount = prev_bal - r["AMOUNT"] if prev_bal is not None else 0.0
+                t = {
+                    "sender_card_id": r["ID_CARD"],
+                    "sender_name": f"{r['F_NAME'] or ''} {r['L_NAME'] or ''}".strip(),
+                    "sender_pan": r["PAN"],
+                    "sender_new_balance": r["AMOUNT"],
+                    "sender_source": r["SOURCE"],
+                    "transfer_amount": abs(trx_amount),
+                    "timestamp": r["TIMESTMP"],
+                    "operation": "Transfer",
+                }
+                if recipient:
+                    t["recipient_card_id"] = recipient["ID_CARD"]
+                    t["recipient_name"] = f"{recipient['F_NAME'] or ''} {recipient['L_NAME'] or ''}".strip()
+                    t["recipient_pan"] = recipient["PAN"]
+                    t["recipient_new_balance"] = recipient["AMOUNT"]
+                    t["recipient_source"] = recipient["SOURCE"]
+                else:
+                    t["recipient_card_id"] = "N/A"
+                    t["recipient_name"] = "N/A"
+                    t["recipient_pan"] = "N/A"
+                    t["recipient_new_balance"] = 0.0
+                    t["recipient_source"] = "N/A"
+                transfers.append(t)
+                used.add(i)
+
+        return jsonify(transfers), 200
+    except Exception as e:
+        print(f"Oracle Error [GET TRANSACTIONS]: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        if connection:
+            connection.close()
+
+
+def _get_prev_balance(cursor, card_id, virement_ts, table_name):
+    """Get the balance of a card just before a Virement timestamp."""
+    try:
+        cursor.execute(f"""
+            SELECT AMOUNT FROM (
+                SELECT AMOUNT, ROW_NUMBER() OVER (ORDER BY TIMESTMP DESC) as rn
+                FROM POS.{table_name}
+                WHERE ID_CARD = :id_card AND TIMESTMP < :ts
+            ) WHERE rn = 1
+        """, {"id_card": card_id, "ts": virement_ts})
+        row = cursor.fetchone()
+        return float(row[0]) if row and row[0] else None
+    except:
+        return None
+
+
+@app.route('/api/external/transactions', methods=['GET'])
+def get_external_transactions():
+    """Return paired Transfer data from Externel_System for External dashboard."""
+    connection = None
+    try:
+        connection = get_oracle_connection()
+        cursor = connection.cursor()
+
+        # Get all Virement rows from both tables (we need both to pair sender/recipient)
+        cursor.execute("""
+            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'PowerCard_System' as TBL
+            FROM POS.PowerCard_System
+            WHERE UPPER(OPERATION) = 'VIREMENT'
+            UNION ALL
+            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'Externel_System' as TBL
+            FROM POS.Externel_System
+            WHERE UPPER(OPERATION) = 'VIREMENT'
+            ORDER BY TIMESTMP DESC
+        """)
+
+        all_rows = []
+        for row in cursor:
+            all_rows.append({
+                "ID_CARD": row[0], "PAN": row[1], "F_NAME": row[2], "L_NAME": row[3],
+                "AMOUNT": float(row[4]) if row[4] else 0.0, "STATUS": row[5],
+                "SOURCE": row[6], "TIMESTMP": row[7], "TBL": row[8]
+            })
+
+        # Pair sender with recipient, only keep transfers involving Externel_System
+        transfers = []
+        used = set()
+        for i, r in enumerate(all_rows):
+            if i in used:
+                continue
+            if r["SOURCE"] == "Mobile_App":
+                recipient = None
+                for j, r2 in enumerate(all_rows):
+                    if j != i and j not in used and r2["SOURCE"] != "Mobile_App" and r2["TIMESTMP"] == r["TIMESTMP"]:
+                        recipient = r2
+                        used.add(j)
+                        break
+                # Only include if sender or recipient is in Externel_System
+                if r["TBL"] != "Externel_System" and (not recipient or recipient["TBL"] != "Externel_System"):
+                    used.add(i)
+                    continue
+                prev_bal = _get_prev_balance(cursor, r["ID_CARD"], r["TIMESTMP"], r["TBL"])
+                trx_amount = prev_bal - r["AMOUNT"] if prev_bal is not None else 0.0
+                t = {
+                    "sender_card_id": r["ID_CARD"],
+                    "sender_name": f"{r['F_NAME'] or ''} {r['L_NAME'] or ''}".strip(),
+                    "sender_pan": r["PAN"],
+                    "sender_new_balance": r["AMOUNT"],
+                    "sender_source": r["SOURCE"],
+                    "transfer_amount": abs(trx_amount),
+                    "timestamp": r["TIMESTMP"],
+                    "operation": "Transfer",
+                }
+                if recipient:
+                    t["recipient_card_id"] = recipient["ID_CARD"]
+                    t["recipient_name"] = f"{recipient['F_NAME'] or ''} {recipient['L_NAME'] or ''}".strip()
+                    t["recipient_pan"] = recipient["PAN"]
+                    t["recipient_new_balance"] = recipient["AMOUNT"]
+                    t["recipient_source"] = recipient["SOURCE"]
+                else:
+                    t["recipient_card_id"] = "N/A"
+                    t["recipient_name"] = "N/A"
+                    t["recipient_pan"] = "N/A"
+                    t["recipient_new_balance"] = 0.0
+                    t["recipient_source"] = "N/A"
+                transfers.append(t)
+                used.add(i)
+
+        return jsonify(transfers), 200
+    except Exception as e:
+        print(f"Oracle Error [GET EXT TRANSACTIONS]: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        if connection:
+            connection.close()
+
+
 if __name__ == '__main__':
     print("API PowerCard System started on http://localhost:5001")
     app.run(port=5001, debug=True)
+

@@ -89,7 +89,7 @@ except ImportError:
 # --- CONFIGURATION BASE DE DONNÉES ORACLE ---
 DB_USER = "POS"
 DB_PASS = "Izinm123W"
-DB_HOST = "172.22.32.1"  # Sera détecté dynamiquement au démarrage
+DB_HOST = ""  # Sera détecté dynamiquement au démarrage
 
 def on_process_payment(tag_uid, amount_str):
     """Vérifie si le NFC_UID existe dans la table Externel_System"""
@@ -105,7 +105,7 @@ def on_process_payment(tag_uid, amount_str):
 
     try:
         # Connexion à Oracle
-        dsn = f"{DB_HOST}:1521/xe"
+        dsn = f"{DB_HOST}:....."
         connection = oracledb.connect(user=DB_USER, password=DB_PASS, dsn=dsn)
         cursor = connection.cursor()
 
@@ -294,7 +294,7 @@ def discover_host_ip():
     global DB_HOST
     
     # 1. Candidats par défaut
-    candidates = ["172.22.32.1", "192.168.8.101"]
+    candidates = ["172.22.--.--", "192.168.--.--"]
     
     # 2. Lire la passerelle par défaut de Linux / Docker
     try:
@@ -304,7 +304,7 @@ def discover_host_ip():
                 if len(fields) > 2 and fields[1] == '00000000':
                     import struct
                     gw = socket.inet_ntoa(struct.pack("<L", int(fields[2], 16)))
-                    if gw not in candidates and gw != "0.0.0.0":
+                    if gw not in candidates and gw != "-.-.-.-":
                         candidates.append(gw)
     except Exception:
         pass
@@ -318,7 +318,7 @@ def discover_host_ip():
     # Essayer de se connecter au port 1521 de chaque candidat
     for host in candidates:
         try:
-            print(f"[TEST] Essai de connexion sur {host}:1521 ... ", end="", flush=True)
+            print(f"[TEST] Essai de connexion sur {host}:---- ... ", end="", flush=True)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(1.5)
             s.connect((host, 1521))

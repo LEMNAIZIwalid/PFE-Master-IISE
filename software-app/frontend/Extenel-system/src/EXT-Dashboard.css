@@ -541,6 +541,37 @@ body {
   color: #b91c1c;
 }
 
+.op-virement {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.source-badge.mobile_app {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.source-badge.pwc_system {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.source-badge.externel_system {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
 /* Supervisor Specifics */
 .supervisor-stats-section {
   background: white;

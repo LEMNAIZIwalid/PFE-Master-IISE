@@ -861,6 +861,11 @@ h1 {
   color: #dc2626;
 }
 
+.op-badge.virement {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
 .status-badge {
   padding: 0.4rem 1rem;
   border-radius: 99px;
@@ -927,6 +932,12 @@ h1 {
   background: #fdf4ff;
   color: #a21caf;
   border: 1px solid #f5d0fe;
+}
+
+.source-badge.mobile_app {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
 }
 
 /* Action Icons */

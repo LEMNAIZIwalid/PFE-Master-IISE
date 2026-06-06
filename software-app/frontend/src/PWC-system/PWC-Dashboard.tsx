@@ -44,6 +44,12 @@ function PWCDashboard() {
   const [isEventModalOpen, setIsEventModalOpen] = React.useState(false)
   const [eventModalTab, setEventModalTab] = React.useState<'overview' | 'json'>('overview')
 
+  // État pour Transactions Checking
+  const [transactions, setTransactions] = React.useState<any[]>([])
+  const [loadingTransactions, setLoadingTransactions] = React.useState(false)
+  const [selectedTrx, setSelectedTrx] = React.useState<any>(null)
+  const [isTrxModalOpen, setIsTrxModalOpen] = React.useState(false)
+
   // État pour le formulaire d'édition
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false)
   const [editFormData, setEditFormData] = React.useState({
@@ -89,7 +95,28 @@ function PWCDashboard() {
     if (activeTab === 'events' && isLoggedIn) {
       fetchEvents()
     }
+    if (activeTab === 'transactions' && isLoggedIn) {
+      fetchTransactions()
+    }
   }, [activeTab, isLoggedIn])
+
+  const fetchTransactions = async () => {
+    setLoadingTransactions(true)
+    try {
+      const response = await fetch('http://localhost:5001/api/transactions')
+      if (response.ok) {
+        const data = await response.json()
+        setTransactions(data)
+      } else {
+        setTransactions([])
+      }
+    } catch (err) {
+      console.error('Error fetching transactions:', err)
+      setTransactions([])
+    } finally {
+      setLoadingTransactions(false)
+    }
+  }
 
   const fetchEvents = async () => {
     setLoadingEvents(true)
@@ -400,6 +427,11 @@ function PWCDashboard() {
           <div className={`nav-item ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
             <span>Checking Events</span>
+          </div>
+
+          <div className={`nav-item ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+            <span>Transactions Checking</span>
           </div>
 
           <div className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
@@ -926,6 +958,80 @@ function PWCDashboard() {
           </div>
         )}
 
+        {activeTab === 'transactions' && (
+          <div className="dashboard-content">
+            <header className="dashboard-header">
+              <div className="title-stack">
+                <h1 className="system-title">Transactions-Checking</h1>
+                <p className="system-subtitle">Executed Transactions Logs</p>
+              </div>
+              <div className="header-right">
+                <button className="primary-btn" onClick={fetchTransactions} disabled={loadingTransactions}>
+                  <svg className={loadingTransactions ? 'animate-spin' : ''} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                    <path d="M21 2v6h-6"></path>
+                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                    <path d="M3 22v-6h6"></path>
+                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                  </svg>
+                  Refresh Transactions
+                </button>
+              </div>
+            </header>
+
+            <div className="table-section">
+              <div className="table-header-row">
+                <h3>System Transaction Audit</h3>
+                <span className="results-count">Total Records: {transactions.length}</span>
+              </div>
+              <div className="table-container">
+                {loadingTransactions ? (
+                  <div className="loader-container">
+                    <div className="loader"></div>
+                    <p>Fetching Transactions Data...</p>
+                  </div>
+                ) : (
+                  <table className="pwc-table">
+                    <thead>
+                      <tr>
+                        <th>Card ID</th>
+                        <th>Client Name</th>
+                        <th>Amount</th>
+                        <th>Operation</th>
+                        <th>Source</th>
+                        <th>Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transactions.length > 0 ? (
+                        transactions.map((trx, idx) => (
+                          <tr key={idx} className="clickable-row" onClick={() => { setSelectedTrx(trx); setIsTrxModalOpen(true); }}>
+                            <td className="id-cell">#{trx.sender_card_id || 'N/A'}</td>
+                            <td>{trx.sender_name || 'N/A'}</td>
+                            <td className="amount-cell">{parseFloat(trx.transfer_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</td>
+                            <td>
+                              <span className="op-badge virement">Virement</span>
+                            </td>
+                            <td>
+                              <span className="source-badge mobile_app">{trx.sender_source || 'Mobile_App'}</span>
+                            </td>
+                            <td className="date-cell">
+                              {trx.timestamp ? new Date(trx.timestamp).toLocaleString('fr-FR') : 'N/A'}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="no-data">No transactions found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'settings' && (
           <div className="dashboard-content">
             <header className="dashboard-header">
@@ -1346,6 +1452,110 @@ function PWCDashboard() {
               <div className="footer-right">
                 <button className="secondary-btn" onClick={() => setIsEventModalOpen(false)}>Close</button>
               </div>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {/* Modal View Transaction Details */}
+      {isTrxModalOpen && selectedTrx && (
+        <div className="modal-overlay" onClick={() => setIsTrxModalOpen(false)}>
+          <div className="modal-content event-details-modal premium-modal animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <header className="modal-header event-modal-header" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+              <div className="modal-title-group">
+                <div className="event-badge-wrapper">
+                  <span className="op-badge virement">Virement</span>
+                  <span className="event-id-label" style={{ marginLeft: '10px' }}>Transaction Receipt</span>
+                </div>
+                <h2 style={{ marginTop: '0.5rem', fontFamily: "'Outfit', sans-serif", fontWeight: 800 }}>Transfer Details</h2>
+              </div>
+              <button className="close-modal" onClick={() => setIsTrxModalOpen(false)}>✕</button>
+            </header>
+
+            <div className="modal-body" style={{ padding: '2rem 1.5rem' }}>
+              {/* Prominent Amount Display */}
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#64748b', fontWeight: 600 }}>Amount Transferred</span>
+                <h1 style={{ fontSize: '3rem', fontWeight: 800, color: '#ef4444', margin: '0.5rem 0', fontFamily: "'Outfit', sans-serif" }}>
+                  - {parseFloat(selectedTrx.transfer_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
+                </h1>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                  {selectedTrx.timestamp ? new Date(selectedTrx.timestamp).toLocaleString('fr-FR') : 'N/A'}
+                </div>
+              </div>
+
+              {/* Two-Column Sender & Recipient Comparison */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '1rem' }}>
+                
+                {/* Sender Card */}
+                <div className="detail-section glass-effect" style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                  <h3 className="section-subtitle" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#4f46e5', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#4f46e5' }}></span>
+                    Sender (Debited)
+                  </h3>
+                  <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="detail-label" style={{ color: '#64748b', fontSize: '0.85rem' }}>Client Name</span>
+                    <span className="detail-value" style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{selectedTrx.sender_name || 'N/A'}</span>
+                  </div>
+                  <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="detail-label" style={{ color: '#64748b', fontSize: '0.85rem' }}>Card ID</span>
+                    <span className="detail-value mono" style={{ fontFamily: 'monospace', fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{selectedTrx.sender_card_id || 'N/A'}</span>
+                  </div>
+                  <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="detail-label" style={{ color: '#64748b', fontSize: '0.85rem' }}>PAN Number</span>
+                    <span className="detail-value mono" style={{ fontFamily: 'monospace', fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{maskPAN(selectedTrx.sender_pan)}</span>
+                  </div>
+                  <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0' }}>
+                    <span className="detail-label" style={{ color: '#64748b', fontSize: '0.85rem' }}>New Balance</span>
+                    <span className="detail-value" style={{ fontWeight: 600, color: '#10b981', fontSize: '0.85rem' }}>{parseFloat(selectedTrx.sender_new_balance || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</span>
+                  </div>
+                </div>
+
+                {/* Recipient Card */}
+                <div className="detail-section glass-effect" style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                  <h3 className="section-subtitle" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#10b981', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
+                    Recipient (Credited)
+                  </h3>
+                  <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="detail-label" style={{ color: '#64748b', fontSize: '0.85rem' }}>Client Name</span>
+                    <span className="detail-value" style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{selectedTrx.recipient_name || 'N/A'}</span>
+                  </div>
+                  <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="detail-label" style={{ color: '#64748b', fontSize: '0.85rem' }}>Card ID</span>
+                    <span className="detail-value mono" style={{ fontFamily: 'monospace', fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{selectedTrx.recipient_card_id || 'N/A'}</span>
+                  </div>
+                  <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="detail-label" style={{ color: '#64748b', fontSize: '0.85rem' }}>PAN Number</span>
+                    <span className="detail-value mono" style={{ fontFamily: 'monospace', fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{maskPAN(selectedTrx.recipient_pan)}</span>
+                  </div>
+                  <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0' }}>
+                    <span className="detail-label" style={{ color: '#64748b', fontSize: '0.85rem' }}>New Balance</span>
+                    <span className="detail-value" style={{ fontWeight: 600, color: '#10b981', fontSize: '0.85rem' }}>{parseFloat(selectedTrx.recipient_new_balance || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Technical / Metadata Row */}
+              <div style={{ marginTop: '2rem', padding: '1rem 1.5rem', background: '#f1f5f9', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Recipient Source</span>
+                  <span className={`source-badge ${String(selectedTrx.recipient_source || '').toLowerCase()}`} style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                    {selectedTrx.recipient_source || 'N/A'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Sender Source</span>
+                  <span className="source-badge mobile_app" style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                    {selectedTrx.sender_source || 'Mobile_App'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <footer className="modal-footer premium-footer" style={{ borderTop: '1px solid #e2e8f0', background: '#f8fafc', padding: '1.2rem 2rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="primary-btn" onClick={() => setIsTrxModalOpen(false)} style={{ padding: '0.6rem 2rem', borderRadius: '8px' }}>Close</button>
             </footer>
           </div>
         </div>

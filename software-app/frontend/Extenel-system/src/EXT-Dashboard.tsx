@@ -29,6 +29,20 @@ const EXTDashboard: React.FC = () => {
   const [supervisorFilter, setSupervisorFilter] = useState('All');
   const [supervisorOperationFilter, setSupervisorOperationFilter] = useState('All');
 
+  // Transactions State
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [selectedTrx, setSelectedTrx] = useState<any>(null);
+  const [isTrxModalOpen, setIsTrxModalOpen] = useState(false);
+
+  const maskPAN = (pan: string) => {
+    if (!pan) return '';
+    const parts = pan.split('-');
+    if (parts.length === 4) {
+      return `${parts[0]}-${parts[1]}-xxxx-xxxx`;
+    }
+    return pan.substring(0, 9) + 'xxxx-xxxx';
+  };
 
   // Modal State
   const [selectedCard, setSelectedCard] = useState<any>(null);
@@ -70,6 +84,24 @@ const EXTDashboard: React.FC = () => {
     }
   };
 
+  const fetchTransactions = async () => {
+    setLoadingTransactions(true);
+    try {
+      const response = await fetch('http://localhost:5001/api/external/transactions');
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data);
+      } else {
+        setTransactions([]);
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      setTransactions([]);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
+
   // Generate new data when switching to create tab
   React.useEffect(() => {
     if (activeTab === 'create') {
@@ -80,6 +112,9 @@ const EXTDashboard: React.FC = () => {
     }
     if (activeTab === 'supervisor') {
       fetchExternalEvents();
+    }
+    if (activeTab === 'transactions') {
+      fetchTransactions();
     }
   }, [activeTab]);
 
@@ -255,6 +290,15 @@ const EXTDashboard: React.FC = () => {
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
             <span>Payment Supervisor</span>
+          </div>
+          <div
+            className={`ext-nav-item ${activeTab === 'transactions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('transactions')}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            <span>Transactions Checking</span>
           </div>
           <div className="ext-nav-group">
             <div
@@ -982,6 +1026,64 @@ const EXTDashboard: React.FC = () => {
           </div>
         )}
 
+        {activeTab === 'transactions' && (
+          <div className="ext-dashboard-container animate-fade-in">
+            <header className="dashboard-header-modern">
+              <div className="header-branding">
+                <h1 className="brand-title">Transactions<span>-Checking</span></h1>
+                <p className="brand-subtitle">--EXECUTED TRANSACTIONS LOGS</p>
+              </div>
+              <div className="header-actions">
+                <button className="refresh-btn" onClick={fetchTransactions} disabled={loadingTransactions}>
+                  <svg className={loadingTransactions ? 'animate-spin' : ''} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </header>
+
+            <div className="table-card">
+              <div className="table-wrapper">
+                <table className="ext-data-table">
+                  <thead>
+                    <tr>
+                      <th>CARD ID</th>
+                      <th>CLIENT NAME</th>
+                      <th>AMOUNT</th>
+                      <th>OPERATION</th>
+                      <th>SOURCE</th>
+                      <th>TIME</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingTransactions ? (
+                      <tr><td colSpan={6} className="loading-cell">Loading transactions...</td></tr>
+                    ) : transactions.length === 0 ? (
+                      <tr><td colSpan={6} className="empty-cell">No transactions found</td></tr>
+                    ) : (
+                      transactions.map((trx, idx) => (
+                        <tr key={idx} className="clickable-row" style={{ animationDelay: `${idx * 0.05}s`, opacity: 0 }} onClick={() => { setSelectedTrx(trx); setIsTrxModalOpen(true); }}>
+                          <td className="bold">#{trx.sender_card_id || 'N/A'}</td>
+                          <td>{trx.sender_name || 'N/A'}</td>
+                          <td className="amount">{parseFloat(trx.transfer_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</td>
+                          <td>
+                            <span className="op-badge op-virement">Virement</span>
+                          </td>
+                          <td>
+                            <span className="source-badge mobile_app">{trx.sender_source || 'Mobile_App'}</span>
+                          </td>
+                          <td className="date-cell">
+                            {trx.timestamp ? new Date(trx.timestamp).toLocaleString('fr-FR') : 'N/A'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'settings-profile' && (
           <div className="ext-settings-container animate-fade-in">
             <header className="settings-header">
@@ -1279,6 +1381,109 @@ const EXTDashboard: React.FC = () => {
         )}
       </main>
 
+      {/* Modal View Transaction Details */}
+      {isTrxModalOpen && selectedTrx && (
+        <div className="ext-modal-overlay" onClick={() => setIsTrxModalOpen(false)}>
+          <div className="ext-modal-content animate-slide-up" style={{ maxWidth: '850px', background: '#ffffff', border: '1px solid rgba(226, 232, 240, 0.8)' }} onClick={(e) => e.stopPropagation()}>
+            <header className="modal-top-bar" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '1.2rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="modal-top-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div className="audit-icon-wrapper" style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="2" x2="12" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="modal-client-name" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>Transfer Details</h2>
+                  <span className="modal-card-id-tag" style={{ fontSize: '0.8rem', color: '#64748b' }}>Virement Operations checking</span>
+                </div>
+              </div>
+              <button className="modal-close-x" onClick={() => setIsTrxModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </header>
+
+            <div className="modal-body" style={{ padding: '2rem' }}>
+              {/* Prominent Amount Display */}
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#64748b', fontWeight: 600 }}>Amount Transferred</span>
+                <h1 style={{ fontSize: '3rem', fontWeight: 800, color: '#ef4444', margin: '0.5rem 0' }}>
+                  - {parseFloat(selectedTrx.transfer_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
+                </h1>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                  {selectedTrx.timestamp ? new Date(selectedTrx.timestamp).toLocaleString('fr-FR') : 'N/A'}
+                </div>
+              </div>
+
+              {/* Two-Column Sender & Recipient Comparison */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '1rem' }}>
+                
+                {/* Sender Card */}
+                <div className="modal-info-card" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                  <div className="modal-section-tag" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#22c55e', marginBottom: '1rem', letterSpacing: '1px' }}>SENDER (DEBITED)</div>
+                  <div className="modal-info-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="modal-info-key" style={{ color: '#64748b', fontSize: '0.85rem' }}>Client Name</span>
+                    <span className="modal-info-val" style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{selectedTrx.sender_name || 'N/A'}</span>
+                  </div>
+                  <div className="modal-info-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="modal-info-key" style={{ color: '#64748b', fontSize: '0.85rem' }}>Card ID</span>
+                    <span className="modal-info-val mono" style={{ fontFamily: 'monospace', fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{selectedTrx.sender_card_id || 'N/A'}</span>
+                  </div>
+                  <div className="modal-info-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="modal-info-key" style={{ color: '#64748b', fontSize: '0.85rem' }}>PAN Number</span>
+                    <span className="modal-info-val mono" style={{ fontFamily: 'monospace', fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{maskPAN(selectedTrx.sender_pan)}</span>
+                  </div>
+                  <div className="modal-info-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+                    <span className="modal-info-key" style={{ color: '#64748b', fontSize: '0.85rem' }}>New Balance</span>
+                    <span className="modal-info-val amount" style={{ fontWeight: 600, color: '#22c55e', fontSize: '0.85rem' }}>{parseFloat(selectedTrx.sender_new_balance || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</span>
+                  </div>
+                </div>
+
+                {/* Recipient Card */}
+                <div className="modal-info-card" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                  <div className="modal-section-tag" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#3b82f6', marginBottom: '1rem', letterSpacing: '1px' }}>RECIPIENT (CREDITED)</div>
+                  <div className="modal-info-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="modal-info-key" style={{ color: '#64748b', fontSize: '0.85rem' }}>Client Name</span>
+                    <span className="modal-info-val" style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{selectedTrx.recipient_name || 'N/A'}</span>
+                  </div>
+                  <div className="modal-info-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="modal-info-key" style={{ color: '#64748b', fontSize: '0.85rem' }}>Card ID</span>
+                    <span className="modal-info-val mono" style={{ fontFamily: 'monospace', fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{selectedTrx.recipient_card_id || 'N/A'}</span>
+                  </div>
+                  <div className="modal-info-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                    <span className="modal-info-key" style={{ color: '#64748b', fontSize: '0.85rem' }}>PAN Number</span>
+                    <span className="modal-info-val mono" style={{ fontFamily: 'monospace', fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{maskPAN(selectedTrx.recipient_pan)}</span>
+                  </div>
+                  <div className="modal-info-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+                    <span className="modal-info-key" style={{ color: '#64748b', fontSize: '0.85rem' }}>New Balance</span>
+                    <span className="modal-info-val amount" style={{ fontWeight: 600, color: '#22c55e', fontSize: '0.85rem' }}>{parseFloat(selectedTrx.recipient_new_balance || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Technical / Metadata Row */}
+              <div style={{ marginTop: '2rem', padding: '1rem 1.5rem', background: '#f1f5f9', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Recipient Source</span>
+                  <span className={`status-pill ${String(selectedTrx.recipient_source || '').toLowerCase()}`} style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                    {selectedTrx.recipient_source || 'N/A'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Sender Source</span>
+                  <span className="status-pill active" style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                    {selectedTrx.sender_source || 'Mobile_App'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <footer className="modal-footer-actions" style={{ borderTop: '1px solid #e2e8f0', background: '#f8fafc', padding: '1.2rem 2rem', display: 'flex', justifyContent: 'flex-end', margin: 0 }}>
+              <button className="modal-action-btn modal-cancel-btn" onClick={() => setIsTrxModalOpen(false)} style={{ padding: '0.6rem 2rem', borderRadius: '8px', width: 'auto' }}>Close</button>
+            </footer>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

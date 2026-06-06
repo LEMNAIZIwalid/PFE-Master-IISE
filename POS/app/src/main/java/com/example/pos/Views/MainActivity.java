@@ -89,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
         // Transfer button
         findViewById(R.id.btnTransfer).setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, TransferActivity.class);
+            intent.putExtra("CARD_ID", cardId);
             startActivity(intent);
         });
 
