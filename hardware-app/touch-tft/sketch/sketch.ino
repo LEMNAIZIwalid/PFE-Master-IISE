@@ -532,11 +532,6 @@ void loop() {
 
         success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 50);
         if (success) {
-            // Bip du buzzer
-            digitalWrite(PIN_BUZZER, HIGH);
-            delay(150);
-            digitalWrite(PIN_BUZZER, LOW);
-
             // Formater l'UID
             String tag_uid = "";
             for (uint8_t i = 0; i < uidLength; i++) {
@@ -545,7 +540,12 @@ void loop() {
             }
             tag_uid.toUpperCase();
 
-            // Afficher le prompt de succes stylis\u00e9
+            // 1. Appeler Python via le Bridge pour effectuer le paiement et vérifier le statut
+            String status = "";
+            Bridge.call("notify_payment", tag_uid, String(g_amount)).result(status);
+            status.trim();
+
+            // 2. Définir les variables de dessin du prompt
             int px = 30;
             int py = 160;
             int pw = 260;
@@ -558,31 +558,84 @@ void loop() {
             tft.fillRoundRect(px, py, pw, ph, 12, TFT_WHITE);
             tft.drawRoundRect(px, py, pw, ph, 12, COLOR_GREY_NK);
 
-            // Grand cercle vert
-            tft.fillCircle(cx, py + 58, 36, 0x2D05);
+            if (status == "OK" || status == "SUCCESS") {
+                // Succès : double bip joyeux
+                digitalWrite(PIN_BUZZER, HIGH);
+                delay(80);
+                digitalWrite(PIN_BUZZER, LOW);
+                delay(50);
+                digitalWrite(PIN_BUZZER, HIGH);
+                delay(80);
+                digitalWrite(PIN_BUZZER, LOW);
 
-            // Checkmark (3 pixels d'\u00e9paisseur)
-            for (int t = -1; t <= 1; t++) {
-                tft.drawLine(cx - 15, py + 58 + t, cx - 3, py + 73 + t, TFT_WHITE);
-                tft.drawLine(cx - 3,  py + 73 + t, cx + 17, py + 42 + t, TFT_WHITE);
+                // Grand cercle vert
+                tft.fillCircle(cx, py + 58, 36, 0x2D05);
+
+                // Checkmark (3 pixels d'épaisseur)
+                for (int t = -1; t <= 1; t++) {
+                    tft.drawLine(cx - 15, py + 58 + t, cx - 3, py + 73 + t, TFT_WHITE);
+                    tft.drawLine(cx - 3,  py + 73 + t, cx + 17, py + 42 + t, TFT_WHITE);
+                }
+
+                // Titre en vert
+                tft.setTextDatum(MC_DATUM);
+                tft.setTextColor(0x2D05);
+                tft.drawString("Paiement reussi !", cx, py + 108, 2);
+
+                // Sous-titre gris
+                tft.setTextColor(COLOR_GREY_NK);
+                tft.drawString("Merci pour votre paiement.", cx, py + 128, 1);
+            } else {
+                // Échec : bip long et grave
+                digitalWrite(PIN_BUZZER, HIGH);
+                delay(400);
+                digitalWrite(PIN_BUZZER, LOW);
+
+                // Grand cercle rouge
+                tft.fillCircle(cx, py + 58, 36, TFT_RED);
+
+                // Croix d'erreur (3 pixels d'épaisseur)
+                for (int t = -1; t <= 1; t++) {
+                    tft.drawLine(cx - 12 + t, py + 58 - 12, cx + 12 + t, py + 58 + 12, TFT_WHITE);
+                    tft.drawLine(cx + 12 + t, py + 58 - 12, cx - 12 + t, py + 58 + 12, TFT_WHITE);
+                }
+
+                // Déterminer les textes d'erreur
+                String errMsg = "Paiement refuse !";
+                String subMsg = "Veuillez reessayer.";
+                
+                if (status == "INSUFFICIENT_BALANCE") {
+                    errMsg = "Solde insuffisant !";
+                    subMsg = "Fonds insuffisants.";
+                } else if (status == "BLOCKED") {
+                    errMsg = "Carte Bloquee !";
+                    subMsg = "Veuillez contacter le support.";
+                } else if (status == "SUSPENDED") {
+                    errMsg = "Carte Suspendue !";
+                    subMsg = "Transaction impossible.";
+                } else if (status == "INVALID") {
+                    errMsg = "Carte Invalide !";
+                    subMsg = "UID non trouve.";
+                } else if (status == "ERROR") {
+                    errMsg = "Erreur Connexion !";
+                    subMsg = "Base de donnees indisponible.";
+                }
+
+                // Titre en rouge
+                tft.setTextDatum(MC_DATUM);
+                tft.setTextColor(TFT_RED);
+                tft.drawString(errMsg, cx, py + 108, 2);
+
+                // Sous-titre gris
+                tft.setTextColor(COLOR_GREY_NK);
+                tft.drawString(subMsg, cx, py + 128, 1);
             }
 
-            // Titre en vert
-            tft.setTextDatum(MC_DATUM);
-            tft.setTextColor(0x2D05);
-            tft.drawString("Paiement reussi !", cx, py + 108, 2);
-
-            // Sous-titre gris
-            tft.setTextColor(COLOR_GREY_NK);
-            tft.drawString("Merci pour votre paiement.", cx, py + 128, 1);
-
             // UID en petit
+            tft.setTextColor(COLOR_GREY_NK);
             tft.drawString("UID: " + tag_uid, cx, py + 146, 1);
 
-            // Envoyer au Bridge Python
-            Bridge.call("notify_payment", tag_uid);
-
-            delay(1500);
+            delay(2500); // Laisser le message visible
 
             // Revenir à l'état initial
             g_paymentActive = false;

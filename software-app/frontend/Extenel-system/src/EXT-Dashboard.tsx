@@ -1066,10 +1066,14 @@ const EXTDashboard: React.FC = () => {
                           <td>{trx.sender_name || 'N/A'}</td>
                           <td className="amount">{parseFloat(trx.transfer_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</td>
                           <td>
-                            <span className="op-badge op-virement">Virement</span>
+                            <span className={`op-badge op-${(trx.operation || 'Virement').toLowerCase()}`}>
+                              {trx.operation || 'Virement'}
+                            </span>
                           </td>
                           <td>
-                            <span className="source-badge mobile_app">{trx.sender_source || 'Mobile_App'}</span>
+                            <span className={`source-badge ${(trx.sender_source || 'Mobile_App').toLowerCase()}`}>
+                              {trx.sender_source || 'Mobile_App'}
+                            </span>
                           </td>
                           <td className="date-cell">
                             {trx.timestamp ? new Date(trx.timestamp).toLocaleString('fr-FR') : 'N/A'}
@@ -1393,8 +1397,12 @@ const EXTDashboard: React.FC = () => {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="modal-client-name" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>Transfer Details</h2>
-                  <span className="modal-card-id-tag" style={{ fontSize: '0.8rem', color: '#64748b' }}>Virement Operations checking</span>
+                  <h2 className="modal-client-name" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>
+                    {selectedTrx.operation === 'Paiement' ? 'Payment Details' : 'Transfer Details'}
+                  </h2>
+                  <span className="modal-card-id-tag" style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    {selectedTrx.operation === 'Paiement' ? 'Paiement Operations checking' : 'Virement Operations checking'}
+                  </span>
                 </div>
               </div>
               <button className="modal-close-x" onClick={() => setIsTrxModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
@@ -1405,7 +1413,9 @@ const EXTDashboard: React.FC = () => {
             <div className="modal-body" style={{ padding: '2rem' }}>
               {/* Prominent Amount Display */}
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#64748b', fontWeight: 600 }}>Amount Transferred</span>
+                <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#64748b', fontWeight: 600 }}>
+                  {selectedTrx.operation === 'Paiement' ? 'Amount Paid' : 'Amount Transferred'}
+                </span>
                 <h1 style={{ fontSize: '3rem', fontWeight: 800, color: '#ef4444', margin: '0.5rem 0' }}>
                   - {parseFloat(selectedTrx.transfer_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
                 </h1>

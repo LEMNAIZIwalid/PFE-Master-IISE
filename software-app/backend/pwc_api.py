@@ -360,7 +360,7 @@ def get_events():
             SELECT ID_EVENT, ID_CARD, PAN, F_NAME, L_NAME, AMOUNTS, 
                    POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMETMP 
             FROM POS.Events 
-            WHERE UPPER(OPERATION) NOT IN ('TRANSFER', 'VIREMENT')
+            WHERE UPPER(OPERATION) NOT IN ('TRANSFER', 'VIREMENT', 'PAIEMENT')
             ORDER BY TIMETMP DESC
         """)
         
@@ -1215,7 +1215,7 @@ def mobile_history(card_id):
 def mobile_transfer():
     """
     Validate recipient PAN + name, check sender balance, execute transfer.
-    Pipeline: API → Kafka (Avro) → recorded in both tables.
+    Pipeline: API → Kafka (Avro) → recorded in both tables (if card exists in both).
     """
     data = request.json or {}
     sender_card_id = data.get('sender_card_id', '').strip()
@@ -1240,37 +1240,85 @@ def mobile_transfer():
         connection = get_oracle_connection()
         cursor = connection.cursor()
 
-        # ── 1. Find recipient by PAN in Externel_System ──
+        # ── 1. Get latest sender info from both tables ──
         cursor.execute("""
-            SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS
+            SELECT PAN, F_NAME, L_NAME, AMOUNT, STATUS, POS_LIMIT, ATM_LIMIT, TIMESTMP
             FROM (
-                SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS,
-                       ROW_NUMBER() OVER (PARTITION BY PAN ORDER BY TIMESTMP DESC) as rn
-                FROM POS.Externel_System
-                WHERE PAN = :pan
+                SELECT PAN, F_NAME, L_NAME, AMOUNT, STATUS, POS_LIMIT, ATM_LIMIT, TIMESTMP,
+                       ROW_NUMBER() OVER (ORDER BY TIMESTMP DESC) as rn
+                FROM POS.PowerCard_System WHERE ID_CARD = :id
+            ) WHERE rn = 1
+        """, {"id": sender_card_id})
+        sender_pwc = cursor.fetchone()
+
+        cursor.execute("""
+            SELECT PAN, F_NAME, L_NAME, AMOUNT, STATUS, POS_LIMIT, ATM_LIMIT, TIMESTMP
+            FROM (
+                SELECT PAN, F_NAME, L_NAME, AMOUNT, STATUS, POS_LIMIT, ATM_LIMIT, TIMESTMP,
+                       ROW_NUMBER() OVER (ORDER BY TIMESTMP DESC) as rn
+                FROM POS.Externel_System WHERE ID_CARD = :id
+            ) WHERE rn = 1
+        """, {"id": sender_card_id})
+        sender_ext = cursor.fetchone()
+
+        if not sender_pwc and not sender_ext:
+            return jsonify({"status": "error", "message": "Sender account not found."}), 404
+
+        sender_info = None
+        if sender_pwc and sender_ext:
+            ts_pwc = sender_pwc[7] or datetime.datetime.min
+            ts_ext = sender_ext[7] or datetime.datetime.min
+            if ts_pwc >= ts_ext:
+                sender_info = sender_pwc
+            else:
+                sender_info = sender_ext
+        elif sender_pwc:
+            sender_info = sender_pwc
+        else:
+            sender_info = sender_ext
+
+        s_pan, s_fname, s_lname, s_amount, s_status, s_pos, s_atm, _ = sender_info
+        s_amount = float(s_amount) if s_amount is not None else 0.0
+
+        # ── 2. Get latest recipient info from both tables by PAN ──
+        cursor.execute("""
+            SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, STATUS, POS_LIMIT, ATM_LIMIT, TIMESTMP
+            FROM (
+                SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, STATUS, POS_LIMIT, ATM_LIMIT, TIMESTMP,
+                       ROW_NUMBER() OVER (ORDER BY TIMESTMP DESC) as rn
+                FROM POS.PowerCard_System WHERE PAN = :pan
             ) WHERE rn = 1
         """, {"pan": recipient_pan})
-        recipient_row = cursor.fetchone()
-        recipient_table = "Externel_System"
+        recipient_pwc = cursor.fetchone()
 
-        # ── 2. If not found, try PowerCard_System ──
-        if not recipient_row:
-            cursor.execute("""
-                SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS
-                FROM (
-                    SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS,
-                           ROW_NUMBER() OVER (PARTITION BY PAN ORDER BY TIMESTMP DESC) as rn
-                    FROM POS.PowerCard_System
-                    WHERE PAN = :pan
-                ) WHERE rn = 1
-            """, {"pan": recipient_pan})
-            recipient_row = cursor.fetchone()
-            recipient_table = "PowerCard_System"
+        cursor.execute("""
+            SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, STATUS, POS_LIMIT, ATM_LIMIT, TIMESTMP
+            FROM (
+                SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, STATUS, POS_LIMIT, ATM_LIMIT, TIMESTMP,
+                       ROW_NUMBER() OVER (ORDER BY TIMESTMP DESC) as rn
+                FROM POS.Externel_System WHERE PAN = :pan
+            ) WHERE rn = 1
+        """, {"pan": recipient_pan})
+        recipient_ext = cursor.fetchone()
 
-        if not recipient_row:
+        if not recipient_pwc and not recipient_ext:
             return jsonify({"status": "error", "message": "Invalid recipient. No account found with this PAN."}), 404
 
-        r_card_id, r_fname, r_lname, r_amount, r_pan, r_status = recipient_row
+        recipient_info = None
+        if recipient_pwc and recipient_ext:
+            ts_pwc = recipient_pwc[7] or datetime.datetime.min
+            ts_ext = recipient_ext[7] or datetime.datetime.min
+            if ts_pwc >= ts_ext:
+                recipient_info = recipient_pwc
+            else:
+                recipient_info = recipient_ext
+        elif recipient_pwc:
+            recipient_info = recipient_pwc
+        else:
+            recipient_info = recipient_ext
+
+        r_card_id, r_fname, r_lname, r_amount, r_status, r_pos, r_atm, _ = recipient_info
+        r_amount = float(r_amount) if r_amount is not None else 0.0
 
         # ── 3. Verify first name and last name (case-insensitive) ──
         if (r_fname or '').strip().lower() != recipient_first_name.lower() or \
@@ -1281,131 +1329,167 @@ def mobile_transfer():
         if str(r_card_id).strip() == sender_card_id:
             return jsonify({"status": "error", "message": "You cannot transfer to your own account."}), 400
 
-        # ── 5. Find sender in Externel_System ──
-        cursor.execute("""
-            SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS, POS_LIMIT, ATM_LIMIT
-            FROM (
-                SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS, POS_LIMIT, ATM_LIMIT,
-                       ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
-                FROM POS.Externel_System
-                WHERE ID_CARD = :id_card
-            ) WHERE rn = 1
-        """, {"id_card": sender_card_id})
-        sender_row = cursor.fetchone()
-        sender_table = "Externel_System"
-
-        # ── 6. If not found, try PowerCard_System ──
-        if not sender_row:
-            cursor.execute("""
-                SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS, POS_LIMIT, ATM_LIMIT
-                FROM (
-                    SELECT ID_CARD, F_NAME, L_NAME, AMOUNT, PAN, STATUS, POS_LIMIT, ATM_LIMIT,
-                           ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
-                    FROM POS.PowerCard_System
-                    WHERE ID_CARD = :id_card
-                ) WHERE rn = 1
-            """, {"id_card": sender_card_id})
-            sender_row = cursor.fetchone()
-            sender_table = "PowerCard_System"
-
-        if not sender_row:
-            return jsonify({"status": "error", "message": "Sender account not found."}), 404
-
-        s_card_id, s_fname, s_lname, s_amount, s_pan, s_status, s_pos, s_atm = sender_row
-        s_amount = float(s_amount) if s_amount else 0.0
-        r_amount = float(r_amount) if r_amount else 0.0
-
-        # ── 7. Check sender balance ──
+        # ── 5. Check sender balance ──
         if transfer_amount > s_amount:
             return jsonify({"status": "error", "message": "Insufficient balance. Your current balance is €" + f"{s_amount:,.2f}"}), 400
 
-        # ── 8. Execute transfer: deduct from sender ──
+        # ── 6. Execute transfer: deduct from sender & add to recipient ──
         new_sender_balance = s_amount - transfer_amount
+        new_recipient_balance = r_amount + transfer_amount
         now_ts = datetime.datetime.now()
 
-        sql_sender_insert = f"""
-            INSERT INTO POS.{sender_table} (
-                id_Card, PAN, F_Name, L_Name, Amount,
-                POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+        sender_exists_pwc = (sender_pwc is not None)
+        sender_exists_ext = (sender_ext is not None)
+        recipient_exists_pwc = (recipient_pwc is not None)
+        recipient_exists_ext = (recipient_ext is not None)
+
+        # Insert sender updates
+        if sender_exists_pwc:
+            cursor.execute("""
+                INSERT INTO POS.PowerCard_System (
+                    id_Card, PAN, F_Name, L_Name, Amount,
+                    POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+                ) VALUES (
+                    :id_Card, :PAN, :F_Name, :L_Name, :Amount,
+                    :POS_limit, :ATM_limit, :Status, 'Mobile_App', 'Virement', :ts
+                )
+            """, {
+                "id_Card":   sender_card_id,
+                "PAN":       s_pan,
+                "F_Name":    s_fname,
+                "L_Name":    s_lname,
+                "Amount":    new_sender_balance,
+                "POS_limit": float(s_pos) if s_pos is not None else 0.0,
+                "ATM_limit": float(s_atm) if s_atm is not None else 0.0,
+                "Status":    s_status or 'Active',
+                "ts":        now_ts
+            })
+
+        if sender_exists_ext:
+            cursor.execute("""
+                INSERT INTO POS.Externel_System (
+                    id_Card, PAN, F_Name, L_Name, Amount,
+                    POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+                ) VALUES (
+                    :id_Card, :PAN, :F_Name, :L_Name, :Amount,
+                    :POS_limit, :ATM_limit, :Status, 'Mobile_App', 'Virement', :ts
+                )
+            """, {
+                "id_Card":   sender_card_id,
+                "PAN":       s_pan,
+                "F_Name":    s_fname,
+                "L_Name":    s_lname,
+                "Amount":    new_sender_balance,
+                "POS_limit": float(s_pos) if s_pos is not None else 0.0,
+                "ATM_limit": float(s_atm) if s_atm is not None else 0.0,
+                "Status":    s_status or 'Active',
+                "ts":        now_ts
+            })
+
+        # Insert recipient updates
+        recipient_source = 'Externel_System' if recipient_exists_ext else 'PWC_System'
+
+        if recipient_exists_pwc:
+            cursor.execute("""
+                INSERT INTO POS.PowerCard_System (
+                    id_Card, PAN, F_Name, L_Name, Amount,
+                    POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+                ) VALUES (
+                    :id_Card, :PAN, :F_Name, :L_Name, :Amount,
+                    :POS_limit, :ATM_limit, :Status, :Source, 'Virement', :ts
+                )
+            """, {
+                "id_Card":   r_card_id,
+                "PAN":       recipient_pan,
+                "F_Name":    r_fname,
+                "L_Name":    r_lname,
+                "Amount":    new_recipient_balance,
+                "POS_limit": float(r_pos) if r_pos is not None else 0.0,
+                "ATM_limit": float(r_atm) if r_atm is not None else 0.0,
+                "Status":    r_status or 'Active',
+                "Source":    recipient_source,
+                "ts":        now_ts
+            })
+
+        if recipient_exists_ext:
+            cursor.execute("""
+                INSERT INTO POS.Externel_System (
+                    id_Card, PAN, F_Name, L_Name, Amount,
+                    POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+                ) VALUES (
+                    :id_Card, :PAN, :F_Name, :L_Name, :Amount,
+                    :POS_limit, :ATM_limit, :Status, :Source, 'Virement', :ts
+                )
+            """, {
+                "id_Card":   r_card_id,
+                "PAN":       recipient_pan,
+                "F_Name":    r_fname,
+                "L_Name":    r_lname,
+                "Amount":    new_recipient_balance,
+                "POS_limit": float(r_pos) if r_pos is not None else 0.0,
+                "ATM_limit": float(r_atm) if r_atm is not None else 0.0,
+                "Status":    r_status or 'Active',
+                "Source":    recipient_source,
+                "ts":        now_ts
+            })
+
+        # ── 7. Insert audit events in POS.Events ──
+        cursor.execute("""
+            INSERT INTO POS.Events (
+                id_card, PAN, F_Name, L_Name, Amounts,
+                POS_limit, ATM_limit, Status, Source, Operation, Timetmp
             ) VALUES (
                 :id_Card, :PAN, :F_Name, :L_Name, :Amount,
                 :POS_limit, :ATM_limit, :Status, 'Mobile_App', 'Virement', :ts
             )
-        """
-        sender_params = {
-            "id_Card":   s_card_id,
+        """, {
+            "id_Card":   sender_card_id,
             "PAN":       s_pan,
             "F_Name":    s_fname,
             "L_Name":    s_lname,
             "Amount":    new_sender_balance,
-            "POS_limit": float(s_pos) if s_pos else 0.0,
-            "ATM_limit": float(s_atm) if s_atm else 0.0,
+            "POS_limit": float(s_pos) if s_pos is not None else 0.0,
+            "ATM_limit": float(s_atm) if s_atm is not None else 0.0,
             "Status":    s_status or 'Active',
-            "ts":        now_ts,
-        }
-        cursor.execute(sql_sender_insert, sender_params)
+            "ts":        now_ts
+        })
 
-        # ── 9. Execute transfer: add to recipient ──
-        new_recipient_balance = r_amount + transfer_amount
-        recipient_source = 'Externel_System' if recipient_table == 'Externel_System' else 'PWC_System'
-
-        # Get recipient's limits
-        if recipient_table == 'Externel_System':
-            cursor.execute("""
-                SELECT POS_LIMIT, ATM_LIMIT FROM (
-                    SELECT POS_LIMIT, ATM_LIMIT, ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
-                    FROM POS.Externel_System WHERE ID_CARD = :id_card
-                ) WHERE rn = 1
-            """, {"id_card": r_card_id})
-        else:
-            cursor.execute("""
-                SELECT POS_LIMIT, ATM_LIMIT FROM (
-                    SELECT POS_LIMIT, ATM_LIMIT, ROW_NUMBER() OVER (PARTITION BY ID_CARD ORDER BY TIMESTMP DESC) as rn
-                    FROM POS.PowerCard_System WHERE ID_CARD = :id_card
-                ) WHERE rn = 1
-            """, {"id_card": r_card_id})
-        r_limits = cursor.fetchone()
-        r_pos = float(r_limits[0]) if r_limits and r_limits[0] else 0.0
-        r_atm = float(r_limits[1]) if r_limits and r_limits[1] else 0.0
-
-        sql_recipient_insert = f"""
-            INSERT INTO POS.{recipient_table} (
-                id_Card, PAN, F_Name, L_Name, Amount,
-                POS_limit, ATM_limit, Status, Source, Operation, Timestmp
+        cursor.execute("""
+            INSERT INTO POS.Events (
+                id_card, PAN, F_Name, L_Name, Amounts,
+                POS_limit, ATM_limit, Status, Source, Operation, Timetmp
             ) VALUES (
                 :id_Card, :PAN, :F_Name, :L_Name, :Amount,
                 :POS_limit, :ATM_limit, :Status, :Source, 'Virement', :ts
             )
-        """
-        recipient_params = {
+        """, {
             "id_Card":   r_card_id,
-            "PAN":       r_pan,
+            "PAN":       recipient_pan,
             "F_Name":    r_fname,
             "L_Name":    r_lname,
             "Amount":    new_recipient_balance,
-            "POS_limit": r_pos,
-            "ATM_limit": r_atm,
+            "POS_limit": float(r_pos) if r_pos is not None else 0.0,
+            "ATM_limit": float(r_atm) if r_atm is not None else 0.0,
             "Status":    r_status or 'Active',
             "Source":    recipient_source,
-            "ts":        now_ts,
-        }
-        cursor.execute(sql_recipient_insert, recipient_params)
+            "ts":        now_ts
+        })
 
         connection.commit()
 
-        # ── 10. Send to Kafka (Avro) ──
+        # ── 8. Send to Kafka (Avro) ──
         sender_kafka = {
-            "id_Card": s_card_id, "PAN": s_pan, "F_Name": s_fname, "L_Name": s_lname,
+            "id_Card": sender_card_id, "PAN": s_pan, "F_Name": s_fname, "L_Name": s_lname,
             "Amount": new_sender_balance, "POS_limit": float(s_pos) if s_pos else 0.0,
-            "ATM_limit": float(s_atm) if s_atm else 0.0, "Status": s_status or 'Active',
+            "ATM_limit": float(s_atm) if s_atm is not None else 0.0, "Status": s_status or 'Active',
             "Source": 'Mobile_App', "Operation": "Virement"
         }
         send_to_kafka(sender_kafka, topic="HPOS")
 
         recipient_kafka = {
-            "id_Card": r_card_id, "PAN": r_pan, "F_Name": r_fname, "L_Name": r_lname,
-            "Amount": new_recipient_balance, "POS_limit": r_pos,
-            "ATM_limit": r_atm, "Status": r_status or 'Active',
+            "id_Card": r_card_id, "PAN": recipient_pan, "F_Name": r_fname, "L_Name": r_lname,
+            "Amount": new_recipient_balance, "POS_limit": float(r_pos) if r_pos else 0.0,
+            "ATM_limit": float(r_atm) if r_atm else 0.0, "Status": r_status or 'Active',
             "Source": recipient_source, "Operation": "Virement"
         }
         send_to_kafka(recipient_kafka, topic="HPOS")
@@ -1432,41 +1516,73 @@ def get_all_transactions():
         connection = get_oracle_connection()
         cursor = connection.cursor()
 
-        # Get all Virement rows from both tables
+        # Get all Virement and Paiement rows from both tables
         cursor.execute("""
-            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'PowerCard_System' as TBL
+            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'PowerCard_System' as TBL, OPERATION
             FROM POS.PowerCard_System
-            WHERE UPPER(OPERATION) = 'VIREMENT'
+            WHERE UPPER(OPERATION) IN ('VIREMENT', 'PAIEMENT')
             UNION ALL
-            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'Externel_System' as TBL
+            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'Externel_System' as TBL, OPERATION
             FROM POS.Externel_System
-            WHERE UPPER(OPERATION) = 'VIREMENT'
+            WHERE UPPER(OPERATION) IN ('VIREMENT', 'PAIEMENT')
             ORDER BY TIMESTMP DESC
         """)
 
         all_rows = []
+        seen = set()
         for row in cursor:
+            t_val = row[7]
+            t_str = t_val.isoformat() if hasattr(t_val, 'isoformat') else str(t_val)
+            key = (row[0], t_str)
+            if key in seen:
+                continue
+            seen.add(key)
             all_rows.append({
                 "ID_CARD": row[0], "PAN": row[1], "F_NAME": row[2], "L_NAME": row[3],
                 "AMOUNT": float(row[4]) if row[4] else 0.0, "STATUS": row[5],
-                "SOURCE": row[6], "TIMESTMP": row[7], "TBL": row[8]
+                "SOURCE": row[6], "TIMESTMP": row[7], "TBL": row[8], "OPERATION": row[9]
             })
 
-        # Pair sender (Source='Mobile_App') with recipient (same TIMESTMP)
+        # Pair sender with recipient, only keep transfers/payments
         transfers = []
         used = set()
         for i, r in enumerate(all_rows):
             if i in used:
                 continue
-            if r["SOURCE"] == "Mobile_App":  # This is a sender
-                # Find matching recipient with same timestamp
+            
+            op_type = str(r["OPERATION"] or '').upper()
+
+            if op_type == 'PAIEMENT':
+                # Paiement is a direct single-card transaction
+                prev_bal = _get_prev_balance(cursor, r["ID_CARD"], r["TIMESTMP"], r["TBL"])
+                trx_amount = prev_bal - r["AMOUNT"] if prev_bal is not None else 0.0
+                if trx_amount < 0:
+                    trx_amount = 0.0
+                t = {
+                    "sender_card_id": r["ID_CARD"],
+                    "sender_name": f"{r['F_NAME'] or ''} {r['L_NAME'] or ''}".strip(),
+                    "sender_pan": r["PAN"],
+                    "sender_new_balance": r["AMOUNT"],
+                    "sender_source": r["SOURCE"] or "POS_Terminal",
+                    "transfer_amount": abs(trx_amount),
+                    "timestamp": r["TIMESTMP"],
+                    "operation": "Paiement",
+                    "recipient_card_id": "POS Terminal",
+                    "recipient_name": "Merchant POS",
+                    "recipient_pan": "N/A",
+                    "recipient_new_balance": 0.0,
+                    "recipient_source": "POS_Terminal"
+                }
+                transfers.append(t)
+                used.add(i)
+
+            elif op_type == 'VIREMENT' and r["SOURCE"] == "Mobile_App":
                 recipient = None
                 for j, r2 in enumerate(all_rows):
-                    if j != i and j not in used and r2["SOURCE"] != "Mobile_App" and r2["TIMESTMP"] == r["TIMESTMP"]:
+                    if j != i and j not in used and r2["SOURCE"] != "Mobile_App" and r2["TIMESTMP"] == r["TIMESTMP"] and str(r2["OPERATION"] or '').upper() == 'VIREMENT':
                         recipient = r2
                         used.add(j)
                         break
-                # Compute transfer amount from sender's previous balance
                 prev_bal = _get_prev_balance(cursor, r["ID_CARD"], r["TIMESTMP"], r["TBL"])
                 trx_amount = prev_bal - r["AMOUNT"] if prev_bal is not None else 0.0
                 t = {
@@ -1527,36 +1643,72 @@ def get_external_transactions():
         connection = get_oracle_connection()
         cursor = connection.cursor()
 
-        # Get all Virement rows from both tables (we need both to pair sender/recipient)
+        # Get all Virement and Paiement rows from both tables (we need both to pair sender/recipient if Virement)
         cursor.execute("""
-            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'PowerCard_System' as TBL
+            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'PowerCard_System' as TBL, OPERATION
             FROM POS.PowerCard_System
-            WHERE UPPER(OPERATION) = 'VIREMENT'
+            WHERE UPPER(OPERATION) IN ('VIREMENT', 'PAIEMENT')
             UNION ALL
-            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'Externel_System' as TBL
+            SELECT ID_CARD, PAN, F_NAME, L_NAME, AMOUNT, STATUS, SOURCE, TIMESTMP, 'Externel_System' as TBL, OPERATION
             FROM POS.Externel_System
-            WHERE UPPER(OPERATION) = 'VIREMENT'
+            WHERE UPPER(OPERATION) IN ('VIREMENT', 'PAIEMENT')
             ORDER BY TIMESTMP DESC
         """)
 
         all_rows = []
+        seen = set()
         for row in cursor:
+            t_val = row[7]
+            t_str = t_val.isoformat() if hasattr(t_val, 'isoformat') else str(t_val)
+            key = (row[0], t_str)
+            if key in seen:
+                continue
+            seen.add(key)
             all_rows.append({
                 "ID_CARD": row[0], "PAN": row[1], "F_NAME": row[2], "L_NAME": row[3],
                 "AMOUNT": float(row[4]) if row[4] else 0.0, "STATUS": row[5],
-                "SOURCE": row[6], "TIMESTMP": row[7], "TBL": row[8]
+                "SOURCE": row[6], "TIMESTMP": row[7], "TBL": row[8], "OPERATION": row[9]
             })
 
-        # Pair sender with recipient, only keep transfers involving Externel_System
+        # Pair sender with recipient, only keep transfers/payments involving Externel_System
         transfers = []
         used = set()
         for i, r in enumerate(all_rows):
             if i in used:
                 continue
-            if r["SOURCE"] == "Mobile_App":
+            
+            op_type = str(r["OPERATION"] or '').upper()
+
+            if op_type == 'PAIEMENT':
+                # Paiement is a direct single-card transaction
+                # Only include if it is in Externel_System or PowerCard_System (with source POS_Terminal)
+                prev_bal = _get_prev_balance(cursor, r["ID_CARD"], r["TIMESTMP"], r["TBL"])
+                trx_amount = prev_bal - r["AMOUNT"] if prev_bal is not None else 0.0
+                # If trx_amount is negative or zero, it might be due to initial load, fallback to 0.0
+                if trx_amount < 0:
+                    trx_amount = 0.0
+                t = {
+                    "sender_card_id": r["ID_CARD"],
+                    "sender_name": f"{r['F_NAME'] or ''} {r['L_NAME'] or ''}".strip(),
+                    "sender_pan": r["PAN"],
+                    "sender_new_balance": r["AMOUNT"],
+                    "sender_source": r["SOURCE"] or "POS_Terminal",
+                    "transfer_amount": abs(trx_amount),
+                    "timestamp": r["TIMESTMP"],
+                    "operation": "Paiement",
+                    "recipient_card_id": "POS Terminal",
+                    "recipient_name": "Merchant POS",
+                    "recipient_pan": "N/A",
+                    "recipient_new_balance": 0.0,
+                    "recipient_source": "POS_Terminal"
+                }
+                transfers.append(t)
+                used.add(i)
+
+            elif op_type == 'VIREMENT' and r["SOURCE"] == "Mobile_App":
                 recipient = None
                 for j, r2 in enumerate(all_rows):
-                    if j != i and j not in used and r2["SOURCE"] != "Mobile_App" and r2["TIMESTMP"] == r["TIMESTMP"]:
+                    if j != i and j not in used and r2["SOURCE"] != "Mobile_App" and r2["TIMESTMP"] == r["TIMESTMP"] and str(r2["OPERATION"] or '').upper() == 'VIREMENT':
                         recipient = r2
                         used.add(j)
                         break

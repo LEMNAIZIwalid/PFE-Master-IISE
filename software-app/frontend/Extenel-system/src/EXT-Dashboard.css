@@ -541,9 +541,14 @@ body {
   color: #b91c1c;
 }
 
-.op-virement {
+.op-virement, .op-transfer {
   background: #ede9fe;
   color: #6d28d9;
+}
+
+.op-paiement, .op-payment {
+  background: #e0f2fe;
+  color: #0369a1;
 }
 
 .source-badge {
@@ -570,6 +575,11 @@ body {
 .source-badge.externel_system {
   background: #f3e8ff;
   color: #6b21a8;
+}
+
+.source-badge.pos_terminal, .source-badge.pos-terminal {
+  background: #ecfdf5;
+  color: #047857;
 }
 
 /* Supervisor Specifics */

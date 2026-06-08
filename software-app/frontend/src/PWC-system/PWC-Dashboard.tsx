@@ -1009,10 +1009,14 @@ function PWCDashboard() {
                             <td>{trx.sender_name || 'N/A'}</td>
                             <td className="amount-cell">{parseFloat(trx.transfer_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</td>
                             <td>
-                              <span className="op-badge virement">Virement</span>
+                              <span className={`op-badge ${(trx.operation || 'Virement').toLowerCase()}`}>
+                                {trx.operation || 'Virement'}
+                              </span>
                             </td>
                             <td>
-                              <span className="source-badge mobile_app">{trx.sender_source || 'Mobile_App'}</span>
+                              <span className={`source-badge ${(trx.sender_source || 'Mobile_App').toLowerCase()}`}>
+                                {trx.sender_source || 'Mobile_App'}
+                              </span>
                             </td>
                             <td className="date-cell">
                               {trx.timestamp ? new Date(trx.timestamp).toLocaleString('fr-FR') : 'N/A'}
@@ -1464,10 +1468,14 @@ function PWCDashboard() {
             <header className="modal-header event-modal-header" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
               <div className="modal-title-group">
                 <div className="event-badge-wrapper">
-                  <span className="op-badge virement">Virement</span>
+                  <span className={`op-badge ${(selectedTrx.operation || 'Virement').toLowerCase()}`}>
+                    {selectedTrx.operation || 'Virement'}
+                  </span>
                   <span className="event-id-label" style={{ marginLeft: '10px' }}>Transaction Receipt</span>
                 </div>
-                <h2 style={{ marginTop: '0.5rem', fontFamily: "'Outfit', sans-serif", fontWeight: 800 }}>Transfer Details</h2>
+                <h2 style={{ marginTop: '0.5rem', fontFamily: "'Outfit', sans-serif", fontWeight: 800 }}>
+                  {selectedTrx.operation === 'Paiement' ? 'Payment Details' : 'Transfer Details'}
+                </h2>
               </div>
               <button className="close-modal" onClick={() => setIsTrxModalOpen(false)}>✕</button>
             </header>
@@ -1475,7 +1483,9 @@ function PWCDashboard() {
             <div className="modal-body" style={{ padding: '2rem 1.5rem' }}>
               {/* Prominent Amount Display */}
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#64748b', fontWeight: 600 }}>Amount Transferred</span>
+                <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#64748b', fontWeight: 600 }}>
+                  {selectedTrx.operation === 'Paiement' ? 'Amount Paid' : 'Amount Transferred'}
+                </span>
                 <h1 style={{ fontSize: '3rem', fontWeight: 800, color: '#ef4444', margin: '0.5rem 0', fontFamily: "'Outfit', sans-serif" }}>
                   - {parseFloat(selectedTrx.transfer_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
                 </h1>
@@ -1515,7 +1525,7 @@ function PWCDashboard() {
                 <div className="detail-section glass-effect" style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
                   <h3 className="section-subtitle" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#10b981', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
                     <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
-                    Recipient (Credited)
+                    {selectedTrx.operation === 'Paiement' ? 'Merchant / POS Terminal' : 'Recipient (Credited)'}
                   </h3>
                   <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                     <span className="detail-label" style={{ color: '#64748b', fontSize: '0.85rem' }}>Client Name</span>
