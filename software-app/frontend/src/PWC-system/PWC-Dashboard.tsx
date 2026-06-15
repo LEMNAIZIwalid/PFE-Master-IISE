@@ -1,6 +1,35 @@
 import React from 'react'
 import './PWC-Dashboard.css'
 
+const renderCardGraph = (history: number[], strokeColor: string, gradId: string) => {
+  const w = 240
+  const h = 55
+  if (history.length === 0) {
+    return (
+      <svg viewBox={`0 0 ${w} ${h}`} className="card-graph-svg" preserveAspectRatio="none">
+        <line x1="0" y1={h / 2} x2={w} y2={h / 2} stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3,3" opacity="0.4" />
+      </svg>
+    )
+  }
+
+  const maxVal = Math.max(...history, 30) // Minimum scale y of 30ms to prevent huge swings for tiny spikes
+  const points = history.map((val, idx) => {
+    const x = (idx / (history.length - 1 || 1)) * w
+    const y = h - (val / maxVal) * (h - 12) - 6
+    return { x, y }
+  })
+
+  const linePointsStr = points.map(p => `${p.x},${p.y}`).join(' ')
+  const fillPointsStr = `0,${h} ` + points.map(p => `${p.x},${p.y}`).join(' ') + ` ${w},${h}`
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="card-graph-svg" preserveAspectRatio="none">
+      <polygon points={fillPointsStr} fill={`url(#${gradId})`} />
+      <polyline points={linePointsStr} fill="none" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function PWCDashboard() {
   const [isLoggedIn, setIsLoggedIn] = React.useState(false)
   const [sidebarOpen, setSidebarOpen] = React.useState(true)
@@ -49,6 +78,7 @@ function PWCDashboard() {
   const [loadingTransactions, setLoadingTransactions] = React.useState(false)
   const [selectedTrx, setSelectedTrx] = React.useState<any>(null)
   const [isTrxModalOpen, setIsTrxModalOpen] = React.useState(false)
+  const [transactionFilter, setTransactionFilter] = React.useState<'all' | 'transfer' | 'paiement'>('all')
 
   // État pour le formulaire d'édition
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false)
@@ -66,8 +96,110 @@ function PWCDashboard() {
     event_id: ''
   })
 
+  // État pour le monitoring dynamique
+  const [healthStatus, setHealthStatus] = React.useState<any>({
+    apiStatus: 'CHECKING',
+    apiLatency: 'CHECKING',
+    database: {
+      status: 'CHECKING',
+      active_cards: 0,
+      total_events: 0,
+      total_transactions: 0,
+      latency_ms: 0
+    },
+    kafka: {
+      status: 'CHECKING',
+      topic: 'HPOS',
+      partitions: 0,
+      latency_ms: 0
+    },
+    mqtt: {
+      status: 'CHECKING',
+      latency_ms: 0
+    },
+    mqtt_bridge: {
+      status: 'CHECKING',
+      latency_ms: 0
+    }
+  })
 
+  // Historique des latences pour les graphiques (les 15 derniers points)
+  const [apiLatencyHistory, setApiLatencyHistory] = React.useState<number[]>([])
+  const [dbLatencyHistory, setDbLatencyHistory] = React.useState<number[]>([])
+  const [kafkaLatencyHistory, setKafkaLatencyHistory] = React.useState<number[]>([])
+  const [mqttLatencyHistory, setMqttLatencyHistory] = React.useState<number[]>([])
+  const [proxyLatencyHistory, setProxyLatencyHistory] = React.useState<number[]>([])
 
+  const fetchHealth = async () => {
+    const start = Date.now()
+    try {
+      const response = await fetch('http://localhost:5001/api/health')
+      const latency = Date.now() - start
+      if (response.ok) {
+        const data = await response.json()
+        setHealthStatus({
+          apiStatus: data.api_status || 'UP',
+          apiLatency: `${latency}ms`,
+          database: data.database || { status: 'DISCONNECTED', active_cards: 0, total_events: 0, total_transactions: 0, latency_ms: 0 },
+          kafka: data.kafka || { status: 'UNAVAILABLE', topic: 'HPOS', partitions: 0, latency_ms: 0 },
+          mqtt: data.mqtt || { status: 'DISCONNECTED', latency_ms: 0 },
+          mqtt_bridge: data.mqtt_bridge || { status: 'INACTIVE', latency_ms: 0 }
+        })
+
+        const apiLat = latency
+        const dbLat = data.database?.latency_ms || 0
+        const kafkaLat = data.kafka?.latency_ms || 0
+        const mqttLat = data.mqtt?.latency_ms || 0
+        const proxyLat = data.mqtt_bridge?.latency_ms || 0
+
+        setApiLatencyHistory(prev => [...prev, apiLat].slice(-15))
+        setDbLatencyHistory(prev => [...prev, dbLat].slice(-15))
+        setKafkaLatencyHistory(prev => [...prev, kafkaLat].slice(-15))
+        setMqttLatencyHistory(prev => [...prev, mqttLat].slice(-15))
+        setProxyLatencyHistory(prev => [...prev, proxyLat].slice(-15))
+      } else {
+        setHealthStatus((prev: any) => ({
+          ...prev,
+          apiStatus: 'ERROR',
+          apiLatency: `${latency}ms`,
+          database: { ...prev.database, status: 'DISCONNECTED', latency_ms: 0 },
+          kafka: { ...prev.kafka, status: 'UNAVAILABLE', latency_ms: 0 },
+          mqtt: { status: 'DISCONNECTED', latency_ms: 0 },
+          mqtt_bridge: { status: 'INACTIVE', latency_ms: 0 }
+        }))
+
+        setApiLatencyHistory(prev => [...prev, latency].slice(-15))
+        setDbLatencyHistory(prev => [...prev, 0].slice(-15))
+        setKafkaLatencyHistory(prev => [...prev, 0].slice(-15))
+        setMqttLatencyHistory(prev => [...prev, 0].slice(-15))
+        setProxyLatencyHistory(prev => [...prev, 0].slice(-15))
+      }
+    } catch (err) {
+      setHealthStatus((prev: any) => ({
+        ...prev,
+        apiStatus: 'ERROR',
+        apiLatency: 'TIMEOUT',
+        database: { ...prev.database, status: 'DISCONNECTED', latency_ms: 0 },
+        kafka: { ...prev.kafka, status: 'UNAVAILABLE', latency_ms: 0 },
+        mqtt: { status: 'DISCONNECTED', latency_ms: 0 },
+        mqtt_bridge: { status: 'INACTIVE', latency_ms: 0 }
+      }))
+
+      setApiLatencyHistory(prev => [...prev, 1000].slice(-15))
+      setDbLatencyHistory(prev => [...prev, 0].slice(-15))
+      setKafkaLatencyHistory(prev => [...prev, 0].slice(-15))
+      setMqttLatencyHistory(prev => [...prev, 0].slice(-15))
+      setProxyLatencyHistory(prev => [...prev, 0].slice(-15))
+    }
+  }
+
+  React.useEffect(() => {
+    if (settingsSubTab === 'monitoring' && isLoggedIn) {
+      fetchHealth()
+      const interval = setInterval(fetchHealth, 5000)
+      return () => clearInterval(interval)
+    }
+  }, [settingsSubTab, isLoggedIn])
 
   // Fonction pour générer les IDs auto
   const generateIDs = () => {
@@ -981,8 +1113,45 @@ function PWCDashboard() {
             <div className="table-section">
               <div className="table-header-row">
                 <h3>System Transaction Audit</h3>
-                <span className="results-count">Total Records: {transactions.length}</span>
+                <span className="results-count">
+                  Showing {(() => {
+                    const filtered = transactions.filter(trx => {
+                      if (transactionFilter === 'all') return true;
+                      if (transactionFilter === 'transfer') {
+                        return trx.operation?.toLowerCase() === 'transfer' || trx.operation?.toLowerCase() === 'virement';
+                      }
+                      if (transactionFilter === 'paiement') {
+                        return trx.operation?.toLowerCase() === 'paiement' || trx.operation?.toLowerCase() === 'payment';
+                      }
+                      return true;
+                    });
+                    return filtered.length;
+                  })()} of {transactions.length} records
+                </span>
               </div>
+
+              {/* Transaction Filters */}
+              <div className="transaction-filters">
+                <button
+                  className={`filter-pill ${transactionFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setTransactionFilter('all')}
+                >
+                  All Operations ({transactions.length})
+                </button>
+                <button
+                  className={`filter-pill transfer ${transactionFilter === 'transfer' ? 'active' : ''}`}
+                  onClick={() => setTransactionFilter('transfer')}
+                >
+                  Transfers ({transactions.filter(t => t.operation?.toLowerCase() === 'transfer' || t.operation?.toLowerCase() === 'virement').length})
+                </button>
+                <button
+                  className={`filter-pill payment ${transactionFilter === 'paiement' ? 'active' : ''}`}
+                  onClick={() => setTransactionFilter('paiement')}
+                >
+                  Payments ({transactions.filter(t => t.operation?.toLowerCase() === 'paiement' || t.operation?.toLowerCase() === 'payment').length})
+                </button>
+              </div>
+
               <div className="table-container">
                 {loadingTransactions ? (
                   <div className="loader-container">
@@ -1002,32 +1171,45 @@ function PWCDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {transactions.length > 0 ? (
-                        transactions.map((trx, idx) => (
-                          <tr key={idx} className="clickable-row" onClick={() => { setSelectedTrx(trx); setIsTrxModalOpen(true); }}>
-                            <td className="id-cell">#{trx.sender_card_id || 'N/A'}</td>
-                            <td>{trx.sender_name || 'N/A'}</td>
-                            <td className="amount-cell">{parseFloat(trx.transfer_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</td>
-                            <td>
-                              <span className={`op-badge ${(trx.operation || 'Virement').toLowerCase()}`}>
-                                {trx.operation || 'Virement'}
-                              </span>
-                            </td>
-                            <td>
-                              <span className={`source-badge ${(trx.sender_source || 'Mobile_App').toLowerCase()}`}>
-                                {trx.sender_source || 'Mobile_App'}
-                              </span>
-                            </td>
-                            <td className="date-cell">
-                              {trx.timestamp ? new Date(trx.timestamp).toLocaleString('fr-FR') : 'N/A'}
-                            </td>
+                      {(() => {
+                        const filtered = transactions.filter(trx => {
+                          if (transactionFilter === 'all') return true;
+                          if (transactionFilter === 'transfer') {
+                            return trx.operation?.toLowerCase() === 'transfer' || trx.operation?.toLowerCase() === 'virement';
+                          }
+                          if (transactionFilter === 'paiement') {
+                            return trx.operation?.toLowerCase() === 'paiement' || trx.operation?.toLowerCase() === 'payment';
+                          }
+                          return true;
+                        });
+
+                        return filtered.length > 0 ? (
+                          filtered.map((trx, idx) => (
+                            <tr key={idx} className="clickable-row" onClick={() => { setSelectedTrx(trx); setIsTrxModalOpen(true); }}>
+                              <td className="id-cell">#{trx.sender_card_id || 'N/A'}</td>
+                              <td>{trx.sender_name || 'N/A'}</td>
+                              <td className="amount-cell">{parseFloat(trx.transfer_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</td>
+                              <td>
+                                <span className={`op-badge ${(trx.operation || 'Virement').toLowerCase()}`}>
+                                  {trx.operation || 'Virement'}
+                                </span>
+                              </td>
+                              <td>
+                                <span className={`source-badge ${(trx.sender_source || 'Mobile_App').toLowerCase()}`}>
+                                  {trx.sender_source || 'Mobile_App'}
+                                </span>
+                              </td>
+                              <td className="date-cell">
+                                {trx.timestamp ? new Date(trx.timestamp).toLocaleString('fr-FR') : 'N/A'}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="no-data">No transactions found for this filter.</td>
                           </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={6} className="no-data">No transactions found.</td>
-                        </tr>
-                      )}
+                        );
+                      })()}
                     </tbody>
                   </table>
                 )}
@@ -1123,55 +1305,258 @@ function PWCDashboard() {
                       <span>Compact Table View</span>
                       <input type="checkbox" />
                     </div>
-                  </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
             {/* Monitoring Sub-Tab */}
             {settingsSubTab === 'monitoring' && (
-              <div className="settings-container animate-fade-in">
-                <div className="monitoring-layout">
-                  <div className="glass-card settings-card">
-                    <div className="card-header">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
-                      <h3>System Health</h3>
+              <div className="monitoring-container animate-fade-in">
+                <div className="monitoring-wrapper">
+                  
+                  {/* Defs for gradients used in latency area charts */}
+                  <svg style={{ width: 0, height: 0, position: 'absolute' }}>
+                    <defs>
+                      <linearGradient id="api-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366f1" stopOpacity="0.22" />
+                        <stop offset="100%" stopColor="#6366f1" stopOpacity="0.00" />
+                      </linearGradient>
+                      <linearGradient id="db-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.22" />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity="0.00" />
+                      </linearGradient>
+                      <linearGradient id="kafka-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.22" />
+                        <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.00" />
+                      </linearGradient>
+                      <linearGradient id="mqtt-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.22" />
+                        <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.00" />
+                      </linearGradient>
+                      <linearGradient id="proxy-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#d946ef" stopOpacity="0.22" />
+                        <stop offset="100%" stopColor="#d946ef" stopOpacity="0.00" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+
+                  {/* Part 1: Grid of Services (API, DB, Kafka, MQTT, Proxy) */}
+                  <div className="monitoring-services-grid">
+                    
+                    {/* API Server status card */}
+                    <div className="service-status-card api-service">
+                      <div className="service-card-top">
+                        <div className="service-icon-badge api">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                        </div>
+                        <span className={`status-badge ${healthStatus.apiStatus === 'UP' ? 'active' : 'blocked'}`}>
+                          {healthStatus.apiStatus}
+                        </span>
+                      </div>
+                      <div className="service-card-body">
+                        <span className="service-title">API Backend</span>
+                        <span className="service-host">localhost:5001</span>
+                        <span className="service-value">{healthStatus.apiLatency}</span>
+                      </div>
+                      <div className="service-card-sparkline">
+                        {renderCardGraph(apiLatencyHistory, '#6366f1', 'api-grad')}
+                      </div>
                     </div>
-                    <div className="settings-body">
-                      <div className="health-stat">
-                        <span>Database Connection (Oracle)</span>
-                        <span className="status-badge active">CONNECTED</span>
+
+                    {/* Database status card */}
+                    <div className="service-status-card db-service">
+                      <div className="service-card-top">
+                        <div className="service-icon-badge db">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-2.239 10-5V5c0-2.761-4.477-5-10-5S2 2.239 2 5v12c0 2.761 4.477 5 10 5z"></path><path d="M22 5c0 2.761-4.477 5-10 5S2 7.761 2 5"></path><path d="M2 11c0 2.761 4.477 5 10 5s10-2.239 10-5"></path></svg>
+                        </div>
+                        <span className={`status-badge ${healthStatus.database.status === 'CONNECTED' ? 'active' : healthStatus.database.status === 'CHECKING' ? 'suspended' : 'blocked'}`}>
+                          {healthStatus.database.status}
+                        </span>
                       </div>
-                      <div className="health-stat">
-                        <span>Kafka Broker Status</span>
-                        <span className="status-badge active">STABLE</span>
+                      <div className="service-card-body">
+                        <span className="service-title">Oracle DB</span>
+                        <span className="service-host">172.22.32.1</span>
+                        <span className="service-value">
+                          {healthStatus.database.status === 'CONNECTED' ? `${healthStatus.database.latency_ms}ms` : 'OFFLINE'}
+                        </span>
                       </div>
-                      <div className="health-stat">
-                        <span>API Server Latency</span>
-                        <span className="status-badge active">12ms</span>
+                      <div className="service-card-sparkline">
+                        {renderCardGraph(dbLatencyHistory, '#10b981', 'db-grad')}
                       </div>
                     </div>
+
+                    {/* Kafka status card */}
+                    <div className="service-status-card kafka-service">
+                      <div className="service-card-top">
+                        <div className="service-icon-badge kafka">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                        </div>
+                        <span className={`status-badge ${healthStatus.kafka.status === 'STABLE' ? 'active' : healthStatus.kafka.status === 'CHECKING' ? 'suspended' : 'blocked'}`}>
+                          {healthStatus.kafka.status}
+                        </span>
+                      </div>
+                      <div className="service-card-body">
+                        <span className="service-title">Kafka Broker</span>
+                        <span className="service-host">localhost:9092</span>
+                        <span className="service-value">
+                          {healthStatus.kafka.status === 'STABLE' ? `${healthStatus.kafka.latency_ms}ms` : 'OFFLINE'}
+                        </span>
+                      </div>
+                      <div className="service-card-sparkline">
+                        {renderCardGraph(kafkaLatencyHistory, '#f59e0b', 'kafka-grad')}
+                      </div>
+                    </div>
+
+                    {/* MQTT status card */}
+                    <div className="service-status-card mqtt-service">
+                      <div className="service-card-top">
+                        <div className="service-icon-badge mqtt">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        </div>
+                        <span className={`status-badge ${healthStatus.mqtt.status === 'ACTIVE' ? 'active' : healthStatus.mqtt.status === 'CHECKING' ? 'suspended' : 'blocked'}`}>
+                          {healthStatus.mqtt.status}
+                        </span>
+                      </div>
+                      <div className="service-card-body">
+                        <span className="service-title">MQTT Broker</span>
+                        <span className="service-host">localhost:1883</span>
+                        <span className="service-value">
+                          {healthStatus.mqtt.status === 'ACTIVE' ? `${healthStatus.mqtt.latency_ms}ms` : 'OFFLINE'}
+                        </span>
+                      </div>
+                      <div className="service-card-sparkline">
+                        {renderCardGraph(mqttLatencyHistory, '#06b6d4', 'mqtt-grad')}
+                      </div>
+                    </div>
+
+                    {/* Proxy Bridge status card */}
+                    <div className="service-status-card proxy-service">
+                      <div className="service-card-top">
+                        <div className="service-icon-badge proxy">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                        </div>
+                        <span className={`status-badge ${healthStatus.mqtt_bridge.status === 'ACTIVE' ? 'active' : healthStatus.mqtt_bridge.status === 'CHECKING' ? 'suspended' : 'blocked'}`}>
+                          {healthStatus.mqtt_bridge.status}
+                        </span>
+                      </div>
+                      <div className="service-card-body">
+                        <span className="service-title">Proxy Bridge</span>
+                        <span className="service-host">mqtt_kafka_proxy</span>
+                        <span className="service-value">
+                          {healthStatus.mqtt_bridge.status === 'ACTIVE' ? `${healthStatus.mqtt_bridge.latency_ms}ms` : 'OFFLINE'}
+                        </span>
+                      </div>
+                      <div className="service-card-sparkline">
+                        {renderCardGraph(proxyLatencyHistory, '#d946ef', 'proxy-grad')}
+                      </div>
+                    </div>
+
                   </div>
 
-                  <div className="glass-card settings-card">
-                    <div className="card-header">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                      <h3>Audit Retention</h3>
-                    </div>
-                    <div className="settings-body">
-                      <div className="toggle-item audit-retention">
-                        <div className="item-info">
-                          <span>Data Retention Period</span>
-                        </div>
-                        <select className="premium-select" defaultValue="30">
-                          <option value="30">30 Days</option>
-                          <option value="90">90 Days</option>
-                          <option value="365">1 Year</option>
-                        </select>
+                  {/* Part 2: Detailed Live Metrics (Oracle DB stats on Left, Kafka partitions on Right) */}
+                  <div className="monitoring-details-grid">
+                    
+                    {/* Oracle Database Analytics Card */}
+                    <div className="monitoring-detail-card db-panel">
+                      <div className="panel-header">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <h3 className="panel-title">Oracle DB Live Statistics</h3>
                       </div>
-                      <button className="secondary-btn">Purge Old Records</button>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        <div className="db-metric-row">
+                          <div className="metric-text-group">
+                            <span className="metric-label">Active Cards (PWC_System)</span>
+                            <span className="metric-value-container">
+                              {healthStatus.database.active_cards}
+                              <span className="metric-value-suffix">Provisioned Cards</span>
+                            </span>
+                          </div>
+                          <div className="metric-icon-box" style={{ background: '#ecfdf5', color: '#10b981' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                          </div>
+                        </div>
+
+                        <div className="db-metric-row">
+                          <div className="metric-text-group">
+                            <span className="metric-label">Total Ingested Events (Audit Log)</span>
+                            <span className="metric-value-container">
+                              {healthStatus.database.total_events}
+                              <span className="metric-value-suffix">Operations</span>
+                            </span>
+                          </div>
+                          <div className="metric-icon-box" style={{ background: '#e0e7ff', color: '#6366f1' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                          </div>
+                        </div>
+
+                        <div className="db-metric-row">
+                          <div className="metric-text-group">
+                            <span className="metric-label">Total Checked Transactions</span>
+                            <span className="metric-value-container">
+                              {healthStatus.database.total_transactions}
+                              <span className="metric-value-suffix">Virements / Payments</span>
+                            </span>
+                          </div>
+                          <div className="metric-icon-box" style={{ background: '#fef2f2', color: '#ef4444' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="2" x2="12" y2="22"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                          </div>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Kafka Stream Analytics (Topic details and glowing Partition visualizer) */}
+                    <div className="monitoring-detail-card kafka-panel">
+                      <div className="panel-header">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                        <h3 className="panel-title">Kafka Event Streaming Metrics</h3>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        <div className="kafka-subcards-grid">
+                          <div className="kafka-subcard">
+                            <div className="kafka-subcard-label">Target Topic</div>
+                            <span className="kafka-pill-value topic">
+                              {healthStatus.kafka.topic}
+                            </span>
+                          </div>
+                          
+                          <div className="kafka-subcard">
+                            <div className="kafka-subcard-label">Partition Count</div>
+                            <span className="kafka-pill-value partitions">
+                              {healthStatus.kafka.partitions} Partitions
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Visualizer: Glowing Partitions */}
+                        <div className="partition-visualizer-container">
+                          <span className="partition-visualizer-title">Partition Load Balancer Visualizer</span>
+                          
+                          <div className="partition-boxes-row">
+                            {[0, 1, 2].map((idx) => {
+                              const active = healthStatus.kafka.partitions >= idx + 1;
+                              return (
+                                <div 
+                                  key={idx} 
+                                  className={`partition-server-box ${active ? 'active' : 'offline'}`}
+                                >
+                                  <span className="partition-box-label">PART {idx}</span>
+                                  <div className={`glowing-led ${active ? 'green' : 'red'}`}></div>
+                                  <span className={`partition-status-text ${active ? 'green' : 'red'}`}>
+                                    {active ? 'ACTIVE' : 'OFFLINE'}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
+
                 </div>
               </div>
             )}

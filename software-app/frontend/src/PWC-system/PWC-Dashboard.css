@@ -1958,6 +1958,201 @@ h1 {
 
 .footer-right {
   display: flex;
+}
+
+.detail-section:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.05);
+}
+
+.section-subtitle {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.1em;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.detail-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.detail-value.mono {
+  font-family: "Courier New", monospace;
+  color: var(--primary);
+}
+
+.event-raw-data {
+  margin-top: 1rem;
+  border-top: 2px dashed #e2e8f0;
+  padding-top: 1.5rem;
+}
+
+.raw-json-container {
+  background: #0f172a;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-height: 250px;
+  overflow-y: auto;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.raw-json-container pre {
+  color: #38bdf8;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clickable-row:hover td {
+  background: #f1f5f9 !important;
+  color: var(--primary) !important;
+}
+
+.clickable-row:hover .id-cell {
+  text-decoration: underline;
+}
+
+.text-center {
+  text-align: center;
+}
+
+
+/* Premium Event Modal Redesign */
+.premium-modal {
+  max-width: 850px !important;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.glass-effect {
+  background: rgba(248, 250, 252, 0.6) !important;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(226, 232, 240, 0.5) !important;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.highlight-pwc {
+  color: #6366f1 !important;
+  background: #eef2ff;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 800 !important;
+}
+
+.metadata-flex {
+  display: flex;
+  gap: 2.5rem;
+  padding-top: 0.5rem;
+}
+
+.metadata-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Premium JSON Viewer */
+.event-raw-data-premium {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.json-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: #f1f5f9;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.copy-btn {
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.copy-btn:hover {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+}
+
+.raw-json-container-premium {
+  background: #0f172a;
+  border-radius: 12px;
+  padding: 1rem;
+  max-height: none; /* Let it expand or fit content */
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+  border: 2px solid #1e293b;
+}
+
+.raw-json-container-premium pre {
+  color: #38bdf8;
+  font-family: "Fira Code", "Courier New", monospace;
+  font-size: 0.75rem; /* Reduced size */
+  line-height: 1.3; /* Tighter line height */
+  margin: 0;
+  white-space: pre-wrap; /* Wrap lines to avoid horizontal scroll */
+  word-break: break-all;
+}
+
+/* Premium Footer Actions */
+.premium-footer {
+  display: flex;
+  justify-content: space-between !important;
+  align-items: center;
+  background: #f8fafc;
+  padding: 1.5rem 2rem !important;
+}
+
+.footer-left {
+  display: flex;
+  gap: 1rem;
+}
+
+.footer-right {
+  display: flex;
   gap: 1rem;
 }
 
@@ -2006,3 +2201,513 @@ h1 {
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
+/* --- Premium System Monitoring - User Image Inspired Theme --- */
+.monitoring-container {
+  display: block;
+  width: 100%;
+  padding: 1.5rem !important;
+  background: #f8fafc !important;
+  border-radius: 24px;
+  border: 1px solid #e9ecf4;
+  box-shadow: 
+    0 15px 40px -15px rgba(0, 0, 0, 0.03),
+    inset 0 0 20px rgba(99, 102, 241, 0.01) !important;
+  margin-top: 1rem;
+}
+
+.monitoring-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Service Status Cards Grid */
+.monitoring-services-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1.2rem;
+}
+
+/* Base style for the premium status cards (Clean Light Card Design) */
+.service-status-card {
+  background: #ffffff !important;
+  border-radius: 20px !important;
+  padding: 1.4rem 1.4rem 0.2rem 1.4rem !important;
+  display: flex;
+  flex-direction: column;
+  max-width: none !important;
+  margin: 0 !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border: 1px solid #f1f3f9 !important;
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.02),
+    0 8px 10px -6px rgba(0, 0, 0, 0.01) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.service-status-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 
+    0 20px 35px -10px rgba(99, 102, 241, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Card Top Section: Icon Badge + Status Tag */
+.service-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+}
+
+/* Square Icon Badges (Top Left) */
+.service-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.service-icon-badge.api {
+  background: #eef2ff;
+  color: #6366f1;
+}
+
+.service-icon-badge.db {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.service-icon-badge.kafka {
+  background: #fffbeb;
+  color: #f59e0b;
+}
+
+.service-icon-badge.mqtt {
+  background: #ecfeff;
+  color: #06b6d4;
+}
+
+.service-icon-badge.proxy {
+  background: #fdf4ff;
+  color: #d946ef;
+}
+
+/* Card Body Section: Title, Hostname, and Value */
+.service-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.service-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #1e293b;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.2px;
+}
+
+.service-host {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+}
+
+.service-value {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #0f172a;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.8px;
+  margin-top: 0.4rem;
+}
+
+/* Decorative Sparkline Graph at Card Bottom (Full Bleed Area Chart) */
+.service-card-sparkline {
+  width: calc(100% + 2.8rem);
+  height: 55px;
+  margin-top: 0.8rem;
+  margin-left: -1.4rem;
+  margin-right: -1.4rem;
+  margin-bottom: -0.2rem;
+  opacity: 0.95;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+}
+
+.card-graph-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Status Badges in Clean Light Cockpit */
+.status-badge {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+.status-badge.active {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0 !important;
+  box-shadow: none !important;
+}
+
+.status-badge.suspended {
+  background: #fffbeb !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
+  box-shadow: none !important;
+}
+
+.status-badge.blocked {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: none !important;
+}
+
+/* Bottom Grid and Detailed Panels */
+.monitoring-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.monitoring-detail-card {
+  background: #ffffff !important;
+  border-radius: 20px !important;
+  padding: 1.6rem !important;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  max-width: none !important;
+  margin: 0 !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.02),
+    0 8px 10px -6px rgba(0, 0, 0, 0.01) !important;
+  border: 1px solid #f1f3f9 !important;
+}
+
+.monitoring-detail-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 15px 30px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+.monitoring-detail-card.db-panel {
+  border-top: 4px solid #10b981 !important;
+}
+
+.monitoring-detail-card.kafka-panel {
+  border-top: 4px solid #f59e0b !important;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid #f1f3f9;
+}
+
+.panel-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.3px;
+}
+
+/* Premium row indicators inside DB Panel */
+.db-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1.2rem;
+  background: #f8fafc;
+  border-radius: 14px;
+  border: 1px solid #edf2f7;
+  transition: all 0.2s ease;
+}
+
+.db-metric-row:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.metric-text-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.metric-value-container {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 0.15rem;
+  font-family: 'Outfit', sans-serif;
+}
+
+.metric-value-suffix {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 8px;
+}
+
+.metric-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.db-metric-row:hover .metric-icon-box {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Premium sub-cards in Kafka Panel */
+.kafka-subcards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+}
+
+.kafka-subcard {
+  padding: 0.8rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #edf2f7;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.kafka-subcard:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.kafka-subcard-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.5px;
+}
+
+.kafka-pill-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.kafka-pill-value.topic {
+  color: #3730a3;
+  background: #e0e7ff;
+  border: 1px solid #c7d2fe;
+  font-family: monospace;
+}
+
+.kafka-pill-value.partitions {
+  color: #065f46;
+  background: #d1fae5;
+  border: 1px solid #a7f3d0;
+}
+
+/* Visualizer container */
+.partition-visualizer-container {
+  padding: 0.8rem 1rem;
+  background: #f8fafc;
+  border-radius: 14px;
+  border: 1px solid #edf2f7;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.partition-visualizer-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.partition-boxes-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+}
+
+.partition-server-box {
+  padding: 0.6rem 0.4rem;
+  border-radius: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid transparent;
+  background: #ffffff;
+}
+
+.partition-server-box.active {
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.01);
+}
+
+.partition-server-box.active:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.08);
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
+.partition-server-box.offline {
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.01);
+}
+
+.partition-server-box.offline:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(239, 68, 68, 0.08);
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.partition-box-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: 0.5px;
+}
+
+/* Pulsing Glowing Lights (Cyber Dashboard) */
+.glowing-led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulse-glow-light 2s infinite;
+}
+
+.glowing-led.green {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.glowing-led.red {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+@keyframes pulse-glow-light {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+    filter: brightness(1.1);
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+}
+
+.partition-status-text {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.partition-status-text.green {
+  color: #059669;
+}
+
+.partition-status-text.red {
+  color: #dc2626;
+}
+
+/* Transaction Page - Operation Filters */
+.transaction-filters {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+  padding: 0.2rem 0;
+}
+
+.filter-pill {
+  padding: 0.6rem 1.4rem;
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #ffffff;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-pill:hover {
+  background: #f8fafc;
+  color: #334155;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.filter-pill.active {
+  background: #6366f1;
+  color: #ffffff;
+  border-color: #6366f1;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.filter-pill.transfer.active {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  border-color: #4f46e5;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+.filter-pill.payment.active {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  border-color: #0891b2;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+}

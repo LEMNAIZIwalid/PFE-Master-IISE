@@ -4,6 +4,7 @@ import oracledb
 import datetime
 import json
 import io
+import time
 from fastavro import writer, parse_schema
 from confluent_kafka import Producer
 
@@ -1750,6 +1751,138 @@ def get_external_transactions():
     finally:
         if connection:
             connection.close()
+
+
+@app.route('/api/health', methods=['GET'])
+def get_health():
+    """Return live status and metrics of Oracle Database, Kafka Broker, MQTT, and Proxy Bridge."""
+    health_status = {
+        "api_status": "UP",
+        "database": {
+            "status": "DISCONNECTED",
+            "active_cards": 0,
+            "total_events": 0,
+            "total_transactions": 0,
+            "latency_ms": 0.0
+        },
+        "kafka": {
+            "status": "UNAVAILABLE",
+            "topic": "HPOS",
+            "partitions": 0,
+            "latency_ms": 0.0
+        },
+        "mqtt": {
+            "status": "DISCONNECTED",
+            "latency_ms": 0.0
+        },
+        "mqtt_bridge": {
+            "status": "INACTIVE",
+            "latency_ms": 0.0
+        }
+    }
+    
+    # 1. Check Oracle DB & Retrieve Metrics
+    db_conn = None
+    start_db = time.time()
+    try:
+        db_conn = get_oracle_connection()
+        cursor = db_conn.cursor()
+        
+        # Connection status test
+        cursor.execute("SELECT 1 FROM DUAL")
+        cursor.fetchone()
+        health_status["database"]["status"] = "CONNECTED"
+        
+        # Metric: Active Cards
+        try:
+            cursor.execute("SELECT COUNT(DISTINCT ID_CARD) FROM POS.PowerCard_System WHERE UPPER(STATUS) = 'ACTIVE'")
+            health_status["database"]["active_cards"] = cursor.fetchone()[0] or 0
+        except Exception as e:
+            print(f"Error querying active cards count: {e}")
+            
+        # Metric: Total Audit Events
+        try:
+            cursor.execute("SELECT COUNT(*) FROM POS.Events")
+            health_status["database"]["total_events"] = cursor.fetchone()[0] or 0
+        except Exception as e:
+            print(f"Error querying events count: {e}")
+            
+        # Metric: Total Transactions
+        try:
+            cursor.execute("SELECT COUNT(*) FROM POS.Events WHERE UPPER(OPERATION) IN ('TRANSFER', 'VIREMENT', 'PAIEMENT', 'PAYMENT')")
+            health_status["database"]["total_transactions"] = cursor.fetchone()[0] or 0
+        except Exception as e:
+            print(f"Error querying transactions count: {e}")
+            
+        db_time = (time.time() - start_db) * 1000
+        health_status["database"]["latency_ms"] = round(db_time, 2)
+    except Exception as e:
+        print(f"❌ Health Check - Oracle DB error: {e}")
+        health_status["database"]["status"] = "DISCONNECTED"
+        db_time = (time.time() - start_db) * 1000
+        health_status["database"]["latency_ms"] = round(db_time, 2)
+    finally:
+        if db_conn:
+            try:
+                db_conn.close()
+            except:
+                pass
+                
+    # 2. Check Kafka Broker & Topic Partitions
+    start_kafka = time.time()
+    try:
+        if producer:
+            cluster_metadata = producer.list_topics(timeout=1.0)
+            health_status["kafka"]["status"] = "STABLE"
+            
+            topic_metadata = cluster_metadata.topics.get("HPOS")
+            if topic_metadata:
+                health_status["kafka"]["partitions"] = len(topic_metadata.partitions)
+            else:
+                health_status["kafka"]["partitions"] = 0
+        else:
+            health_status["kafka"]["status"] = "UNAVAILABLE"
+        kafka_time = (time.time() - start_kafka) * 1000
+        health_status["kafka"]["latency_ms"] = round(kafka_time, 2)
+    except Exception as e:
+        print(f"❌ Health Check - Kafka error: {e}")
+        health_status["kafka"]["status"] = "ERROR"
+        kafka_time = (time.time() - start_kafka) * 1000
+        health_status["kafka"]["latency_ms"] = round(kafka_time, 2)
+        
+    # 3. Check MQTT Broker (Port 1883 socket test)
+    start_mqtt = time.time()
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1.0)
+        s.connect(("localhost", 1883))
+        s.close()
+        health_status["mqtt"]["status"] = "ACTIVE"
+        mqtt_time = (time.time() - start_mqtt) * 1000
+        health_status["mqtt"]["latency_ms"] = round(mqtt_time, 2)
+    except Exception as e:
+        print(f"❌ Health Check - MQTT broker error: {e}")
+        health_status["mqtt"]["status"] = "DISCONNECTED"
+        mqtt_time = (time.time() - start_mqtt) * 1000
+        health_status["mqtt"]["latency_ms"] = round(mqtt_time, 2)
+        
+    # 4. Check MQTT-Kafka Bridge Process
+    start_bridge = time.time()
+    import subprocess
+    try:
+        res = subprocess.check_output('powershell -Command "Get-CimInstance Win32_Process | Where-Object CommandLine -like \'*mqtt_kafka_proxy.py*\' | Select-Object -ExpandProperty ProcessId"', shell=True)
+        pids = [line.strip() for line in res.decode().split('\n') if line.strip()]
+        health_status["mqtt_bridge"]["status"] = "ACTIVE" if pids else "INACTIVE"
+        bridge_time = (time.time() - start_bridge) * 1000
+        health_status["mqtt_bridge"]["latency_ms"] = round(bridge_time, 2)
+    except Exception as e:
+        print(f"❌ Health Check - Ingestion Proxy error: {e}")
+        health_status["mqtt_bridge"]["status"] = "ERROR"
+        bridge_time = (time.time() - start_bridge) * 1000
+        health_status["mqtt_bridge"]["latency_ms"] = round(bridge_time, 2)
+        
+    return jsonify(health_status), 200
 
 
 if __name__ == '__main__':
