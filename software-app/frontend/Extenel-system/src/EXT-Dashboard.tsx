@@ -1,9 +1,125 @@
 import React, { useState } from 'react';
 import './EXT-Dashboard.css';
 
+const renderCardGraph = (history: number[], strokeColor: string, gradId: string) => {
+  const w = 300;
+  const h = 100;
+  if (history.length === 0) {
+    return (
+      <svg viewBox={`0 0 ${w} ${h}`} className="card-graph-svg" preserveAspectRatio="none">
+        <line x1="0" y1={h / 2} x2={w} y2={h / 2} stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3,3" opacity="0.4" />
+      </svg>
+    );
+  }
+
+  const maxVal = Math.max(...history, 30);
+  const points = history.map((val, idx) => {
+    const x = (idx / (history.length - 1 || 1)) * w;
+    const y = h - (val / maxVal) * (h - 16) - 8;
+    return { x, y };
+  });
+
+  const linePointsStr = points.map(p => `${p.x},${p.y}`).join(' ');
+  const fillPointsStr = `0,${h} ` + points.map(p => `${p.x},${p.y}`).join(' ') + ` ${w},${h}`;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="card-graph-svg" preserveAspectRatio="none">
+      <polygon points={fillPointsStr} fill={`url(#${gradId})`} />
+      <polyline points={linePointsStr} fill="none" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
 const EXTDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [settingsExpanded, setSettingsExpanded] = useState(false);
+
+  // Health Monitoring States
+  const [healthStatus, setHealthStatus] = useState<any>({
+    apiStatus: 'CHECKING',
+    apiLatency: 'CHECKING',
+    database: { status: 'CHECKING', active_cards: 0, total_events: 0, total_transactions: 0, latency_ms: 0 },
+    kafka: { status: 'CHECKING', topic: 'HPOS', partitions: 0, latency_ms: 0 },
+    mqtt: { status: 'CHECKING', latency_ms: 0 },
+    mqtt_bridge: { status: 'CHECKING', latency_ms: 0 }
+  });
+
+  const [apiLatencyHistory, setApiLatencyHistory] = useState<number[]>([]);
+  const [dbLatencyHistory, setDbLatencyHistory] = useState<number[]>([]);
+  const [kafkaLatencyHistory, setKafkaLatencyHistory] = useState<number[]>([]);
+  const [mqttLatencyHistory, setMqttLatencyHistory] = useState<number[]>([]);
+  const [proxyLatencyHistory, setProxyLatencyHistory] = useState<number[]>([]);
+
+  const fetchHealth = async () => {
+    const start = Date.now();
+    try {
+      const response = await fetch('http://localhost:5001/api/health');
+      const latency = Date.now() - start;
+      if (response.ok) {
+        const data = await response.json();
+        setHealthStatus({
+          apiStatus: data.api_status || 'UP',
+          apiLatency: `${latency}ms`,
+          database: data.database || { status: 'DISCONNECTED', active_cards: 0, total_events: 0, total_transactions: 0, latency_ms: 0 },
+          kafka: data.kafka || { status: 'UNAVAILABLE', topic: 'HPOS', partitions: 0, latency_ms: 0 },
+          mqtt: data.mqtt || { status: 'DISCONNECTED', latency_ms: 0 },
+          mqtt_bridge: data.mqtt_bridge || { status: 'INACTIVE', latency_ms: 0 }
+        });
+
+        const apiLat = latency;
+        const dbLat = data.database?.latency_ms || 0;
+        const kafkaLat = data.kafka?.latency_ms || 0;
+        const mqttLat = data.mqtt?.latency_ms || 0;
+        const proxyLat = data.mqtt_bridge?.latency_ms || 0;
+
+        setApiLatencyHistory(prev => [...prev, apiLat].slice(-15));
+        setDbLatencyHistory(prev => [...prev, dbLat].slice(-15));
+        setKafkaLatencyHistory(prev => [...prev, kafkaLat].slice(-15));
+        setMqttLatencyHistory(prev => [...prev, mqttLat].slice(-15));
+        setProxyLatencyHistory(prev => [...prev, proxyLat].slice(-15));
+      } else {
+        setHealthStatus((prev: any) => ({
+          ...prev,
+          apiStatus: 'ERROR',
+          apiLatency: `${latency}ms`,
+          database: { ...prev.database, status: 'DISCONNECTED', latency_ms: 0 },
+          kafka: { ...prev.kafka, status: 'UNAVAILABLE', latency_ms: 0 },
+          mqtt: { status: 'DISCONNECTED', latency_ms: 0 },
+          mqtt_bridge: { status: 'INACTIVE', latency_ms: 0 }
+        }));
+
+        setApiLatencyHistory(prev => [...prev, latency].slice(-15));
+        setDbLatencyHistory(prev => [...prev, 0].slice(-15));
+        setKafkaLatencyHistory(prev => [...prev, 0].slice(-15));
+        setMqttLatencyHistory(prev => [...prev, 0].slice(-15));
+        setProxyLatencyHistory(prev => [...prev, 0].slice(-15));
+      }
+    } catch (err) {
+      setHealthStatus((prev: any) => ({
+        ...prev,
+        apiStatus: 'ERROR',
+        apiLatency: 'TIMEOUT',
+        database: { ...prev.database, status: 'DISCONNECTED', latency_ms: 0 },
+        kafka: { ...prev.kafka, status: 'UNAVAILABLE', latency_ms: 0 },
+        mqtt: { status: 'DISCONNECTED', latency_ms: 0 },
+        mqtt_bridge: { status: 'INACTIVE', latency_ms: 0 }
+      }));
+
+      setApiLatencyHistory(prev => [...prev, 1000].slice(-15));
+      setDbLatencyHistory(prev => [...prev, 0].slice(-15));
+      setKafkaLatencyHistory(prev => [...prev, 0].slice(-15));
+      setMqttLatencyHistory(prev => [...prev, 0].slice(-15));
+      setProxyLatencyHistory(prev => [...prev, 0].slice(-15));
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 'settings-monitoring') {
+      fetchHealth();
+      const interval = setInterval(fetchHealth, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -1239,30 +1355,194 @@ const EXTDashboard: React.FC = () => {
               <p>Real-time status of external API and database connections</p>
             </header>
 
-            <div className="settings-grid">
-              <div className="settings-card full-width status-grid-card">
-                <div className="status-item">
-                  <div className="status-label">API SERVER</div>
-                  <div className="status-indicator online">ONLINE</div>
-                  <div className="status-value">Latency: 12ms</div>
+            <div className="monitoring-wrapper" style={{ marginTop: '2rem' }}>
+              {/* Defs for gradients used in latency area charts */}
+              <svg style={{ width: 0, height: 0, position: 'absolute' }}>
+                <defs>
+                  <linearGradient id="api-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.00" />
+                  </linearGradient>
+                  <linearGradient id="db-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.00" />
+                  </linearGradient>
+                  <linearGradient id="kafka-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6366f1" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity="0.00" />
+                  </linearGradient>
+                  <linearGradient id="mqtt-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.00" />
+                  </linearGradient>
+                  <linearGradient id="proxy-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0f766e" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#0f766e" stopOpacity="0.00" />
+                  </linearGradient>
+                </defs>
+              </svg>
+
+              {/* Part 1: Kafka Stream Analytics (Top, Centered) */}
+              <div className="monitoring-detail-card kafka-panel" style={{ maxWidth: '600px', margin: '0 auto 2.5rem auto' }}>
+                <div className="panel-header">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                  <h3 className="panel-title">Kafka Event Streaming Metrics</h3>
                 </div>
-                <div className="status-item">
-                  <div className="status-label">DATABASE</div>
-                  <div className="status-indicator online">STABLE</div>
-                  <div className="status-value">Connections: 8/50</div>
-                </div>
-                <div className="status-item">
-                  <div className="status-label">MQTT BRIDGE</div>
-                  <div className="status-indicator online">ACTIVE</div>
-                  <div className="status-value">Queue: 0 msgs</div>
-                </div>
-                <div className="status-item">
-                  <div className="status-label">KAFKA CLUSTER</div>
-                  <div className="status-indicator warning">BUSY</div>
-                  <div className="status-value">Load: 84%</div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                  <div className="kafka-subcards-grid">
+                    <div className="kafka-subcard">
+                      <div className="kafka-subcard-label">Target Topic</div>
+                      <span className="kafka-pill-value topic">
+                        {healthStatus.kafka.topic}
+                      </span>
+                    </div>
+
+                    <div className="kafka-subcard">
+                      <div className="kafka-subcard-label">Partition Count</div>
+                      <span className="kafka-pill-value partitions">
+                        {healthStatus.kafka.partitions} Partitions
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Visualizer: Glowing Partitions */}
+                  <div className="partition-visualizer-container">
+                    <span className="partition-visualizer-title">Partition Load Balancer Visualizer</span>
+
+                    <div className="partition-boxes-row">
+                      {[0, 1, 2].map((idx) => {
+                        const active = healthStatus.kafka.partitions >= idx + 1;
+                        return (
+                          <div
+                            key={idx}
+                            className={`partition-server-box ${active ? 'active' : 'offline'}`}
+                          >
+                            <span className="partition-box-label">PART {idx}</span>
+                            <div className={`glowing-led ${active ? 'green' : 'red'}`}></div>
+                            <span className={`partition-status-text ${active ? 'green' : 'red'}`}>
+                              {active ? 'ONLINE' : 'OFFLINE'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              {/* Part 2: Grid of Services (API, DB, Kafka, MQTT, Proxy) at the Bottom */}
+              <div className="monitoring-services-grid">
+
+                {/* API Service card */}
+                <div className="service-status-card api-service">
+                  <div className="service-card-top">
+                    <div className="service-icon-badge api">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 17 22 12"></polyline></svg>
+                    </div>
+                    <span className={`status-badge ${healthStatus.apiStatus === 'UP' ? 'active' : 'blocked'}`}>
+                      {healthStatus.apiStatus}
+                    </span>
+                  </div>
+                  <div className="service-card-body">
+                    <span className="service-title">API Server</span>
+                    <span className="service-host">localhost:5001</span>
+                    <span className="service-value">{healthStatus.apiLatency}</span>
+                  </div>
+                  <div className="service-card-sparkline">
+                    {renderCardGraph(apiLatencyHistory, '#3b82f6', 'api-grad')}
+                  </div>
+                </div>
+
+                {/* Database status card */}
+                <div className="service-status-card db-service">
+                  <div className="service-card-top">
+                    <div className="service-icon-badge db">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-2.239 10-5V5c0-2.761-4.477-5-10-5S2 2.239 2 5v12c0 2.761 4.477 5 10 5z"></path><path d="M22 5c0 2.761-4.477 5-10 5S2 7.761 2 5"></path><path d="M2 11c0 2.761 4.477 5 10 5s10-2.239 10-5"></path></svg>
+                    </div>
+                    <span className={`status-badge ${healthStatus.database.status === 'CONNECTED' ? 'active' : healthStatus.database.status === 'CHECKING' ? 'suspended' : 'blocked'}`}>
+                      {healthStatus.database.status}
+                    </span>
+                  </div>
+                  <div className="service-card-body">
+                    <span className="service-title">Oracle DB</span>
+                    <span className="service-host">172.22.32.1</span>
+                    <span className="service-value">
+                      {healthStatus.database.status === 'CONNECTED' ? `${healthStatus.database.latency_ms}ms` : 'OFFLINE'}
+                    </span>
+                  </div>
+                  <div className="service-card-sparkline">
+                    {renderCardGraph(dbLatencyHistory, '#10b981', 'db-grad')}
+                  </div>
+                </div>
+
+                {/* Kafka status card */}
+                <div className="service-status-card kafka-service">
+                  <div className="service-card-top">
+                    <div className="service-icon-badge kafka">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                    </div>
+                    <span className={`status-badge ${healthStatus.kafka.status === 'STABLE' ? 'active' : healthStatus.kafka.status === 'CHECKING' ? 'suspended' : 'blocked'}`}>
+                      {healthStatus.kafka.status}
+                    </span>
+                  </div>
+                  <div className="service-card-body">
+                    <span className="service-title">Kafka Broker</span>
+                    <span className="service-host">localhost:9092</span>
+                    <span className="service-value">
+                      {healthStatus.kafka.status === 'STABLE' ? `${healthStatus.kafka.latency_ms}ms` : 'OFFLINE'}
+                    </span>
+                  </div>
+                  <div className="service-card-sparkline">
+                    {renderCardGraph(kafkaLatencyHistory, '#6366f1', 'kafka-grad')}
+                  </div>
+                </div>
+
+                {/* MQTT status card */}
+                <div className="service-status-card mqtt-service">
+                  <div className="service-card-top">
+                    <div className="service-icon-badge mqtt">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </div>
+                    <span className={`status-badge ${healthStatus.mqtt.status === 'ACTIVE' ? 'active' : healthStatus.mqtt.status === 'CHECKING' ? 'suspended' : 'blocked'}`}>
+                      {healthStatus.mqtt.status}
+                    </span>
+                  </div>
+                  <div className="service-card-body">
+                    <span className="service-title">MQTT Broker</span>
+                    <span className="service-host">localhost:1883</span>
+                    <span className="service-value">
+                      {healthStatus.mqtt.status === 'ACTIVE' ? `${healthStatus.mqtt.latency_ms}ms` : 'OFFLINE'}
+                    </span>
+                  </div>
+                  <div className="service-card-sparkline">
+                    {renderCardGraph(mqttLatencyHistory, '#06b6d4', 'mqtt-grad')}
+                  </div>
+                </div>
+
+                {/* Proxy Bridge status card */}
+                <div className="service-status-card proxy-service">
+                  <div className="service-card-top">
+                    <div className="service-icon-badge proxy">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                    </div>
+                    <span className={`status-badge ${healthStatus.mqtt_bridge.status === 'ACTIVE' ? 'active' : healthStatus.mqtt_bridge.status === 'CHECKING' ? 'suspended' : 'blocked'}`}>
+                      {healthStatus.mqtt_bridge.status}
+                    </span>
+                  </div>
+                  <div className="service-card-body">
+                    <span className="service-title">Proxy Bridge</span>
+                    <span className="service-host">mqtt_kafka_proxy</span>
+                    <span className="service-value">
+                      {healthStatus.mqtt_bridge.status === 'ACTIVE' ? `${healthStatus.mqtt_bridge.latency_ms}ms` : 'OFFLINE'}
+                    </span>
+                  </div>
+                  <div className="service-card-sparkline">
+                    {renderCardGraph(proxyLatencyHistory, '#0f766e', 'proxy-grad')}
+                  </div>
+                </div>
+
+              </div>
 
             </div>
           </div>
@@ -1426,7 +1706,7 @@ const EXTDashboard: React.FC = () => {
 
               {/* Two-Column Sender & Recipient Comparison */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '1rem' }}>
-                
+
                 {/* Sender Card */}
                 <div className="modal-info-card" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                   <div className="modal-section-tag" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#22c55e', marginBottom: '1rem', letterSpacing: '1px' }}>SENDER (DEBITED)</div>
