@@ -33,6 +33,14 @@ const renderCardGraph = (history: number[], strokeColor: string, gradId: string)
 const EXTDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [settingsExpanded, setSettingsExpanded] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('ext-theme') as 'light' | 'dark') || 'light';
+  });
+
+  const toggleTheme = (newTheme: 'light' | 'dark') => {
+    setTheme(newTheme);
+    localStorage.setItem('ext-theme', newTheme);
+  };
 
   // Health Monitoring States
   const [healthStatus, setHealthStatus] = useState<any>({
@@ -368,7 +376,7 @@ const EXTDashboard: React.FC = () => {
   };
 
   return (
-    <div className="ext-app-layout">
+    <div className={`ext-app-layout ${theme === 'dark' ? 'dark-theme' : ''}`}>
       {/* Sidebar / Toggle Bar */}
       <aside className="ext-sidebar">
         <div className="ext-sidebar-logo">
@@ -1205,83 +1213,26 @@ const EXTDashboard: React.FC = () => {
         )}
 
         {activeTab === 'settings-profile' && (
-          <div className="ext-settings-container animate-fade-in">
-            <header className="settings-header">
-              <h2>User Profile Settings</h2>
-              <p>Manage your account information and preferences</p>
-            </header>
-
-            <div className="settings-grid">
-              <div className="settings-card profile-card">
-                <div className="profile-header">
-                  <div className="profile-avatar-large">ES</div>
-                  <div className="profile-info">
-                    <h3>External System Admin</h3>
-                    <p>admin.external@gmail.com</p>
-                    <span className="role-badge">Super Admin</span>
-                  </div>
-                </div>
-                <div className="profile-details">
-                  <div className="detail-item">
-                    <label>Employee ID</label>
-                    <span>99283</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>Department</label>
-                    <span>Audit & Compliance</span>
-                  </div>
-                  <div className="detail-item">
-                    <label>Last Login</label>
-                    <span>Today, 09:42 AM</span>
-                  </div>
-                </div>
+          <div className="ext-settings-container animate-fade-in ext-profile-centered-layout">
+            <div className="ext-profile-card-centered">
+              <div className="profile-header-centered">
+                <div className="profile-avatar-large-centered">ES</div>
+                <h3>External System Admin</h3>
+                <p className="profile-email">admin.external@gmail.com</p>
+                <span className="role-badge-centered">Super Admin</span>
               </div>
-
-              <div className="settings-card">
-                <div className="card-header">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                  <h3>Security & Password</h3>
+              <div className="profile-details-centered">
+                <div className="detail-item-centered">
+                  <span className="detail-label">Employee ID</span>
+                  <span className="detail-value">99283</span>
                 </div>
-                <div className="settings-form">
-                  <div className="input-group">
-                    <label>Current Password</label>
-                    <input type="password" placeholder="••••••••" />
-                  </div>
-                  <div className="input-group">
-                    <label>New Password</label>
-                    <input type="password" placeholder="Enter new password" />
-                  </div>
-                  <button className="ext-save-btn">Update Password</button>
+                <div className="detail-item-centered">
+                  <span className="detail-label">Department</span>
+                  <span className="detail-value">Audit & Compliance</span>
                 </div>
-              </div>
-
-              <div className="settings-card full-width">
-                <div className="card-header">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                  <h3>Notifications Preferences</h3>
-                </div>
-                <div className="toggle-list">
-                  <div className="toggle-item">
-                    <div className="toggle-info">
-                      <label>Email Alerts</label>
-                      <p>Receive email for critical system overrides</p>
-                    </div>
-                    <div className="toggle-switch active"></div>
-                  </div>
-                  <div className="toggle-item">
-                    <div className="toggle-info">
-                      <label>Audit Log Exports</label>
-                      <p>Weekly automated PDF audit reports</p>
-                    </div>
-                    <div className="toggle-switch active"></div>
-                  </div>
-                  <div className="toggle-item">
-                    <div className="toggle-info">
-                      <label>Desktop Notifications</label>
-                      <p>Real-time popups for transaction monitoring</p>
-                    </div>
-                    <div className="toggle-switch"></div>
-                  </div>
+                <div className="detail-item-centered">
+                  <span className="detail-label">Last Login</span>
+                  <span className="detail-value">Today, 09:42 AM</span>
                 </div>
               </div>
             </div>
@@ -1296,49 +1247,17 @@ const EXTDashboard: React.FC = () => {
             </header>
 
             <div className="settings-grid">
-              <div className="settings-card">
-                <div className="card-header">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
-                  <h3>Color Palette</h3>
-                </div>
-                <div className="color-grid">
-                  <div className="color-option active" style={{ background: '#6366f1' }}><span>Indigo</span></div>
-                  <div className="color-option" style={{ background: '#10b981' }}><span>Emerald</span></div>
-                  <div className="color-option" style={{ background: '#f59e0b' }}><span>Amber</span></div>
-                  <div className="color-option" style={{ background: '#f43f5e' }}><span>Rose</span></div>
-                  <div className="color-option" style={{ background: '#0ea5e9' }}><span>Sky</span></div>
-                  <div className="color-option" style={{ background: '#64748b' }}><span>Slate</span></div>
-                </div>
-              </div>
-
-              <div className="settings-card">
-                <div className="card-header">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2v20"></path><path d="M12 12l8-8"></path></svg>
-                  <h3>Dashboard Layout</h3>
-                </div>
-                <div className="layout-options">
-                  <div className="layout-opt active">
-                    <div className="layout-mock compact"></div>
-                    <span>Compact Mode</span>
-                  </div>
-                  <div className="layout-opt">
-                    <div className="layout-mock comfortable"></div>
-                    <span>Comfortable</span>
-                  </div>
-                </div>
-              </div>
-
               <div className="settings-card full-width">
                 <div className="card-header">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                   <h3>Appearance Mode</h3>
                 </div>
                 <div className="theme-toggle-row">
-                  <div className="theme-btn active">
+                  <div className={`theme-btn ${theme === 'light' ? 'active' : ''}`} onClick={() => toggleTheme('light')}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                     Light Mode
                   </div>
-                  <div className="theme-btn">
+                  <div className={`theme-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => toggleTheme('dark')}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                     Dark Mode
                   </div>

@@ -40,6 +40,9 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvTx2Date;
     private TextView tvTx2Amount;
 
+    private String cardPAN;
+    private org.json.JSONArray recentEventsList;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
             cardId = "bankclient";
         }
         currentBalance = getIntent().getDoubleExtra("CARD_BALANCE", 2450.75);
-        String cardPAN = getIntent().getStringExtra("CARD_PAN");
+        cardPAN = getIntent().getStringExtra("CARD_PAN");
         String tempStatus = getIntent().getStringExtra("CARD_STATUS");
         cardStatus = (tempStatus == null || tempStatus.trim().isEmpty()) ? "Active" : tempStatus;
 
@@ -101,10 +104,21 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        // See All button
+        findViewById(R.id.btnSeeAll).setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
+            intent.putExtra("CARD_ID", cardId);
+            intent.putExtra("CARD_PAN", cardPAN);
+            startActivity(intent);
+        });
+
         // Receipt button
         findViewById(R.id.btnReceipt).setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, ReceiptActivity.class);
-            startActivity(intent);
+            if (recentEventsList != null && recentEventsList.length() > 0) {
+                launchReceiptFor(recentEventsList.optJSONObject(0));
+            } else {
+                launchReceiptFor(null);
+            }
         });
 
         // Bind transaction views
@@ -119,6 +133,19 @@ public class MainActivity extends AppCompatActivity {
         tvTx2Title = findViewById(R.id.tvTx2Title);
         tvTx2Date = findViewById(R.id.tvTx2Date);
         tvTx2Amount = findViewById(R.id.tvTx2Amount);
+
+        // Click listeners on transactions list
+        layoutTx1.setOnClickListener(v -> {
+            if (recentEventsList != null && recentEventsList.length() > 0) {
+                launchReceiptFor(recentEventsList.optJSONObject(0));
+            }
+        });
+
+        layoutTx2.setOnClickListener(v -> {
+            if (recentEventsList != null && recentEventsList.length() > 1) {
+                launchReceiptFor(recentEventsList.optJSONObject(1));
+            }
+        });
 
         // Initial parse of RECENT_EVENTS_JSON from intent
         String recentEventsJson = getIntent().getStringExtra("RECENT_EVENTS_JSON");
@@ -183,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateTransactionsUI(JSONArray eventsArr) {
+        this.recentEventsList = eventsArr;
         DecimalFormat dfTx = new DecimalFormat("#,##0.00");
 
         // Update Tx1
@@ -258,5 +286,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         pollHandler.removeCallbacks(pollRunnable);
+    }
+
+    private void launchReceiptFor(org.json.JSONObject trx) {
+        Intent intent = new Intent(MainActivity.this, ReceiptActivity.class);
+        intent.putExtra("CARDHOLDER_NAME", cardholderName);
+        intent.putExtra("CARD_PAN", cardPAN);
+        if (trx != null) {
+            intent.putExtra("TX_TITLE", trx.optString("title"));
+            intent.putExtra("TX_DATE", trx.optString("date"));
+            intent.putExtra("TX_AMOUNT", trx.optDouble("amount"));
+            intent.putExtra("TX_TYPE", trx.optString("type"));
+        }
+        startActivity(intent);
     }
 }

@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_page"
     android:orientation="vertical">
 
+    <!-- Header Toolbar -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="64dp"
@@ -19,28 +21,331 @@
             android:layout_height="48dp"
             android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_revert" />
+            android:src="@drawable/ic_back_arrow"
+            android:contentDescription="Back" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="RECEIPT"
+            android:text="TRANSACTION RECEIPT"
             android:textColor="@color/text_primary"
-            android:textSize="17sp"
+            android:textSize="15sp"
             android:fontFamily="sans-serif-black"
-            android:letterSpacing="0.1" />
+            android:letterSpacing="0.08" />
     </RelativeLayout>
 
-    <FrameLayout
+    <!-- Scrollable content -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-        <TextView
-            android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="Receipt Page Content"
-            android:textColor="@color/text_secondary"
-            android:textSize="16sp" />
-    </FrameLayout>
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:gravity="center_horizontal">
+
+            <!-- Main Receipt Ticket Card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardBackgroundColor="@color/bg_surface">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp"
+                    android:gravity="center_horizontal">
+
+                    <!-- Success Circle Icon -->
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        app:cardCornerRadius="32dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/bg_surface_accent">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:padding="16dp"
+                            android:src="@drawable/ic_check"
+                            app:tint="@color/success" />
+                    </androidx.cardview.widget.CardView>
+
+                    <!-- Status Text -->
+                    <TextView
+                        android:id="@+id/tvReceiptStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Payment Successful"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <!-- Big Amount -->
+                    <TextView
+                        android:id="@+id/tvReceiptAmount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="- €150.00"
+                        android:textColor="@color/text_primary"
+                        android:textSize="32sp"
+                        android:fontFamily="sans-serif-black" />
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="24dp"
+                        android:layout_marginBottom="24dp"
+                        android:background="@color/bg_divider_strong" />
+
+                    <!-- Key-Value Details Grid -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <!-- Row 1: Status badge -->
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="14dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Status"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvDetailStatus"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:background="@drawable/badge_pwc"
+                                android:paddingStart="8dp"
+                                android:paddingEnd="8dp"
+                                android:paddingTop="2dp"
+                                android:paddingBottom="2dp"
+                                android:text="SUCCESS"
+                                android:textColor="@color/badge_pwc_text"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </RelativeLayout>
+
+                        <!-- Row 2: Type -->
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="14dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Transaction Type"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvDetailType"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:text="POS Payment"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+                        </RelativeLayout>
+
+                        <!-- Row 3: Recipient/Merchant -->
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="14dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Merchant / Recipient"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvDetailRecipient"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:text="Merchant POS"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+                        </RelativeLayout>
+
+                        <!-- Row 4: Card Method -->
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="14dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Payment Method"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvDetailCard"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:text="Visa ending in 9173"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+                        </RelativeLayout>
+
+                        <!-- Row 5: Date -->
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="14dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Date &amp; Time"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvDetailDate"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:text="16/06/2026, 14:32"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+                        </RelativeLayout>
+
+                        <!-- Row 6: Ref ID -->
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Reference ID"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvDetailRef"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:text="TXN-491823908-POS"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp"
+                                android:fontFamily="monospace" />
+                        </RelativeLayout>
+                    </LinearLayout>
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="24dp"
+                        android:layout_marginBottom="24dp"
+                        android:background="@color/bg_divider_strong" />
+
+                    <!-- Simulated Barcode -->
+                    <LinearLayout
+                        android:layout_width="180dp"
+                        android:layout_height="40dp"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:alpha="0.75"
+                        android:layout_marginBottom="8dp">
+
+                        <!-- barcode lines -->
+                        <View android:layout_width="3dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="2dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="1dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="3dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="4dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="1dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="2dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="2dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="1dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="3dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="3dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="1dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="4dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="2dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="2dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="3dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="1dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="2dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="3dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="1dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="2dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="2dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="4dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                        <View android:layout_width="1dp" android:layout_height="match_parent" android:background="@android:color/transparent"/>
+                        <View android:layout_width="3dp" android:layout_height="match_parent" android:background="@color/text_primary"/>
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvBarcodeText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="*TXN-491823908-POS*"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Action Buttons -->
+            <Button
+                android:id="@+id/btnDone"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="32dp"
+                android:backgroundTint="@color/bank_primary"
+                android:text="Done"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                app:cornerRadius="12dp"
+                app:elevation="2dp" />
+
+            <Button
+                android:id="@+id/btnShare"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="12dp"
+                android:text="Share Receipt"
+                android:textColor="@color/bank_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 </LinearLayout>

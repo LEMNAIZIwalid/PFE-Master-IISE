@@ -34,7 +34,10 @@ def on_payment_success(tag_uid, amount_str="0"):
     try:
         dsn = f"{DB_HOST}:1521/xe"
         print(f"[DEBUG] Tentative de connexion Oracle sur DSN : {dsn} ...", flush=True)
-        connection = oracledb.connect(user=DB_USER, password=DB_PASS, dsn=dsn)
+        connection = oracledb.connect(
+            user=DB_USER, password=DB_PASS, dsn=dsn,
+            tcp_connect_timeout=5  # ✅ Fix: timeout 5s au lieu du défaut système (30s+)
+        )
         cursor = connection.cursor()
 
         # Chercher la carte par NFC_UID dans Externel_System (dernière version)
@@ -199,6 +202,10 @@ def on_payment_success(tag_uid, amount_str="0"):
                 connection.close()
             except Exception:
                 pass
+        # ✅ Fix: si erreur de connexion, re-détecter l'IP Oracle automatiquement
+        if 'DPY-6005' in str(e) or 'DPY-4011' in str(e) or 'timeout' in str(e).lower() or 'refused' in str(e).lower():
+            print("[AUTO-RECOVER] Tentative de redécouverte de l'hôte Oracle...", flush=True)
+            discover_host_ip()
         return "ERROR"
 
 import subprocess
@@ -246,7 +253,7 @@ except ImportError:
         mqtt_client = None
 
 # --- CONFIGURATION MQTT ---
-MQTT_BROKER = "192.168.8.101"  # Sera mis à jour dynamiquement avec DB_HOST
+MQTT_BROKER = "172.22.32.1"  # IP Windows vue depuis Docker (vEthernet WSL/Hyper-V)
 MQTT_PORT = 1883
 MQTT_TOPIC = "pos/transactions"
 _mqtt_publisher = None  # Client MQTT global
@@ -294,7 +301,7 @@ def publish_payment_mqtt(transaction_data):
 # --- CONFIGURATION BASE DE DONNÉES ORACLE ---
 DB_USER = "POS"
 DB_PASS = "Izinm123W"
-DB_HOST = "127.0.0.1"  # Sera détecté dynamiquement au démarrage
+DB_HOST = "172.22.32.1"  # IP Windows depuis Docker (vEthernet WSL/Hyper-V) — mise à jour par discover_host_ip()
 
 def on_process_payment(tag_uid, amount_str):
     """Vérifie si le NFC_UID existe dans la table Externel_System"""
@@ -309,10 +316,13 @@ def on_process_payment(tag_uid, amount_str):
     print("═"*50)
 
     try:
-        # Connexion à Oracle
+        # Connexion à Oracle avec timeout court
         dsn = f"{DB_HOST}:1521/xe"
         print(f"[DEBUG] Tentative de connexion Oracle (process_payment) sur DSN : {dsn} ...", flush=True)
-        connection = oracledb.connect(user=DB_USER, password=DB_PASS, dsn=dsn)
+        connection = oracledb.connect(
+            user=DB_USER, password=DB_PASS, dsn=dsn,
+            tcp_connect_timeout=5  # ✅ Fix: timeout 5s
+        )
         cursor = connection.cursor()
 
         # Chercher la carte par son NFC_UID dans Externel_System
@@ -345,6 +355,10 @@ def on_process_payment(tag_uid, amount_str):
 
     except Exception as e:
         print(f"\n⚠️ Erreur Oracle : {e}")
+        # ✅ Fix: re-détecter l'IP si erreur de connexion
+        if 'DPY-6005' in str(e) or 'DPY-4011' in str(e) or 'timeout' in str(e).lower() or 'refused' in str(e).lower():
+            print("[AUTO-RECOVER] Redécouverte de l'hôte Oracle en cours...", flush=True)
+            discover_host_ip()
         return "ERROR"
     finally:
         if 'cursor' in locals(): cursor.close()
@@ -497,76 +511,120 @@ def run_network_diagnostics():
 def discover_host_ip():
     """Détecte dynamiquement l'IP du PC Windows qui héberge la base de données Oracle"""
     import socket
+    import struct
     import concurrent.futures
     global DB_HOST
-    
-    # 1. Obtenir l'IP locale pour déterminer le sous-réseau
+
+    # ── 1. Détecter le sous-réseau local ──────────────────────────────
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         local_ip = s.getsockname()[0]
         s.close()
     except Exception:
-        local_ip = "192.168.8.100"
-        
+        local_ip = "172.21.0.2"
+
     print(f"[DEBUG] Local IP detected: {local_ip}", flush=True)
     parts = local_ip.split('.')
-    if len(parts) == 4:
-        subnet_prefix = f"{parts[0]}.{parts[1]}.{parts[2]}."
-    else:
-        subnet_prefix = "192.168.8."
+    local_subnet = ".".join(parts[:3]) + "." if len(parts) == 4 else "172.21.0."
 
-    candidates = ["127.0.0.1", "localhost", "172.22.32.1", "172.18.224.1", "192.168.8.101"]
-
-    # Tentative de résolution de hostnames Docker standards
-    for name in ["host.docker.internal", "gateway.docker.internal"]:
-        try:
-            ip = socket.gethostbyname(name)
-            if ip not in candidates:
-                candidates.append(ip)
-        except Exception:
-            pass
-
-    # 2. Lire la passerelle par défaut de Linux / Docker
+    # ── 2. Lire la passerelle depuis /proc/net/route ──────────────────
+    gateway_ip = None
     try:
         with open("/proc/net/route") as fh:
             for line in fh:
                 fields = line.strip().split()
                 if len(fields) > 2 and fields[1] == '00000000':
-                    import struct
                     gw = socket.inet_ntoa(struct.pack("<L", int(fields[2], 16)))
-                    if gw not in candidates and gw != "-.-.-.-":
-                        candidates.append(gw)
+                    if gw and gw != "0.0.0.0":
+                        gateway_ip = gw
+                        print(f"[DEBUG] Gateway détectée depuis /proc/net/route: {gw}", flush=True)
+                        break
     except Exception:
         pass
 
-    # 3. Ajouter tout le sous-réseau local (1-254) aux candidats
-    for i in range(1, 255):
-        ip = f"{subnet_prefix}{i}"
-        if ip not in candidates:
-            candidates.append(ip)
+    # Fallback: gateway conventionnelle = sous-réseau.1
+    if not gateway_ip:
+        gateway_ip = f"{local_subnet}1"
 
+    # ── 3. PHASE 1 — Test PRIORITAIRE avec timeout long (2s) ──────────
+    #    Ces hôtes sont les plus probables → on les teste en premier,
+    #    séparément, avec un timeout plus généreux pour WiFi/Docker.
     print("\n" + "═"*50, flush=True)
-    print("║" + " RECHERCHE DE L'HÔTE ORACLE EN COURS... ".center(48) + "║", flush=True)
-    print("═"*50, flush=True)
-    print(f"║ Test de {len(candidates)} adresses sur le port 1521... ║", flush=True)
+    print("║" + " 🔍 TEST PRIORITAIRE (GATEWAY + DOCKER)... ".center(48) + "║", flush=True)
     print("═"*50, flush=True)
 
-    def check_host(host):
+    priority = []
+    # ✅ 172.22.32.1 = IP Windows depuis Docker (vEthernet WSL/Hyper-V) → PRIORITÉ N°1
+    for ip in ["172.22.32.1", "172.17.0.1", "172.18.0.1", "172.21.0.1"]:
+        if ip not in priority:
+            priority.append(ip)
+    # host.docker.internal (Docker Desktop Windows → accès direct au host)
+    for name in ["host.docker.internal", "gateway.docker.internal"]:
+        try:
+            ip = socket.gethostbyname(name)
+            if ip and ip not in priority:
+                priority.append(ip)
+                print(f"   DNS {name} → {ip}", flush=True)
+        except Exception:
+            pass
+    # Gateway détectée depuis /proc/net/route
+    if gateway_ip and gateway_ip not in priority:
+        priority.insert(0, gateway_ip)
+    # IPs WiFi Windows connues
+    for ip in ["192.168.8.103", "192.168.8.101", "192.168.8.100"]:
+        if ip not in priority:
+            priority.append(ip)
+
+    def check_host_slow(host, timeout=2.0):
+        """Test avec timeout plus long pour les candidats prioritaires"""
+        try:
+            addr = socket.gethostbyname(host) if not host[0].isdigit() else host
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(timeout)
+            s.connect((addr, 1521))
+            s.close()
+            return addr
+        except Exception:
+            return None
+
+    for h in priority:
+        print(f"   → Test {h}:1521 (timeout=2s)...", flush=True)
+        result = check_host_slow(h)
+        if result:
+            DB_HOST = result
+            print("═"*50, flush=True)
+            print("║" + f" ✅ ORACLE TROUVÉ : {DB_HOST} ".center(48) + "║", flush=True)
+            print("═"*50 + "\n", flush=True)
+            return
+
+    # ── 4. PHASE 2 — Scan large du sous-réseau local (0.5s timeout) ──
+    fallback_candidates = []
+    for subnet in [local_subnet, "192.168.8.", "192.168.1.", "172.17.0.", "172.18.0."]:
+        for i in range(1, 255):
+            ip = f"{subnet}{i}"
+            if ip not in priority and ip not in fallback_candidates:
+                fallback_candidates.append(ip)
+
+    print("═"*50, flush=True)
+    print("║" + " SCAN ÉTENDU EN COURS... ".center(48) + "║", flush=True)
+    print(f"║ Test de {len(fallback_candidates)} adresses sur le port 1521...".ljust(49) + "║", flush=True)
+    print("═"*50, flush=True)
+
+    def check_host_fast(host):
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(1.5)  # Timeout plus élevé pour le Wi-Fi
+            s.settimeout(0.5)
             s.connect((host, 1521))
             s.close()
             return host
         except Exception:
             return None
 
-    # Exécuter les tests de connexion en parallèle
     found_host = None
-    with concurrent.futures.ThreadPoolExecutor(max_workers=80) as executor:
-        future_to_host = {executor.submit(check_host, host): host for host in candidates}
-        for future in concurrent.futures.as_completed(future_to_host):
+    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+        futures = {executor.submit(check_host_fast, h): h for h in fallback_candidates}
+        for future in concurrent.futures.as_completed(futures):
             res = future.result()
             if res:
                 found_host = res
@@ -580,11 +638,17 @@ def discover_host_ip():
         print(f"║ IP Sélectionnée : {DB_HOST.center(30)} ║", flush=True)
         print("═"*50 + "\n", flush=True)
     else:
-        DB_HOST = "192.168.8.101"  # Guessing Windows host IP on WiFi network
         print("═"*50, flush=True)
-        print("║" + " ⚠️ AUCUN HÔTE DÉTECTÉ ".center(48) + "║", flush=True)
+        print("║" + " ❌ AUCUN HÔTE ORACLE DÉTECTÉ ".center(48) + "║", flush=True)
         print("═"*50, flush=True)
-        print(f"║ Fallback IP     : {DB_HOST.center(30)} ║", flush=True)
+        print(f"║ DB_HOST conservé  : {DB_HOST.center(28)} ║", flush=True)
+        print("║                                                ║", flush=True)
+        print("║ 💡 SOLUTION FIREWALL WINDOWS :                 ║", flush=True)
+        print("║  Ouvrir le port 1521 pour 172.21.0.0/16       ║", flush=True)
+        print("║  > netsh advfirewall firewall add rule         ║", flush=True)
+        print("║    name=\"Oracle-Docker\" dir=in                 ║", flush=True)
+        print("║    action=allow protocol=TCP localport=1521    ║", flush=True)
+        print("║    remoteip=172.21.0.0/255.255.0.0            ║", flush=True)
         print("═"*50 + "\n", flush=True)
 
 def test_oracle_connection():
@@ -607,7 +671,10 @@ def test_oracle_connection():
         return
 
     try:
-        connection = oracledb.connect(user=DB_USER, password=DB_PASS, dsn=dsn)
+        connection = oracledb.connect(
+            user=DB_USER, password=DB_PASS, dsn=dsn,
+            tcp_connect_timeout=5  # ✅ Fix: timeout 5s
+        )
         cursor = connection.cursor()
         cursor.execute("SELECT sysdate FROM dual")
         result = cursor.fetchone()

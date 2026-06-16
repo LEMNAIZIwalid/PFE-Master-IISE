@@ -704,6 +704,15 @@ def get_recent_events_for_card(cursor, id_card):
                             "type": "debit"
                         })
                     prev_amount = amt
+            elif op.upper() == 'PAIEMENT':
+                if abs(diff) > 0.01:
+                    events_list.append({
+                        "title": "POS Payment",
+                        "date": t_str,
+                        "amount": abs(diff),
+                        "type": "debit"
+                    })
+                    prev_amount = amt
             else: # UPDATE or other
                 if abs(diff) > 0.01:
                     if diff > 0:
@@ -1178,6 +1187,9 @@ def mobile_history(card_id):
             if operation.upper() == 'VIREMENT':
                 # Already computed title
                 pass
+            elif operation.upper() == 'PAIEMENT':
+                title = "POS Payment"
+                icon_type = "balance"
             else:
                 title = title_map.get(icon_type, "Card Updated")
 

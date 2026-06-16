@@ -59,11 +59,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="200dp"
                 android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
                 android:layout_marginTop="24dp"
+                android:layout_marginEnd="20dp"
+                app:cardBackgroundColor="@color/bank_primary"
                 app:cardCornerRadius="20dp"
-                app:cardElevation="10dp"
-                app:cardBackgroundColor="@color/bank_primary">
+                app:cardElevation="10dp">
 
                 <RelativeLayout
                     android:layout_width="match_parent"
@@ -74,12 +74,35 @@
                         android:id="@+id/cardHeader"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-                        <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@drawable/banklogo" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:text="BANK" android:textColor="@color/text_on_dark" android:textSize="14sp" android:fontFamily="sans-serif-black" />
-                        <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="VISA" android:textColor="@color/bank_accent" android:textSize="18sp" android:fontFamily="sans-serif-black" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:src="@drawable/banklogo" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:fontFamily="sans-serif-black"
+                            android:text="BANK"
+                            android:textColor="@color/text_on_dark"
+                            android:textSize="14sp" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="0dp"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-black"
+                            android:text="VISA"
+                            android:textColor="@color/bank_accent"
+                            android:textSize="18sp" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -88,8 +111,22 @@
                         android:layout_below="@id/cardHeader"
                         android:layout_marginTop="20dp"
                         android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Current Balance" android:textColor="@color/bank_accent" android:textSize="11sp" />
-                        <TextView android:id="@+id/tvBalanceAmount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="€ 2,450.75" android:textColor="@color/text_on_dark" android:textSize="32sp" android:fontFamily="sans-serif-black" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Current Balance"
+                            android:textColor="@color/bank_accent"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tvBalanceAmount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-black"
+                            android:text="€ 2,450.75"
+                            android:textColor="@color/text_on_dark"
+                            android:textSize="32sp" />
                     </LinearLayout>
 
                     <TextView
@@ -98,22 +135,37 @@
                         android:layout_height="wrap_content"
                         android:layout_alignParentBottom="true"
                         android:layout_marginBottom="4dp"
+                        android:fontFamily="monospace"
                         android:text="xxxx  xxxx  8842  9173"
                         android:textColor="@color/text_muted_on_dark"
-                        android:textSize="14sp"
-                        android:fontFamily="monospace" />
+                        android:textSize="14sp" />
 
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_alignParentBottom="true"
                         android:layout_alignParentEnd="true"
+                        android:layout_alignParentBottom="true"
                         android:layout_marginBottom="4dp"
-                        android:orientation="vertical"
                         android:elevation="4dp"
-                        android:gravity="center_horizontal">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="VALID THRU" android:textColor="@color/bank_accent" android:textSize="10sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="02/33" android:textColor="@color/text_on_dark" android:textSize="16sp" android:fontFamily="monospace" android:textStyle="bold" />
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="VALID THRU"
+                            android:textColor="@color/bank_accent"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:text="02/33"
+                            android:textColor="@color/text_on_dark"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
                 </RelativeLayout>
@@ -125,77 +177,314 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="24dp"
                 android:layout_marginTop="32dp"
+                android:fontFamily="sans-serif-black"
                 android:text="Quick Actions"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp"
-                android:fontFamily="sans-serif-black" />
+                android:textSize="15sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:orientation="horizontal">
+                android:paddingEnd="16dp">
 
                 <!-- Profile -->
-                <LinearLayout android:id="@+id/btnProfile" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="8dp">
-                    <androidx.cardview.widget.CardView android:layout_width="56dp" android:layout_height="56dp" app:cardCornerRadius="16dp" app:cardElevation="3dp" app:cardBackgroundColor="@color/bg_surface_accent">
-                        <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="14dp" android:src="@drawable/ic_profile" app:tint="@color/icon_tint" />
+                <LinearLayout
+                    android:id="@+id/btnProfile"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        app:cardBackgroundColor="@color/bg_surface_accent"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="3dp">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:padding="14dp"
+                            android:src="@drawable/ic_profile"
+                            app:tint="@color/icon_tint" />
                     </androidx.cardview.widget.CardView>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Profile" android:textSize="12sp" android:textColor="@color/text_primary" android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="Profile"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <!-- Transfer -->
-                <LinearLayout android:id="@+id/btnTransfer" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="8dp">
-                    <androidx.cardview.widget.CardView android:layout_width="56dp" android:layout_height="56dp" app:cardCornerRadius="16dp" app:cardElevation="3dp" app:cardBackgroundColor="@color/bg_surface_accent">
-                        <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="14dp" android:src="@android:drawable/ic_menu_send" app:tint="@color/icon_tint" />
+                <LinearLayout
+                    android:id="@+id/btnTransfer"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        app:cardBackgroundColor="@color/bg_surface_accent"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="3dp">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:padding="14dp"
+                            android:src="@android:drawable/ic_menu_send"
+                            app:tint="@color/icon_tint" />
                     </androidx.cardview.widget.CardView>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Transfer" android:textSize="12sp" android:textColor="@color/text_primary" android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="Transfer"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <!-- History -->
-                <LinearLayout android:id="@+id/btnHistory" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="8dp">
-                    <androidx.cardview.widget.CardView android:layout_width="56dp" android:layout_height="56dp" app:cardCornerRadius="16dp" app:cardElevation="3dp" app:cardBackgroundColor="@color/bg_surface_accent">
-                        <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="14dp" android:src="@drawable/ic_archives" app:tint="@color/icon_tint" />
+                <LinearLayout
+                    android:id="@+id/btnHistory"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        app:cardBackgroundColor="@color/bg_surface_accent"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="3dp">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:padding="14dp"
+                            android:src="@drawable/ic_archives"
+                            app:tint="@color/icon_tint" />
                     </androidx.cardview.widget.CardView>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="History" android:textSize="12sp" android:textColor="@color/text_primary" android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="History"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <!-- Receipt -->
-                <LinearLayout android:id="@+id/btnReceipt" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="8dp">
-                    <androidx.cardview.widget.CardView android:layout_width="56dp" android:layout_height="56dp" app:cardCornerRadius="16dp" app:cardElevation="3dp" app:cardBackgroundColor="@color/bg_surface_accent">
-                        <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="14dp" android:src="@android:drawable/ic_menu_agenda" app:tint="@color/icon_tint" />
+                <LinearLayout
+                    android:id="@+id/btnReceipt"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        app:cardBackgroundColor="@color/bg_surface_accent"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="3dp">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:padding="14dp"
+                            android:src="@android:drawable/ic_menu_agenda"
+                            app:tint="@color/icon_tint" />
                     </androidx.cardview.widget.CardView>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Receipt" android:textSize="12sp" android:textColor="@color/text_primary" android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="Receipt"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
             </LinearLayout>
 
             <!-- Recent Transactions -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="24dp" android:layout_marginEnd="24dp" android:layout_marginTop="32dp" android:orientation="horizontal">
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Recent Transactions" android:textColor="@color/text_primary" android:textSize="15sp" android:fontFamily="sans-serif-black" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="See All" android:textColor="@color/bank_accent" android:textSize="13sp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginTop="32dp"
+                android:layout_marginEnd="24dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="sans-serif-black"
+                    android:text="Recent Transactions"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:id="@+id/btnSeeAll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="See All"
+                    android:textColor="@color/bank_accent"
+                    android:textSize="13sp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="4dp" />
             </LinearLayout>
 
             <!-- Transaction 1 -->
-            <LinearLayout android:id="@+id/layoutTx1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" android:layout_marginTop="12dp" android:background="@color/bg_surface" android:elevation="2dp" android:gravity="center_vertical" android:orientation="horizontal" android:padding="16dp">
-                <TextView android:id="@+id/tvTx1Icon" android:layout_width="44dp" android:layout_height="44dp" android:background="@color/bg_surface_accent" android:gravity="center" android:text="↑" android:textColor="@color/text_primary" android:textSize="20sp" />
-                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
-                    <TextView android:id="@+id/tvTx1Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="External Transfer Received" android:textColor="@color/text_primary" android:textSize="14sp" android:fontFamily="sans-serif-medium" />
-                    <TextView android:id="@+id/tvTx1Date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Today, 09:15" android:textColor="@color/text_secondary" android:textSize="12sp" />
+            <LinearLayout
+                android:id="@+id/layoutTx1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginEnd="20dp"
+                android:background="@color/bg_surface"
+                android:elevation="2dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <TextView
+                    android:id="@+id/tvTx1Icon"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@color/bg_surface_accent"
+                    android:gravity="center"
+                    android:text="↑"
+                    android:textColor="@color/text_primary"
+                    android:textSize="20sp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvTx1Title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="External Transfer Received"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tvTx1Date"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Today, 09:15"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
                 </LinearLayout>
-                <TextView android:id="@+id/tvTx1Amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="+ €500.00" android:textColor="@color/success" android:textSize="14sp" android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvTx1Amount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ €500.00"
+                    android:textColor="@color/success"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Transaction 2 -->
-            <LinearLayout android:id="@+id/layoutTx2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" android:layout_marginTop="2dp" android:background="@color/bg_surface" android:elevation="2dp" android:gravity="center_vertical" android:orientation="horizontal" android:padding="16dp">
-                <TextView android:id="@+id/tvTx2Icon" android:layout_width="44dp" android:layout_height="44dp" android:background="@color/danger_bg" android:gravity="center" android:text="↓" android:textColor="@color/danger" android:textSize="20sp" />
-                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
-                    <TextView android:id="@+id/tvTx2Title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Balance Withdrawal" android:textColor="@color/text_primary" android:textSize="14sp" android:fontFamily="sans-serif-medium" />
-                    <TextView android:id="@+id/tvTx2Date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Yesterday, 14:32" android:textColor="@color/text_secondary" android:textSize="12sp" />
+            <LinearLayout
+                android:id="@+id/layoutTx2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="20dp"
+                android:background="@color/bg_surface"
+                android:elevation="2dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <TextView
+                    android:id="@+id/tvTx2Icon"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@color/danger_bg"
+                    android:gravity="center"
+                    android:text="↓"
+                    android:textColor="@color/danger"
+                    android:textSize="20sp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvTx2Title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="Balance Withdrawal"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tvTx2Date"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Yesterday, 14:32"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
                 </LinearLayout>
-                <TextView android:id="@+id/tvTx2Amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="- €150.00" android:textColor="@color/danger" android:textSize="14sp" android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvTx2Amount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="- €150.00"
+                    android:textColor="@color/danger"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
         </LinearLayout>

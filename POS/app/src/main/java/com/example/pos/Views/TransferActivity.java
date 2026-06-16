@@ -146,7 +146,22 @@ public class TransferActivity extends AppCompatActivity {
     }
 
     private void showError(String message) {
-        tvError.setText(message);
-        tvError.setVisibility(View.VISIBLE);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_error, null);
+        TextView tvDialogMessage = dialogView.findViewById(R.id.tvDialogMessage);
+        tvDialogMessage.setText(message);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        dialogView.findViewById(R.id.btnDismissDialog).setOnClickListener(v -> dialog.dismiss());
+        dialogView.findViewById(R.id.btnDialogClose).setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 }

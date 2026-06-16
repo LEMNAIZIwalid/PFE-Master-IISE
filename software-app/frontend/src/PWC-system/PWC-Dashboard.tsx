@@ -38,6 +38,31 @@ function PWCDashboard() {
   const [password, setPassword] = React.useState('')
   const [error, setError] = React.useState('')
 
+  const [theme, setTheme] = React.useState<'dark' | 'light' | 'violet'>(() => {
+    return (localStorage.getItem('pwc-theme') as any) || 'dark'
+  })
+  const [glassmorphism, setGlassmorphism] = React.useState<boolean>(() => {
+    return localStorage.getItem('pwc-glassmorphism') !== 'false'
+  })
+  const [compactTable, setCompactTable] = React.useState<boolean>(() => {
+    return localStorage.getItem('pwc-compact-table') === 'true'
+  })
+
+  const handleThemeChange = (newTheme: 'dark' | 'light' | 'violet') => {
+    setTheme(newTheme)
+    localStorage.setItem('pwc-theme', newTheme)
+  }
+
+  const handleGlassmorphismChange = (checked: boolean) => {
+    setGlassmorphism(checked)
+    localStorage.setItem('pwc-glassmorphism', String(checked))
+  }
+
+  const handleCompactTableChange = (checked: boolean) => {
+    setCompactTable(checked)
+    localStorage.setItem('pwc-compact-table', String(checked))
+  }
+
   // État pour le formulaire "Create Card"
   const [formData, setFormData] = React.useState({
     id_Card: '',
@@ -530,7 +555,7 @@ function PWCDashboard() {
   }
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout theme-${theme} ${glassmorphism ? 'glassmorphism-enabled' : ''}`}>
       {/* Sidebar Toggle Button */}
       <button
         className={`sidebar-toggle ${sidebarOpen ? 'active' : ''}`}
@@ -737,7 +762,7 @@ function PWCDashboard() {
                     <p>Loading System Data...</p>
                   </div>
                 ) : (
-                  <table className="pwc-table">
+                  <table className={`pwc-table ${compactTable ? 'compact-table' : ''}`}>
                     <thead>
                       <tr>
                         <th>Card ID</th>
@@ -1027,7 +1052,7 @@ function PWCDashboard() {
                     <p>Fetching Audit Data...</p>
                   </div>
                 ) : (
-                  <table className="pwc-table">
+                  <table className={`pwc-table ${compactTable ? 'compact-table' : ''}`}>
                     <thead>
                       <tr>
                         <th>Event ID</th>
@@ -1159,7 +1184,7 @@ function PWCDashboard() {
                     <p>Fetching Transactions Data...</p>
                   </div>
                 ) : (
-                  <table className="pwc-table">
+                  <table className={`pwc-table ${compactTable ? 'compact-table' : ''}`}>
                     <thead>
                       <tr>
                         <th>Card ID</th>
@@ -1283,32 +1308,112 @@ function PWCDashboard() {
             {/* Theme Sub-Tab */}
             {settingsSubTab === 'theme' && (
               <div className="settings-container animate-fade-in">
-                <div className="glass-card settings-card">
+                <div className="glass-card settings-card theme-settings-card">
                   <div className="card-header">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
                     <h3>Visual Customization</h3>
                   </div>
                   <div className="settings-body">
-                    <div className="theme-selector">
-                      <p>Select Primary Dashboard Theme</p>
-                      <div className="theme-options">
-                        <div className="theme-box dark active" title="Dark Mode"></div>
-                        <div className="theme-box light" title="Light Mode"></div>
-                        <div className="theme-box violet" title="Cyber Violet"></div>
+                    <div className="theme-selector-section">
+                      <p className="section-label">Select Dashboard Theme</p>
+                      <div className="theme-preview-grid">
+                        
+                        <div 
+                          className={`theme-preview-card light ${theme === 'light' ? 'active' : ''}`}
+                          onClick={() => handleThemeChange('light')}
+                        >
+                          <div className="mini-dashboard light-preview">
+                            <div className="mini-sidebar"></div>
+                            <div className="mini-content">
+                              <div className="mini-header"></div>
+                              <div className="mini-card-row">
+                                <div className="mini-card"></div>
+                                <div className="mini-card"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="theme-card-footer">
+                            <span className="theme-name">Light Mode</span>
+                            <div className="theme-radio">
+                              <div className="radio-inner"></div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div 
+                          className={`theme-preview-card dark ${theme === 'dark' ? 'active' : ''}`}
+                          onClick={() => handleThemeChange('dark')}
+                        >
+                          <div className="mini-dashboard dark-preview">
+                            <div className="mini-sidebar"></div>
+                            <div className="mini-content">
+                              <div className="mini-header"></div>
+                              <div className="mini-card-row">
+                                <div className="mini-card"></div>
+                                <div className="mini-card"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="theme-card-footer">
+                            <span className="theme-name">Dark Mode</span>
+                            <div className="theme-radio">
+                              <div className="radio-inner"></div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div 
+                          className={`theme-preview-card violet ${theme === 'violet' ? 'active' : ''}`}
+                          onClick={() => handleThemeChange('violet')}
+                        >
+                          <div className="mini-dashboard violet-preview">
+                            <div className="mini-sidebar"></div>
+                            <div className="mini-content">
+                              <div className="mini-header"></div>
+                              <div className="mini-card-row">
+                                <div className="mini-card"></div>
+                                <div className="mini-card"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="theme-card-footer">
+                            <span className="theme-name">Cyber Violet</span>
+                            <div className="theme-radio">
+                              <div className="radio-inner"></div>
+                            </div>
+                          </div>
+                        </div>
+
                       </div>
                     </div>
+
                     <div className="toggle-item">
                       <span>Enable Glassmorphism Effects</span>
-                      <input type="checkbox" defaultChecked />
+                      <label className="switch-container">
+                        <input 
+                          type="checkbox" 
+                          checked={glassmorphism}
+                          onChange={(e) => handleGlassmorphismChange(e.target.checked)} 
+                        />
+                        <span className="switch-slider"></span>
+                      </label>
                     </div>
+
                     <div className="toggle-item">
                       <span>Compact Table View</span>
-                      <input type="checkbox" />
+                      <label className="switch-container">
+                        <input 
+                          type="checkbox" 
+                          checked={compactTable}
+                          onChange={(e) => handleCompactTableChange(e.target.checked)} 
+                        />
+                        <span className="switch-slider"></span>
+                      </label>
                     </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
             {/* Monitoring Sub-Tab */}
             {settingsSubTab === 'monitoring' && (
