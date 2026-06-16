@@ -60,8 +60,8 @@ body {
 
 /* Sidebar - Premium Dark Design */
 .ext-sidebar {
-  background: var(--bg-sidebar);
-  color: white;
+  background: #ffffff;
+  color: #166534;
   padding: 2rem 1.25rem;
   display: flex;
   flex-direction: column;
@@ -69,6 +69,7 @@ body {
   top: 0;
   height: 100vh;
   z-index: 100;
+  border-right: 1px solid var(--border-color);
 }
 
 .ext-sidebar-logo {
@@ -89,7 +90,7 @@ body {
   font-weight: 900;
   font-size: 1rem;
   letter-spacing: 0.5px;
-  background: linear-gradient(to right, #ffffff, #94a3b8);
+  background: linear-gradient(to right, #166534, #1e293b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -106,7 +107,7 @@ body {
   gap: 12px;
   padding: 0.875rem 1rem;
   border-radius: var(--radius-md);
-  color: #94a3b8;
+  color: #166534;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-weight: 500;
@@ -114,14 +115,14 @@ body {
 }
 
 .ext-nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
+  background: #f0fdf4;
+  color: #166534;
 }
 
 .ext-nav-item.active {
-  background: var(--primary);
+  background: #166534;
   color: white;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.2);
 }
 
 .ext-nav-item-content {
@@ -171,12 +172,14 @@ body {
 }
 
 .ext-submenu-item:hover {
-  color: white;
+  color: #166534;
+  background: #f0fdf4;
 }
 
 .ext-submenu-item.active {
-  color: white;
+  color: #166534;
   font-weight: 600;
+  background: #e8f5e9;
 }
 
 .ext-submenu-item .dot {
@@ -187,8 +190,8 @@ body {
 }
 
 .ext-submenu-item.active .dot {
-  background: var(--primary);
-  box-shadow: 0 0 8px var(--primary);
+  background: #166534;
+  box-shadow: 0 0 8px #166534;
 }
 
 /* Main Content Wrapper */
@@ -227,7 +230,7 @@ body {
 }
 
 .brand-title span {
-  color: var(--primary);
+  color: #166534;
 }
 
 .brand-subtitle {
@@ -504,7 +507,10 @@ body {
 
 .ext-data-table td.amount {
   font-weight: 800;
-  color: var(--primary-dark);
+}
+
+.amount {
+  color: #166534;
 }
 
 /* Status Badges */
@@ -560,14 +566,20 @@ body {
 
 .op-virement,
 .op-transfer {
-  background: #ede9fe;
-  color: #6d28d9;
+  background: #f7fee7;
+  /* soft lime */
+  color: #4d7c0f;
+  /* dark lime */
+  border: 1px solid #d9f99d;
 }
 
 .op-paiement,
 .op-payment {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: #dcfce7;
+  /* light POS green */
+  color: #15803d;
+  /* dark POS green */
+  border: 1px solid #bbf7d0;
 }
 
 .source-badge {
@@ -579,27 +591,36 @@ body {
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border: 1px solid transparent;
 }
 
 .source-badge.mobile_app {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #ecfeff;
+  /* soft cyan/teal */
+  color: #0891b2;
+  border: 1px solid #c5f6fa;
 }
 
 .source-badge.pwc_system {
-  background: #fef3c7;
-  color: #92400e;
+  background: #fff7ed;
+  /* soft orange */
+  color: #c2410c;
+  border: 1px solid #ffedd5;
 }
 
 .source-badge.externel_system {
-  background: #f3e8ff;
-  color: #6b21a8;
+  background: #f0fdf4;
+  /* soft green */
+  color: #166534;
+  border: 1px solid #bbf7d0;
 }
 
 .source-badge.pos_terminal,
 .source-badge.pos-terminal {
-  background: #ecfdf5;
-  color: #047857;
+  background: #f1f5f9;
+  /* soft slate */
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 
 /* Supervisor Specifics */
@@ -710,14 +731,15 @@ body {
 }
 
 .filter-pill:hover {
-  background: #e2e8f0;
+  background: #f0fdf4;
+  color: #166534;
 }
 
 .filter-pill.active {
-  background: #eff6ff;
-  color: var(--primary);
-  border-color: var(--primary-light);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+  background: #e8f5e9;
+  color: #166534;
+  border-color: #bbf7d0;
+  box-shadow: 0 2px 8px rgba(22, 101, 52, 0.15);
 }
 
 .audit-log-card {
@@ -1080,15 +1102,15 @@ body {
 }
 
 .provisioning-card.accent-cyan {
-  border-top: 4px solid var(--info);
+  border-top: 4px solid #a3e635;
 }
 
 .provisioning-card.accent-blue {
-  border-top: 4px solid var(--primary);
+  border-top: 4px solid #4ade80;
 }
 
 .provisioning-card.accent-purple {
-  border-top: 4px solid #a855f7;
+  border-top: 4px solid #22c55e;
 }
 
 .card-tag {
@@ -1132,7 +1154,7 @@ body {
 }
 
 .ext-primary-btn {
-  background: var(--primary);
+  background: linear-gradient(135deg, #4ade80 0%, #166534 100%);
   color: white;
   padding: 1rem 2.5rem;
   border: none;
@@ -1141,12 +1163,12 @@ body {
   font-weight: 800;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(22, 101, 52, 0.2);
 }
 
 .ext-primary-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 15px 20px -5px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 15px 20px -5px rgba(22, 101, 52, 0.3);
 }
 
 .provisioning-footer {
@@ -1275,7 +1297,7 @@ body {
 }
 
 .card-header svg {
-  color: var(--primary);
+  color: #166534;
 }
 
 .card-header h3 {
@@ -1593,15 +1615,16 @@ body {
 }
 
 .theme-btn:hover {
-  background: white;
-  border-color: var(--text-light);
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
 }
 
 .theme-btn.active {
   background: white;
-  border-color: var(--primary);
-  color: var(--primary);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+  border-color: #166534;
+  color: #166534;
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.1);
 }
 
 /* Monitoring Status Grid */
@@ -2006,8 +2029,12 @@ body {
 }
 
 .legend-item:hover {
-  background: #f8fafc;
+  background: #f0fdf4;
   transform: translateX(4px);
+}
+
+.legend-item:hover .legend-label {
+  color: #166534;
 }
 
 /* Audit Analysis Modal Styles */
@@ -2173,10 +2200,14 @@ body {
 }
 
 .legend-item.active {
-  background: white;
-  border-color: #e2e8f0;
-  box-shadow: var(--shadow-md);
+  background: #e8f5e9;
+  border-color: #bbf7d0;
+  box-shadow: 0 2px 8px rgba(22, 101, 52, 0.12);
   transform: translateX(4px);
+}
+
+.legend-item.active .legend-label {
+  color: #166534;
 }
 
 .legend-dot {
@@ -2227,7 +2258,7 @@ body {
   margin: 0 !important;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
   border: 1px solid #f1f3f9 !important;
-  box-shadow: 
+  box-shadow:
     0 10px 25px -5px rgba(0, 0, 0, 0.02),
     0 8px 10px -6px rgba(0, 0, 0, 0.01) !important;
   position: relative;
@@ -2236,7 +2267,7 @@ body {
 
 .service-status-card:hover {
   transform: translateY(-5px);
-  box-shadow: 
+  box-shadow:
     0 20px 35px -10px rgba(99, 102, 241, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
   border-color: #e2e8f0 !important;
@@ -2298,15 +2329,19 @@ body {
 .service-status-card.api-service {
   border-left: 4px solid #3b82f6 !important;
 }
+
 .service-status-card.db-service {
   border-left: 4px solid #10b981 !important;
 }
+
 .service-status-card.kafka-service {
   border-left: 4px solid #6366f1 !important;
 }
+
 .service-status-card.mqtt-service {
   border-left: 4px solid #06b6d4 !important;
 }
+
 .service-status-card.proxy-service {
   border-left: 4px solid #0f766e !important;
 }
@@ -2407,7 +2442,7 @@ body {
   max-width: none !important;
   margin: 0 !important;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  box-shadow: 
+  box-shadow:
     0 10px 25px -5px rgba(0, 0, 0, 0.02),
     0 8px 10px -6px rgba(0, 0, 0, 0.01) !important;
   border: 1px solid #f1f3f9 !important;
@@ -2415,7 +2450,7 @@ body {
 
 .monitoring-detail-card:hover {
   transform: translateY(-2px);
-  box-shadow: 
+  box-shadow:
     0 15px 30px -5px rgba(0, 0, 0, 0.04) !important;
 }
 
@@ -2585,11 +2620,13 @@ body {
     transform: scale(0.95);
     opacity: 0.9;
   }
+
   50% {
     transform: scale(1.15);
     opacity: 1;
     filter: brightness(1.1);
   }
+
   100% {
     transform: scale(0.95);
     opacity: 0.9;
@@ -2615,6 +2652,7 @@ body {
   .monitoring-services-grid {
     grid-template-columns: 1fr;
   }
+
   .service-status-card.proxy-service {
     grid-column: span 1;
     max-width: none;
@@ -2627,215 +2665,350 @@ body {
    ========================================================================== */
 
 .ext-app-layout.dark-theme {
-  --bg-app: #0f172a;
-  --bg-sidebar: #020617;
-  --bg-card: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-light: #64748b;
-  --border-color: #334155;
-  --glass-bg: rgba(30, 41, 59, 0.7);
+  --bg-app: #0b1c15;
+  /* Deepest forest green matching bank_primary */
+  --bg-sidebar: #06120e;
+  /* Even darker forest green for high contrast */
+  --bg-card: #112a1f;
+  /* Deep green surface */
+  --text-main: #f1f7f4;
+  /* Light sage green text */
+  --text-muted: #8ba89b;
+  /* Sage green */
+  --text-light: #5d7a6f;
+  /* Muted sage */
+  --border-color: #204638;
+  /* Forest green borders */
+  --glass-bg: rgba(17, 42, 31, 0.7);
   --glass-border: rgba(255, 255, 255, 0.05);
 }
 
 .ext-app-layout.dark-theme .dashboard-header-modern {
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(11, 28, 21, 0.8);
 }
+
 .ext-app-layout.dark-theme .search-wrapper input {
-  background: #1e293b;
+  background: #112a1f;
 }
+
 .ext-app-layout.dark-theme .refresh-btn {
-  background: #1e293b;
-  color: #f8fafc;
+  background: #112a1f;
+  color: #f1f7f4;
 }
+
 .ext-app-layout.dark-theme .refresh-btn:hover {
-  background: #334155;
+  background: #204638;
 }
+
 .ext-app-layout.dark-theme .ext-data-table th {
-  background: #1e293b;
+  background: #112a1f;
 }
+
 .ext-app-layout.dark-theme .ext-data-table tr.clickable-row:hover td {
-  background-color: #334155;
+  background-color: #204638;
 }
+
 .ext-app-layout.dark-theme .ext-data-table td {
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid #204638;
 }
+
 .ext-app-layout.dark-theme .log-body {
-  background: #1e293b;
-  border-color: #334155;
+  background: #112a1f;
+  border-color: #204638;
 }
+
 .ext-app-layout.dark-theme .log-body:hover {
-  background: #334155;
-  border-color: var(--primary-light);
-}
-.ext-app-layout.dark-theme .audit-feed-container {
-  background: #1e293b;
-}
-.ext-app-layout.dark-theme .supervisor-ops-card {
-  background: #1e293b;
-}
-.ext-app-layout.dark-theme .donut-center-text {
-  fill: #f8fafc;
-}
-.ext-app-layout.dark-theme .filter-pill {
-  background: #334155;
-  color: #94a3b8;
-}
-.ext-app-layout.dark-theme .filter-pill.active {
-  background: #4f46e5;
-  color: #ffffff;
-}
-.ext-app-layout.dark-theme .ext-modal-content {
-  background: #1e293b;
-  color: #f8fafc;
-}
-.ext-app-layout.dark-theme .modal-info-card {
-  background: #1e293b;
-  border-color: #334155;
-}
-.ext-app-layout.dark-theme .modal-info-row {
-  border-bottom: 1px solid #334155;
-}
-.ext-app-layout.dark-theme .modal-top-bar {
-  border-bottom: 1px solid #334155;
-}
-.ext-app-layout.dark-theme .modal-top-bar.audit-bar {
-  background: #1e293b !important;
-  border-bottom: 1px solid #334155 !important;
-}
-.ext-app-layout.dark-theme .audit-icon-wrapper {
-  background: #1e293b;
-  border-color: #334155;
-}
-.ext-app-layout.dark-theme .audit-summary-box {
-  background: #1e293b;
-  border-color: #334155;
-}
-.ext-app-layout.dark-theme .mod-item {
-  background: #1e293b;
-  border-color: #334155;
-}
-.ext-app-layout.dark-theme .mod-item:hover {
-  background: #334155;
-}
-.ext-app-layout.dark-theme .audit-initial-state {
-  background: #064e3b;
+  background: #204638;
   border-color: #10b981;
 }
-.ext-app-layout.dark-theme .initial-details {
-  background: #1e293b;
+
+.ext-app-layout.dark-theme .audit-feed-container {
+  background: #112a1f;
 }
-.ext-app-layout.dark-theme .detail-row {
-  border-bottom: 1px solid #334155;
+
+.ext-app-layout.dark-theme .supervisor-ops-card {
+  background: #112a1f;
 }
-.ext-app-layout.dark-theme .table-card {
-  background: #1e293b;
+
+.ext-app-layout.dark-theme .donut-center-text {
+  fill: #f1f7f4;
 }
-.ext-app-layout.dark-theme .settings-card {
-  background: #1e293b;
+
+.ext-app-layout.dark-theme .filter-pill {
+  background: #204638;
+  color: #8ba89b;
 }
-.ext-app-layout.dark-theme .toggle-item {
-  border-bottom: 1px solid #334155;
+
+.ext-app-layout.dark-theme .filter-pill:hover {
+  background: #2d6a4f;
+  color: #95d13c;
+  border-color: #10b981;
 }
-.ext-app-layout.dark-theme .theme-btn {
-  background: #1e293b;
-  border-color: #334155;
-  color: #94a3b8;
-}
-.ext-app-layout.dark-theme .theme-btn.active {
-  background: var(--primary);
+
+.ext-app-layout.dark-theme .filter-pill.active {
+  background: #1b4332;
   color: #ffffff;
-  border-color: var(--primary);
+  border-color: #95d13c;
+  box-shadow: 0 2px 8px rgba(149, 209, 60, 0.2);
 }
+
+.ext-app-layout.dark-theme .legend-item:hover {
+  background: #204638;
+}
+
+.ext-app-layout.dark-theme .legend-item:hover .legend-label {
+  color: #95d13c;
+}
+
+.ext-app-layout.dark-theme .legend-item.active {
+  background: #1b4332;
+  border-color: #95d13c;
+  box-shadow: 0 2px 8px rgba(149, 209, 60, 0.2);
+}
+
+.ext-app-layout.dark-theme .legend-item.active .legend-label {
+  color: #ffffff;
+}
+
+.ext-app-layout.dark-theme .ext-modal-content {
+  background: #112a1f;
+  color: #f1f7f4;
+}
+
+.ext-app-layout.dark-theme .modal-info-card {
+  background: #112a1f;
+  border-color: #204638;
+}
+
+.ext-app-layout.dark-theme .modal-info-row {
+  border-bottom: 1px solid #204638;
+}
+
+.ext-app-layout.dark-theme .modal-top-bar {
+  border-bottom: 1px solid #204638;
+}
+
+.ext-app-layout.dark-theme .modal-top-bar.audit-bar {
+  background: #112a1f !important;
+  border-bottom: 1px solid #204638 !important;
+}
+
+.ext-app-layout.dark-theme .audit-icon-wrapper {
+  background: #112a1f;
+  border-color: #204638;
+}
+
+.ext-app-layout.dark-theme .audit-summary-box {
+  background: #112a1f;
+  border-color: #204638;
+}
+
+.ext-app-layout.dark-theme .mod-item {
+  background: #112a1f;
+  border-color: #204638;
+}
+
+.ext-app-layout.dark-theme .mod-item:hover {
+  background: #204638;
+}
+
+.ext-app-layout.dark-theme .audit-initial-state {
+  background: #1b4332;
+  border-color: #95d13c;
+}
+
+.ext-app-layout.dark-theme .initial-details {
+  background: #112a1f;
+}
+
+.ext-app-layout.dark-theme .detail-row {
+  border-bottom: 1px solid #204638;
+}
+
+.ext-app-layout.dark-theme .table-card {
+  background: #112a1f;
+}
+
+.ext-app-layout.dark-theme .settings-card {
+  background: #112a1f;
+}
+
+.ext-app-layout.dark-theme .toggle-item {
+  border-bottom: 1px solid #204638;
+}
+
+.ext-app-layout.dark-theme .theme-btn {
+  background: #112a1f;
+  border-color: #204638;
+  color: #8ba89b;
+}
+
+.ext-app-layout.dark-theme .theme-btn:hover {
+  background: #204638;
+  color: #95d13c;
+  border-color: #95d13c;
+}
+
+.ext-app-layout.dark-theme .theme-btn.active {
+  background: #1b4332;
+  color: #ffffff;
+  border-color: #95d13c;
+}
+
 .ext-app-layout.dark-theme .provisioning-card {
-  background: #1e293b;
-  border-color: #334155;
+  background: #112a1f;
+  border-color: #204638;
 }
+
 .ext-app-layout.dark-theme .locked-input {
-  background: #0f172a;
+  background: #0b1c15;
 }
+
 .ext-app-layout.dark-theme .input-group input {
-  background: #1e293b;
-  border-color: #334155;
-  color: #f8fafc;
+  background: #112a1f;
+  border-color: #204638;
+  color: #f1f7f4;
 }
+
 .ext-app-layout.dark-theme .input-group input:focus {
-  background: #1e293b;
-  border-color: var(--primary);
+  background: #112a1f;
+  border-color: #95d13c;
 }
+
 .ext-app-layout.dark-theme .edit-input {
-  background: #1e293b;
-  border-color: #334155;
-  color: #f8fafc;
+  background: #112a1f;
+  border-color: #204638;
+  color: #f1f7f4;
 }
+
 .ext-app-layout.dark-theme .edit-input:focus {
-  background: #1e293b;
-  border-color: var(--primary);
+  background: #112a1f;
+  border-color: #95d13c;
 }
+
 .ext-app-layout.dark-theme .edit-status-btn {
-  background: #1e293b;
-  border-color: #334155;
+  background: #112a1f;
+  border-color: #204638;
 }
+
 .ext-app-layout.dark-theme .edit-status-btn:hover {
-  background: #334155;
+  background: #204638;
 }
+
 .ext-app-layout.dark-theme .status-pill.active {
-  background: #064e3b;
-  color: #a7f3d0;
+  background: #1b4332;
+  color: #a3e635;
 }
+
 .ext-app-layout.dark-theme .status-pill.suspended {
-  background: #78350f;
+  background: #4a3e15;
   color: #fde68a;
 }
+
 .ext-app-layout.dark-theme .status-pill.blocked {
-  background: #7f1d1d;
+  background: #5a2a28;
   color: #fecaca;
 }
+
+.ext-app-layout.dark-theme .op-virement,
+.ext-app-layout.dark-theme .op-transfer {
+  background: rgba(163, 230, 53, 0.15);
+  color: #a3e635;
+  border-color: rgba(163, 230, 53, 0.3);
+}
+
+.ext-app-layout.dark-theme .op-paiement,
+.ext-app-layout.dark-theme .op-payment {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.ext-app-layout.dark-theme .source-badge.mobile_app {
+  background: rgba(6, 182, 212, 0.15);
+  /* dark cyan/teal */
+  color: #22d3ee;
+  border-color: rgba(6, 182, 212, 0.3);
+}
+
+.ext-app-layout.dark-theme .source-badge.pwc_system {
+  background: rgba(249, 115, 22, 0.15);
+  /* dark orange */
+  color: #ff9d43;
+  border-color: rgba(249, 115, 22, 0.3);
+}
+
+.ext-app-layout.dark-theme .source-badge.externel_system {
+  background: rgba(22, 101, 52, 0.2);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.ext-app-layout.dark-theme .source-badge.pos_terminal,
+.ext-app-layout.dark-theme .source-badge.pos-terminal {
+  background: rgba(148, 163, 184, 0.15);
+  /* dark slate */
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
 .ext-app-layout.dark-theme .service-status-card {
-  background: #1e293b !important;
-  border-color: #334155 !important;
+  background: #112a1f !important;
+  border-color: #204638 !important;
 }
+
 .ext-app-layout.dark-theme .service-status-card:hover {
-  border-color: #475569 !important;
+  border-color: #2d6a4f !important;
 }
+
 .ext-app-layout.dark-theme .service-title {
-  color: #f8fafc;
+  color: #f1f7f4;
 }
+
 .ext-app-layout.dark-theme .service-value {
   color: #ffffff;
 }
+
 .ext-app-layout.dark-theme .monitoring-detail-card {
-  background: #1e293b !important;
-  border-color: #334155 !important;
+  background: #112a1f !important;
+  border-color: #204638 !important;
 }
+
 .ext-app-layout.dark-theme .kafka-subcard {
-  background: #0f172a;
-  border-color: #334155;
+  background: #0b1c15;
+  border-color: #204638;
 }
+
 .ext-app-layout.dark-theme .kafka-subcard:hover {
-  background: #1e293b;
-  border-color: #475569;
+  background: #112a1f;
+  border-color: #2d6a4f;
 }
+
 .ext-app-layout.dark-theme .partition-visualizer-container {
-  background: #0f172a;
-  border-color: #334155;
+  background: #0b1c15;
+  border-color: #204638;
 }
+
 .ext-app-layout.dark-theme .partition-server-box {
-  background: #1e293b;
+  background: #112a1f;
 }
+
 .ext-app-layout.dark-theme .partition-server-box.active {
-  border-color: #334155;
+  border-color: #204638;
 }
+
 .ext-app-layout.dark-theme .partition-server-box.active:hover {
-  background: #064e3b;
-  border-color: #10b981;
+  background: #1b4332;
+  border-color: #95d13c;
 }
+
 .ext-app-layout.dark-theme .partition-server-box.offline:hover {
-  background: #7f1d1d;
+  background: #5a2a28;
   border-color: #ef4444;
 }
+
 .ext-app-layout.dark-theme .partition-box-label {
-  color: #94a3b8;
+  color: #8ba89b;
 }
 
 /* ==========================================================================
@@ -2857,7 +3030,7 @@ body {
   border-radius: 24px;
   padding: 3.5rem 2.5rem;
   border: 1px solid var(--border-color);
-  box-shadow: 
+  box-shadow:
     0 20px 25px -5px rgba(0, 0, 0, 0.05),
     0 10px 10px -5px rgba(0, 0, 0, 0.02);
   text-align: center;
@@ -2869,7 +3042,7 @@ body {
 
 .ext-profile-card-centered:hover {
   transform: translateY(-5px);
-  box-shadow: 
+  box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.1);
 }
 
@@ -2884,7 +3057,7 @@ body {
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  background: linear-gradient(135deg, #4ade80, #166534);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -2892,7 +3065,7 @@ body {
   font-size: 2.25rem;
   font-weight: 800;
   margin-bottom: 1.25rem;
-  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 10px 25px rgba(22, 101, 52, 0.2);
 }
 
 .profile-header-centered h3 {
@@ -2911,8 +3084,8 @@ body {
 
 .role-badge-centered {
   padding: 0.4rem 1.1rem;
-  background: rgba(99, 102, 241, 0.08);
-  color: var(--primary);
+  background: rgba(22, 101, 52, 0.08);
+  color: #166534;
   border-radius: 100px;
   font-size: 0.75rem;
   font-weight: 800;
@@ -2932,13 +3105,32 @@ body {
 
 .detail-item-centered {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 1.25rem;
   padding: 1rem 1.5rem;
   background: #f8fafc;
   border-radius: 16px;
   border: 1px solid #edf2f7;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.detail-icon-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(22, 101, 52, 0.08);
+  color: #166534;
+  flex-shrink: 0;
+}
+
+.detail-text-centered {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
 }
 
 .detail-item-centered:hover {
@@ -2978,4 +3170,316 @@ body {
 
 .ext-app-layout.dark-theme .detail-value {
   color: #f8fafc;
+}
+
+.ext-app-layout.dark-theme .detail-icon-centered {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.ext-app-layout.dark-theme .role-badge-centered {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+
+/* Sidebar Nav Items in Dark Theme */
+.ext-app-layout.dark-theme .ext-sidebar {
+  background: #06120e;
+  border-right-color: #204638;
+}
+
+.ext-app-layout.dark-theme .ext-nav-item {
+  color: #8ba89b;
+}
+
+.ext-app-layout.dark-theme .ext-nav-item:hover {
+  background: #112a1f;
+  color: #4ade80;
+}
+
+.ext-app-layout.dark-theme .ext-nav-item.active {
+  background: #166534;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.ext-app-layout.dark-theme .ext-submenu-item {
+  color: #5d7a6f;
+}
+
+.ext-app-layout.dark-theme .ext-submenu-item:hover {
+  color: #4ade80;
+  background: #112a1f;
+}
+
+.ext-app-layout.dark-theme .ext-submenu-item.active {
+  color: #4ade80;
+  background: rgba(22, 101, 52, 0.15);
+}
+
+.ext-app-layout.dark-theme .ext-submenu-item .dot {
+  background: #5d7a6f;
+}
+
+.ext-app-layout.dark-theme .ext-submenu-item.active .dot {
+  background: #4ade80;
+  box-shadow: 0 0 8px #4ade80;
+}
+
+/* Header & Inputs in Dark Theme */
+.ext-app-layout.dark-theme .search-wrapper input:focus {
+  border-color: #95d13c;
+  box-shadow: 0 0 0 4px rgba(149, 209, 60, 0.25);
+}
+
+.ext-app-layout.dark-theme .input-group input:focus {
+  border-color: #95d13c;
+  box-shadow: 0 0 0 3px rgba(149, 209, 60, 0.25);
+}
+
+.ext-app-layout.dark-theme .edit-input:focus {
+  border-color: #95d13c;
+  box-shadow: 0 0 0 3px rgba(149, 209, 60, 0.25);
+}
+
+/* Modals & Buttons in Dark Theme */
+.ext-app-layout.dark-theme .modal-save-btn {
+  background: #166534 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.3) !important;
+}
+
+.ext-app-layout.dark-theme .modal-save-btn:hover {
+  background: #15803d !important;
+  box-shadow: 0 6px 16px rgba(22, 101, 52, 0.4) !important;
+}
+
+.ext-app-layout.dark-theme .modal-modify-btn {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+.ext-app-layout.dark-theme .modal-modify-btn:hover {
+  background: rgba(245, 158, 11, 0.25) !important;
+  color: #fbbf24 !important;
+}
+
+.ext-app-layout.dark-theme .audit-log-card.clickable:hover .log-body {
+  background: #112a1f;
+  border-color: #95d13c;
+  box-shadow: 0 4px 20px rgba(149, 209, 60, 0.15);
+}
+
+/* Sleek Segmented Transaction Filters */
+.trx-filter-container {
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  background: #ffffff;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color);
+  border-radius: 100px;
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+}
+
+.trx-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.5rem 1.25rem;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trx-filter-btn:hover {
+  color: var(--text-main);
+  background: rgba(17, 42, 31, 0.8);
+}
+
+.trx-filter-btn:hover .filter-icon {
+  transform: scale(1.15) rotate(-2deg);
+}
+
+.trx-filter-btn .filter-icon {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  stroke-width: 2.2px;
+}
+
+/* --- Filter: All --- */
+.trx-filter-btn.filter-all {
+  color: var(--text-muted);
+}
+
+.trx-filter-btn.filter-all.active {
+  background: white;
+  color: var(--text-main);
+  border-color: rgba(148, 163, 184, 0.3);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+/* --- Filter: Payment (Soft Green) --- */
+.trx-filter-btn.filter-payment {
+  color: #15803d;
+}
+
+.trx-filter-btn.filter-payment.active {
+  background: #dcfce7;
+  color: #14532d;
+  border-color: rgba(74, 222, 128, 0.4);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+}
+
+/* --- Filter: Transfer (Soft Blue) --- */
+.trx-filter-btn.filter-transfer {
+  color: #4d7c0f;
+  /* dark lime */
+}
+
+.trx-filter-btn.filter-transfer.active {
+  background: #f7fee7;
+  color: #4d7c0f;
+  border-color: rgba(163, 230, 53, 0.4);
+  box-shadow: 0 4px 10px rgba(163, 230, 53, 0.15);
+}
+
+/* --- Dark Theme Overrides --- */
+.ext-app-layout.dark-theme .trx-filter-container {
+  background: rgba(11, 28, 21, 0.4);
+  border-color: #204638;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+.ext-app-layout.dark-theme .trx-filter-btn:hover {
+  background: rgba(17, 42, 31, 0.8);
+  color: #f1f7f4;
+}
+
+.ext-app-layout.dark-theme .trx-filter-btn.filter-all.active {
+  background: #112a1f;
+  color: #f1f7f4;
+  border-color: #2d6a4f;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.ext-app-layout.dark-theme .trx-filter-btn.filter-payment {
+  color: #4ade80;
+}
+
+.ext-app-layout.dark-theme .trx-filter-btn.filter-payment.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.ext-app-layout.dark-theme .trx-filter-btn.filter-transfer {
+  color: #a3e635;
+  /* lime */
+}
+
+.ext-app-layout.dark-theme .trx-filter-btn.filter-transfer.active {
+  background: rgba(163, 230, 53, 0.15);
+  color: #a3e635;
+  border-color: rgba(163, 230, 53, 0.3);
+  box-shadow: 0 4px 12px rgba(163, 230, 53, 0.3);
+}
+
+/* Counter badge inside transaction filters */
+.trx-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  min-width: 20px;
+  height: 18px;
+  margin-left: 6px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Micro-animations on hover */
+.trx-filter-btn:hover .trx-count-badge {
+  transform: scale(1.08);
+}
+
+/* Neutral Gray/Slate for All */
+.filter-all .trx-count-badge {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-muted);
+}
+
+.filter-all.active .trx-count-badge {
+  background: var(--text-main);
+  color: white;
+}
+
+/* Soft Green for POS Payments */
+.filter-payment .trx-count-badge {
+  background: rgba(22, 163, 74, 0.12);
+  color: #16a34a;
+}
+
+.filter-payment.active .trx-count-badge {
+  background: #16a34a;
+  color: white;
+}
+
+/* Soft Blue for Transfers */
+.filter-transfer .trx-count-badge {
+  background: rgba(163, 230, 53, 0.12);
+  color: #4d7c0f;
+}
+
+.filter-transfer.active .trx-count-badge {
+  background: #4d7c0f;
+  color: white;
+}
+
+/* --- Dark Theme Overrides --- */
+.ext-app-layout.dark-theme .filter-all .trx-count-badge {
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
+
+.ext-app-layout.dark-theme .filter-all.active .trx-count-badge {
+  background: #f1f7f4;
+  color: #0b1c15;
+}
+
+.ext-app-layout.dark-theme .filter-payment .trx-count-badge {
+  background: rgba(74, 222, 128, 0.18);
+  color: #4ade80;
+}
+
+.ext-app-layout.dark-theme .filter-payment.active .trx-count-badge {
+  background: #4ade80;
+  color: #1b4332;
+}
+
+.ext-app-layout.dark-theme .filter-transfer .trx-count-badge {
+  background: rgba(163, 230, 53, 0.18);
+  color: #a3e635;
+}
+
+.ext-app-layout.dark-theme .filter-transfer.active .trx-count-badge {
+  background: #a3e635;
+  color: #1b4332;
+}
+
+.ext-app-layout.dark-theme .amount {
+  color: #4ade80;
 }

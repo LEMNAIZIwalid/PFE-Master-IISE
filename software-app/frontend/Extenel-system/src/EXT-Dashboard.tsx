@@ -158,6 +158,7 @@ const EXTDashboard: React.FC = () => {
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [selectedTrx, setSelectedTrx] = useState<any>(null);
   const [isTrxModalOpen, setIsTrxModalOpen] = useState(false);
+  const [trxTypeFilter, setTrxTypeFilter] = useState<'All' | 'Paiement' | 'Transfer'>('All');
 
   const maskPAN = (pan: string) => {
     if (!pan) return '';
@@ -422,7 +423,7 @@ const EXTDashboard: React.FC = () => {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
             </svg>
-            <span>Transactions Checking</span>
+            <span>Transactions</span>
           </div>
           <div className="ext-nav-group">
             <div
@@ -568,6 +569,7 @@ const EXTDashboard: React.FC = () => {
                           card.ID_CARD.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           card.PAN.toLowerCase().includes(searchTerm.toLowerCase())
                         )
+                        .filter(card => !(card.OPERATION?.toLowerCase().includes('paiement') || card.OPERATION?.toLowerCase().includes('payment')))
                         .map((card, idx) => (
                           <tr key={idx} onClick={() => handleCardClick(card)} className="clickable-row" style={{ animationDelay: `${idx * 0.05}s`, opacity: 0 }}>
                             <td className="bold">{card.ID_CARD}</td>
@@ -1165,6 +1167,62 @@ const EXTDashboard: React.FC = () => {
               </div>
             </header>
 
+            {/* Transaction Type Filters */}
+            {/* Transaction Type Filters */}
+            {(() => {
+              const countAll = transactions.length;
+              const countPayments = transactions.filter(trx => {
+                const op = (trx.operation || '').toUpperCase();
+                return op === 'PAIEMENT' || op === 'PAYMENT';
+              }).length;
+              const countTransfers = transactions.filter(trx => {
+                const op = (trx.operation || '').toUpperCase();
+                return op === 'TRANSFER' || op === 'VIREMENT';
+              }).length;
+
+              return (
+                <div className="trx-filter-container">
+                  <button 
+                    className={`trx-filter-btn filter-all ${trxTypeFilter === 'All' ? 'active' : ''}`}
+                    onClick={() => setTrxTypeFilter('All')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="filter-icon">
+                      <rect x="3" y="3" width="7" height="7"></rect>
+                      <rect x="14" y="3" width="7" height="7"></rect>
+                      <rect x="14" y="14" width="7" height="7"></rect>
+                      <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>All Operations</span>
+                    <span className="trx-count-badge">{countAll}</span>
+                  </button>
+                  <button 
+                    className={`trx-filter-btn filter-payment ${trxTypeFilter === 'Paiement' ? 'active' : ''}`}
+                    onClick={() => setTrxTypeFilter('Paiement')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="filter-icon">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                      <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                    <span>POS Payments</span>
+                    <span className="trx-count-badge">{countPayments}</span>
+                  </button>
+                  <button 
+                    className={`trx-filter-btn filter-transfer ${trxTypeFilter === 'Transfer' ? 'active' : ''}`}
+                    onClick={() => setTrxTypeFilter('Transfer')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="filter-icon">
+                      <polyline points="17 1 21 5 17 9"></polyline>
+                      <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                      <polyline points="7 23 3 19 7 15"></polyline>
+                      <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                    </svg>
+                    <span>Transfers</span>
+                    <span className="trx-count-badge">{countTransfers}</span>
+                  </button>
+                </div>
+              );
+            })()}
+
             <div className="table-card">
               <div className="table-wrapper">
                 <table className="ext-data-table">
@@ -1181,10 +1239,32 @@ const EXTDashboard: React.FC = () => {
                   <tbody>
                     {loadingTransactions ? (
                       <tr><td colSpan={6} className="loading-cell">Loading transactions...</td></tr>
-                    ) : transactions.length === 0 ? (
-                      <tr><td colSpan={6} className="empty-cell">No transactions found</td></tr>
+                    ) : transactions.filter(trx => {
+                      if (trxTypeFilter === 'All') return true;
+                      const op = (trx.operation || '').toUpperCase();
+                      if (trxTypeFilter === 'Paiement') {
+                        return op === 'PAIEMENT' || op === 'PAYMENT';
+                      }
+                      if (trxTypeFilter === 'Transfer') {
+                        return op === 'TRANSFER' || op === 'VIREMENT';
+                      }
+                      return true;
+                    }).length === 0 ? (
+                      <tr><td colSpan={6} className="empty-cell">No transactions found for this filter</td></tr>
                     ) : (
-                      transactions.map((trx, idx) => (
+                      transactions
+                        .filter(trx => {
+                          if (trxTypeFilter === 'All') return true;
+                          const op = (trx.operation || '').toUpperCase();
+                          if (trxTypeFilter === 'Paiement') {
+                            return op === 'PAIEMENT' || op === 'PAYMENT';
+                          }
+                          if (trxTypeFilter === 'Transfer') {
+                            return op === 'TRANSFER' || op === 'VIREMENT';
+                          }
+                          return true;
+                        })
+                        .map((trx, idx) => (
                         <tr key={idx} className="clickable-row" style={{ animationDelay: `${idx * 0.05}s`, opacity: 0 }} onClick={() => { setSelectedTrx(trx); setIsTrxModalOpen(true); }}>
                           <td className="bold">#{trx.sender_card_id || 'N/A'}</td>
                           <td>{trx.sender_name || 'N/A'}</td>
@@ -1223,16 +1303,31 @@ const EXTDashboard: React.FC = () => {
               </div>
               <div className="profile-details-centered">
                 <div className="detail-item-centered">
-                  <span className="detail-label">Employee ID</span>
-                  <span className="detail-value">99283</span>
+                  <div className="detail-icon-centered">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  </div>
+                  <div className="detail-text-centered">
+                    <span className="detail-label">Employee ID</span>
+                    <span className="detail-value">99283</span>
+                  </div>
                 </div>
                 <div className="detail-item-centered">
-                  <span className="detail-label">Department</span>
-                  <span className="detail-value">Audit & Compliance</span>
+                  <div className="detail-icon-centered">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  </div>
+                  <div className="detail-text-centered">
+                    <span className="detail-label">Department</span>
+                    <span className="detail-value">Audit & Compliance</span>
+                  </div>
                 </div>
                 <div className="detail-item-centered">
-                  <span className="detail-label">Last Login</span>
-                  <span className="detail-value">Today, 09:42 AM</span>
+                  <div className="detail-icon-centered">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  </div>
+                  <div className="detail-text-centered">
+                    <span className="detail-label">Last Login</span>
+                    <span className="detail-value">Today, 09:42 AM</span>
+                  </div>
                 </div>
               </div>
             </div>

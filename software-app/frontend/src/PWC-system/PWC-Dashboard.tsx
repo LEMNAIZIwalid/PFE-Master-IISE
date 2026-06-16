@@ -588,7 +588,7 @@ function PWCDashboard() {
 
           <div className={`nav-item ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
-            <span>Transactions Checking</span>
+            <span>Transactions</span>
           </div>
 
           <div className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
@@ -652,7 +652,7 @@ function PWCDashboard() {
               </div>
 
               <div className="header-right">
-                <div className="search-wrapper">
+                <label className="search-wrapper">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -664,7 +664,7 @@ function PWCDashboard() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="search-bar"
                   />
-                </div>
+                </label>
                 <div className="header-actions">
                   <button className="primary-btn" onClick={fetchCards}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
@@ -920,7 +920,7 @@ function PWCDashboard() {
                 <p className="system-subtitle">System Audit Log & Event Tracking</p>
               </div>
               <div className="header-right">
-                <div className="search-wrapper">
+                <label className="search-wrapper">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -932,7 +932,7 @@ function PWCDashboard() {
                     onChange={(e) => setEventSearchTerm(e.target.value)}
                     className="search-bar"
                   />
-                </div>
+                </label>
                 <button className="primary-btn" onClick={fetchEvents}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
                     <path d="M21 2v6h-6"></path>
@@ -1989,8 +1989,8 @@ function PWCDashboard() {
                 
                 {/* Sender Card */}
                 <div className="detail-section glass-effect" style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                  <h3 className="section-subtitle" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#4f46e5', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
-                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#4f46e5' }}></span>
+                  <h3 className="section-subtitle" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#ff782c', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#ff782c' }}></span>
                     Sender (Debited)
                   </h3>
                   <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
