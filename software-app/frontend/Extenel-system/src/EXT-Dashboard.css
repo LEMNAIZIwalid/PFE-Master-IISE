@@ -566,20 +566,16 @@ body {
 
 .op-virement,
 .op-transfer {
-  background: #f7fee7;
-  /* soft lime */
-  color: #4d7c0f;
-  /* dark lime */
-  border: 1px solid #d9f99d;
+  background: #374151; /* Dark soft gray background */
+  color: #f3f4f6;      /* Hard/strong gray text */
+  border: 1px solid #4b5563; /* Soft border */
 }
 
 .op-paiement,
 .op-payment {
-  background: #dcfce7;
-  /* light POS green */
-  color: #15803d;
-  /* dark POS green */
-  border: 1px solid #bbf7d0;
+  background: #eff6ff; /* Soft blue background */
+  color: #1e40af;      /* Dark blue text */
+  border: 1px solid #dbeafe; /* Soft blue border */
 }
 
 .source-badge {
@@ -796,6 +792,16 @@ body {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
+.log-dot.op-virement {
+  background: #374151; /* Dark soft gray */
+  box-shadow: 0 0 0 3px rgba(75, 85, 99, 0.2);
+}
+
+.log-dot.op-paiement {
+  background: #3b82f6; /* Soft blue */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
 .log-line {
   width: 2px;
   flex: 1;
@@ -846,6 +852,16 @@ body {
   font-weight: 800;
 }
 
+.action-word.virement {
+  color: #374151;
+  font-weight: 800;
+}
+
+.action-word.paiement {
+  color: #2563eb;
+  font-weight: 800;
+}
+
 /* Black-bold card id with soft background */
 .card-ref.bold-black {
   font-weight: 800;
@@ -884,6 +900,40 @@ body {
   margin: 0 4px;
 }
 
+.source-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  margin: 0 4px;
+}
+
+.source-tag.pwc {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #dbeafe;
+}
+
+.source-tag.ext {
+  background: #f5f3ff;
+  color: #5b21b6;
+  border: 1px solid #ede9fe;
+}
+
+.source-tag.pos {
+  background: #ecfeff;
+  color: #0891b2;
+  border: 1px solid #cffafe;
+}
+
+.source-tag.mobile {
+  background: #f0fdfa;
+  color: #0d9488;
+  border: 1px solid #ccfbf1;
+}
+
 .ext-tag {
   display: inline-flex;
   align-items: center;
@@ -895,6 +945,32 @@ body {
   font-weight: 700;
   font-size: 0.8rem;
   border: 1px solid #ede9fe;
+  margin: 0 4px;
+}
+
+.virement-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #374151; /* Dark soft gray background */
+  color: #f3f4f6;      /* Hard gray text */
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border: 1px solid #4b5563;
+  margin: 0 4px;
+}
+
+.paiement-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #eff6ff; /* Soft blue background */
+  color: #1e40af;      /* Dark blue text */
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border: 1px solid #dbeafe;
   margin: 0 4px;
 }
 

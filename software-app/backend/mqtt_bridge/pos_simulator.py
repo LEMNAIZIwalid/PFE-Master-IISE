@@ -18,7 +18,7 @@ def generate_card_transaction():
         "Amount": round(random.uniform(10.0, 500.0), 2),
         "F_name": "John",
         "L_name": "Doe",
-        "Modify_by": "POS-System-01",
+        "Modify_by": "POS_Terminal",
         "timestmp": datetime.now().isoformat()
     }
 
@@ -43,14 +43,14 @@ try:
         result = client.publish(MQTT_TOPIC, json_payload)
         
         if result[0] == 0:
-            print(f" [✔] Transaction envoyée: {transaction['card_id']} | Montant: {transaction['Amount']}")
+            print(f" [OK] Transaction envoyee: {transaction['card_id']} | Montant: {transaction['Amount']}")
         else:
-            print(f" [✘] Erreur d'envoi vers {MQTT_TOPIC}")
+            print(f" [ERROR] Erreur d'envoi vers {MQTT_TOPIC}")
             
         time.sleep(5)
 
 except KeyboardInterrupt:
-    print("\nArrêt du simulateur...")
+    print("\nArret du simulateur...")
 finally:
     client.loop_stop()
     client.disconnect()

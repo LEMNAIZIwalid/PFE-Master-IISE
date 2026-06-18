@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart-POS Real-Time Monitor</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #09090b;
+      --card-bg: rgba(20, 20, 25, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.25);
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.25);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.25);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.25);
+      --purple: #8b5cf6;
+      --purple-glow: rgba(139, 92, 246, 0.25);
+      --slate-dark: #27272a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+      background-attachment: fixed;
+      font-family: 'Outfit', sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      padding: 20px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--slate-dark);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3f3f46;
+    }
+
+    /* Container */
+    .dashboard-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      flex: 1;
+    }
+
+    /* Header */
+    header {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    .brand-section h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 30%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-section h1 span {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 900;
+    }
+
+    .brand-subtitle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .pos-status-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--danger);
+      box-shadow: 0 0 10px var(--danger);
+      transition: all 0.3s ease;
+    }
+
+    .status-dot.online {
+      background-color: var(--success);
+      box-shadow: 0 0 12px var(--success);
+      animation: pulse 1.8s infinite;
+    }
+
+    .status-text {
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Main Content Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      flex: 1;
+    }
+
+    @media(min-width: 992px) {
+      .main-grid {
+        grid-template-columns: 1.1fr 0.9fr;
+      }
+    }
+
+    /* Card Layouts */
+    .dashboard-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title span {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* POS visual section */
+    .pos-visual-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 16px;
+      border: 1px dashed rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      position: relative;
+    }
+
+    .pos-svg-container {
+      width: 100%;
+      max-width: 320px;
+      filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.5));
+    }
+
+    /* Connectivity Stats widgets */
+    .status-widgets-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .widget {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+
+    .widget:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .widget-val {
+      font-size: 1.4rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Battery Progress */
+    .battery-bar-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .battery-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--success);
+      border-radius: 3px;
+      transition: width 0.5s ease-in-out;
+    }
+
+    .battery-bar-fill.charging {
+      animation: batteryChargingPulse 2s infinite;
+    }
+
+    /* Signal Dots */
+    .wifi-signal-meter {
+      display: flex;
+      gap: 3px;
+      align-items: flex-end;
+      height: 16px;
+    }
+
+    .wifi-bar {
+      width: 3px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 1px;
+    }
+
+    .wifi-bar:nth-child(1) { height: 25%; }
+    .wifi-bar:nth-child(2) { height: 50%; }
+    .wifi-bar:nth-child(3) { height: 75%; }
+    .wifi-bar:nth-child(4) { height: 100%; }
+
+    /* Latency stats charts */
+    .latency-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    @media(min-width: 480px) {
+      .latency-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .latency-card {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .latency-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .latency-card-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .latency-sparkline {
+      height: 35px;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .sparkline-path {
+      fill: none;
+      stroke-width: 2px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Component selector & GPIO Map */
+    .gpio-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .component-filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .comp-btn {
+      flex: 1;
+      min-width: 100px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: 10px;
+      padding: 10px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .comp-btn:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+    }
+
+    .comp-btn.active.tft {
+      border-color: var(--primary);
+      color: var(--primary);
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .comp-btn.active.pn532 {
+      border-color: var(--warning);
+      color: var(--warning);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .comp-btn.active.barcode {
+      border-color: var(--success);
+      color: var(--success);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    /* GPIO Pinout Grid */
+    .gpio-board-card {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .gpio-header-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .pins-grid-wrapper {
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+      padding: 10px 0;
+    }
+
+    .gpio-grid {
+      display: grid;
+      grid-template-columns: repeat(18, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 8px 6px;
+      min-width: 500px;
+    }
+
+    .pin-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      position: relative;
+    }
+
+    .pin-circle {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #27272a;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pin-circle:hover {
+      transform: scale(1.25);
+    }
+
+    .pin-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* Highlighted pin types */
+    .pin-circle.vcc-5v { background: #ef4444; border-color: #fca5a5; }
+    .pin-circle.vcc-3v { background: #f97316; border-color: #fed7aa; }
+    .pin-circle.gnd { background: #000000; border-color: #71717a; }
+    
+    .pin-circle.tft-active {
+      background: var(--primary);
+      border-color: #93c5fd;
+      box-shadow: 0 0 10px var(--primary);
+      transform: scale(1.1);
+    }
+
+    .pin-circle.pn532-active {
+      background: var(--warning);
+      border-color: #fde047;
+      box-shadow: 0 0 10px var(--warning);
+      transform: scale(1.1);
+    }
+
+    .pin-circle.barcode-active {
+      background: var(--success);
+      border-color: #6ee7b7;
+      box-shadow: 0 0 10px var(--success);
+      transform: scale(1.1);
+    }
+
+    /* Pin Details Table */
+    .pin-details-table-wrapper {
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .pin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      text-align: left;
+    }
+
+    .pin-table th, .pin-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .pin-table th {
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .pin-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .pin-table td span.badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .badge.tft-badge { background: rgba(59, 130, 246, 0.1); color: var(--primary); border: 1px solid rgba(59, 130, 246, 0.2); }
+    .badge.pn532-badge { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+    .badge.barcode-badge { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding: 20px 0;
+      border-top: 1px solid var(--border-color);
+      margin-top: auto;
+    }
+
+    /* Keyframes */
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    @keyframes batteryChargingPulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+
+    /* Tooltip styling */
+    .pin-tooltip {
+      position: absolute;
+      bottom: 22px;
+      background: #18181b;
+      border: 1px solid var(--border-color);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      white-space: nowrap;
+      display: none;
+      z-index: 100;
+      color: white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    .pin-slot:hover .pin-tooltip {
+      display: block;
+    }
+
+    /* Active components glow inside the POS terminal diagram */
+    .glowing-rect {
+      transition: all 0.3s ease;
+    }
+    .active-glow {
+      filter: drop-shadow(0px 0px 8px var(--success));
+    }
+    .active-glow-blue {
+      filter: drop-shadow(0px 0px 8px var(--primary));
+    }
+    .active-glow-amber {
+      filter: drop-shadow(0px 0px 8px var(--warning));
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <header>
+      <div class="brand-section">
+        <h1>Smart<span>-POS</span> Monitor</h1>
+        <div class="brand-subtitle">DEVICE STATUS & HARDWARE SIGNAL CONTROL HUB</div>
+      </div>
+      <div class="pos-status-banner">
+        <div id="pos-status-dot" class="status-dot"></div>
+        <span id="pos-status-text" class="status-text">Checking...</span>
+      </div>
+    </header>
+
+    <div class="main-grid">
+      <!-- Left Column: Interactive Diagram of POS -->
+      <div class="dashboard-card">
+        <div class="card-title">
+          Interactive Device Mockup
+          <span id="screen-info">SmartPOS-v2.1</span>
+        </div>
+        
+        <div class="pos-visual-wrapper">
+          <svg class="pos-svg-container" viewBox="0 0 320 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Terminal Body outer shadow -->
+            <rect x="25" y="15" width="270" height="470" rx="40" fill="#18181b" stroke="rgba(255,255,255,0.06)" stroke-width="4"/>
+            <!-- Inner bezel -->
+            <rect x="35" y="25" width="250" height="450" rx="32" fill="#09090b" stroke="rgba(255,255,255,0.02)" stroke-width="2"/>
+            
+            <!-- TFT SCREEN bezel -->
+            <rect x="45" y="110" width="230" height="240" rx="16" fill="#121214" stroke="rgba(255,255,255,0.05)" stroke-width="2"/>
+            
+            <!-- TFT SCREEN display panel -->
+            <rect id="tft-screen-display" class="glowing-rect" x="53" y="118" width="214" height="224" rx="10" fill="#000000"/>
+            
+            <!-- LCD Screen Text / Graphics (drawn dynamically inside script) -->
+            <g id="screen-graphics">
+              <!-- Default Offline state -->
+              <text x="160" y="200" fill="#71717a" font-size="12" font-family="'JetBrains Mono', monospace" text-anchor="middle">DEVICE OFFLINE</text>
+              <text x="160" y="230" fill="#3f3f46" font-size="9" font-family="'JetBrains Mono', monospace" text-anchor="middle">Awaiting heartbeat...</text>
+            </g>
+
+            <!-- PN532 Sensor Area (Top) -->
+            <rect id="pn532-bezel" class="glowing-rect" x="110" y="45" width="100" height="45" rx="8" fill="#1c1917" stroke="#44403c" stroke-width="1.5"/>
+            <!-- NFC Icon or coil representation -->
+            <circle cx="160" cy="67" r="14" stroke="#78716c" stroke-width="1.5" stroke-dasharray="3,3" fill="none"/>
+            <circle cx="160" cy="67" r="8" stroke="#78716c" stroke-width="1.5" fill="none"/>
+            <text x="160" y="86" fill="#78716c" font-size="6.5" font-family="'Outfit', sans-serif" font-weight="600" text-anchor="middle" letter-spacing="0.5">RFID / NFC PAY</text>
+
+            <!-- Barcode Scanner Window (Bottom) -->
+            <rect id="barcode-bezel" class="glowing-rect" x="100" y="380" width="120" height="40" rx="8" fill="#18181b" stroke="#27272a" stroke-width="1.5"/>
+            <line x1="110" y1="400" x2="210" y2="400" stroke="#7f1d1d" stroke-width="2" id="barcode-laser-line" style="opacity: 0.3;"/>
+            <text x="160" y="414" fill="#52525b" font-size="6.5" font-family="'Outfit', sans-serif" font-weight="600" text-anchor="middle">BARCODE SCANNER</text>
+
+            <!-- Decorative power LED -->
+            <circle id="power-led" cx="160" cy="455" r="4" fill="#27272a" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Right Column: System Status Details & Pin Map -->
+      <div class="dashboard-card">
+        <div class="card-title">
+          Connectivity & Hardware Status
+          <span id="pos-last-seen">Last Seen: Never</span>
+        </div>
+
+        <!-- Connection Stats widgets -->
+        <div class="status-widgets-grid">
+          <!-- Wifi status -->
+          <div class="widget">
+            <div class="widget-header">
+              <span>WIFI</span>
+              <div id="wifi-meter" class="wifi-signal-meter">
+                <div class="wifi-bar"></div>
+                <div class="wifi-bar"></div>
+                <div class="wifi-bar"></div>
+                <div class="wifi-bar"></div>
+              </div>
+            </div>
+            <div id="wifi-ssid" class="widget-val" style="font-size: 1.1rem; word-break: break-all;">Offline</div>
+            <div id="wifi-ip" style="font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">IP: Not Available</div>
+          </div>
+
+          <!-- Battery status -->
+          <div class="widget">
+            <div class="widget-header">
+              <span>BATTERY</span>
+              <svg id="battery-charging-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none; color: var(--warning);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            </div>
+            <div id="battery-pct" class="widget-val">--%</div>
+            <div class="battery-bar-container">
+              <div id="battery-bar-fill" class="battery-bar-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-Time latency sparklines -->
+        <div class="latency-grid">
+          <div class="latency-card">
+            <div class="latency-card-header">
+              <span>MQTT Ingestion</span>
+              <span id="mqtt-status-badge" style="color: var(--danger); font-size: 0.75rem; font-weight: 700;">OFFLINE</span>
+            </div>
+            <div id="mqtt-latency-val" class="latency-card-value">-- ms</div>
+            <svg class="latency-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none">
+              <path id="mqtt-spark-path" class="sparkline-path" stroke="var(--primary)" fill="none" d="M0 30 L 100 30"></path>
+            </svg>
+          </div>
+
+          <div class="latency-card">
+            <div class="latency-card-header">
+              <span>Oracle Database</span>
+              <span id="db-status-badge" style="color: var(--danger); font-size: 0.75rem; font-weight: 700;">OFFLINE</span>
+            </div>
+            <div id="db-latency-val" class="latency-card-value">-- ms</div>
+            <svg class="latency-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none">
+              <path id="db-spark-path" class="sparkline-path" stroke="var(--success)" fill="none" d="M0 30 L 100 30"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Hardware Pin Mapping & GPIO header map -->
+        <div class="gpio-section">
+          <div class="card-title" style="border-bottom: none; padding-bottom: 0;">GPIO Pinout Diagnostics</div>
+          
+          <div class="component-filters">
+            <button id="btn-tft" class="comp-btn active tft" onclick="selectComponent('tft')">TFT Display</button>
+            <button id="btn-pn532" class="comp-btn pn532" onclick="selectComponent('pn532')">PN532 RFID</button>
+            <button id="btn-barcode" class="comp-btn barcode" onclick="selectComponent('barcode')">Barcode Module</button>
+          </div>
+
+          <div class="gpio-board-card">
+            <div class="gpio-header-label">Arduino Uno Board Pinout Map</div>
+            <div class="pins-grid-wrapper">
+              <div id="gpio-pins-grid" class="gpio-grid">
+                <!-- Pins will be injected dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Highlighted Component Pin description table -->
+          <div class="pin-details-table-wrapper">
+            <table class="pin-table">
+              <thead>
+                <tr>
+                  <th>Pin No.</th>
+                  <th>Name</th>
+                  <th>Component Function</th>
+                  <th>Signal Status</th>
+                </tr>
+              </thead>
+              <tbody id="pin-table-body">
+                <!-- Table rows will be injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Smart-POS Real-Time Diagnostics Interface &bull; PFE Master IISE &bull; 2026
+    </footer>
+  </div>
+
+  <script>
+    // Pin definition database
+    const pinDefinitions = {
+      tft: [
+        { pin: "D13", name: "D13 (SCK)", role: "TFT & Touch Clock (SCK)", status: "Active" },
+        { pin: "D11", name: "D11 (MOSI)", role: "TFT & Touch Data In (SDI/MOSI)", status: "Active" },
+        { pin: "D12", name: "D12 (MISO)", role: "TFT & Touch Data Out (SDO/MISO)", status: "Active" },
+        { pin: "D10", name: "D10 (CS)", role: "TFT Chip Select (Active Low)", status: "Active" },
+        { pin: "D9", name: "D9 (DC/RS)", role: "TFT Data/Command Select", status: "Active" },
+        { pin: "D8", name: "D8 (RST)", role: "TFT Hardware Reset", status: "Active" },
+        { pin: "D7", name: "D7 (T_CS)", role: "Touch Screen Chip Select", status: "Active" },
+        { pin: "D2", name: "D2 (T_IRQ)", role: "Touch Screen Interrupt Request", status: "Active" },
+        { pin: "3.3V", name: "3.3V Power", role: "TFT Logic & Backlight (VCC/LED)", status: "Active" },
+        { pin: "GND", name: "Ground (GND)", role: "Common Ground", status: "Active" }
+      ],
+      pn532: [
+        { pin: "D6", name: "D6 (SCK)", role: "NFC SPI Clock", status: "Active" },
+        { pin: "D3", name: "D3 (MISO)", role: "NFC SPI Master Input (MISO)", status: "Active" },
+        { pin: "D5", name: "D5 (MOSI)", role: "NFC SPI Master Output (MOSI)", status: "Active" },
+        { pin: "A0", name: "A0 (SS/CS)", role: "NFC Chip Select (Active Low)", status: "Active" },
+        { pin: "5V", name: "5V Power", role: "NFC Logic Power (VCC)", status: "Active" },
+        { pin: "GND", name: "Ground (GND)", role: "Common Ground", status: "Active" }
+      ],
+      barcode: [
+        { pin: "A1", name: "A1 (TX)", role: "Scanner TX (MCU Bit-Bang RX)", status: "Active" },
+        { pin: "A2", name: "A2 (RX)", role: "Scanner RX (MCU Bit-Bang TX)", status: "Active" },
+        { pin: "5V", name: "5V Power", role: "Scanner Logic Power (VCC)", status: "Active" },
+        { pin: "GND", name: "Ground (GND)", role: "Common Ground", status: "Active" }
+      ]
+    };
+
+    const boardLayout = {
+      top: [
+        { id: "SCL", label: "SCL", type: "digital" },
+        { id: "SDA", label: "SDA", type: "digital" },
+        { id: "AREF", label: "AREF", type: "gnd" },
+        { id: "GND_D", label: "GND", type: "gnd" },
+        { id: "D13", label: "13", type: "digital" },
+        { id: "D12", label: "12", type: "digital" },
+        { id: "D11", label: "11", type: "digital" },
+        { id: "D10", label: "10", type: "digital" },
+        { id: "D9", label: "9", type: "digital" },
+        { id: "D8", label: "8", type: "digital" },
+        { id: "D7", label: "7", type: "digital" },
+        { id: "D6", label: "6", type: "digital" },
+        { id: "D5", label: "5", type: "digital" },
+        { id: "D4", label: "4", type: "digital" },
+        { id: "D3", label: "3", type: "digital" },
+        { id: "D2", label: "2", type: "digital" },
+        { id: "D1", label: "1/TX", type: "digital" },
+        { id: "D0", label: "0/RX", type: "digital" }
+      ],
+      bottom: [
+        { id: "IOREF", label: "IOREF", type: "power" },
+        { id: "RESET", label: "RESET", type: "power" },
+        { id: "3.3V", label: "3.3V", type: "vcc-3v" },
+        { id: "5V", label: "5V", type: "vcc-5v" },
+        { id: "GND_P1", label: "GND", type: "gnd" },
+        { id: "GND_P2", label: "GND", type: "gnd" },
+        { id: "VIN", label: "VIN", type: "power" },
+        { id: "A0", label: "A0", type: "analog" },
+        { id: "A1", label: "A1", type: "analog" },
+        { id: "A2", label: "A2", type: "analog" },
+        { id: "A3", label: "A3", type: "analog" },
+        { id: "A4", label: "A4", type: "analog" },
+        { id: "A5", label: "A5", type: "analog" },
+        { id: "NC1", label: "NC", type: "nc" },
+        { id: "NC2", label: "NC", type: "nc" },
+        { id: "NC3", label: "NC", type: "nc" },
+        { id: "NC4", label: "NC", type: "nc" },
+        { id: "NC5", label: "NC", type: "nc" }
+      ]
+    };
+
+    let currentComponent = 'tft';
+    let mqttLatencyHistory = Array(20).fill(30);
+    let dbLatencyHistory = Array(20).fill(15);
+
+    // Initialize Arduino Uno layout
+    function initGpioGrid() {
+      const grid = document.getElementById('gpio-pins-grid');
+      grid.innerHTML = '';
+      
+      const renderRowPins = (pinArray) => {
+        pinArray.forEach(p => {
+          const slot = document.createElement('div');
+          slot.className = 'pin-slot';
+          
+          const circle = document.createElement('div');
+          circle.id = `pin-circle-${p.id}`;
+          circle.className = 'pin-circle';
+          
+          // Classify default pins
+          if (p.type === 'gnd') circle.classList.add('gnd');
+          else if (p.type === 'vcc-5v') circle.classList.add('vcc-5v');
+          else if (p.type === 'vcc-3v') circle.classList.add('vcc-3v');
+          else if (p.type === 'nc') {
+            circle.style.background = '#18181b';
+            circle.style.borderColor = 'rgba(255,255,255,0.05)';
+            circle.style.cursor = 'default';
+          }
+          
+          // Tooltip
+          const tooltip = document.createElement('div');
+          tooltip.className = 'pin-tooltip';
+          tooltip.innerText = `${p.label}: ${getPinDefaultLabel(p.id)}`;
+          
+          const num = document.createElement('span');
+          num.className = 'pin-num';
+          num.innerText = p.label;
+          
+          slot.appendChild(tooltip);
+          slot.appendChild(circle);
+          slot.appendChild(num);
+          grid.appendChild(slot);
+        });
+      };
+      
+      renderRowPins(boardLayout.top);
+      renderRowPins(boardLayout.bottom);
+    }
+
+    function getPinDefaultLabel(pinId) {
+      if (pinId.startsWith("NC")) return "Not Connected";
+      if (pinId === "GND_D" || pinId === "GND_P1" || pinId === "GND_P2") return "Ground (GND)";
+      if (pinId === "5V") return "5V Power Output";
+      if (pinId === "3.3V") return "3.3V Power Output";
+      if (pinId === "RESET") return "Reset Pin";
+      if (pinId === "AREF") return "Analog Reference";
+      if (pinId === "IOREF") return "IO Reference Voltage";
+      if (pinId === "VIN") return "Voltage Input (VIN)";
+      
+      // Check if it belongs to components
+      for (const key in pinDefinitions) {
+        const found = pinDefinitions[key].find(p => p.pin === pinId);
+        if (found) return `${key.toUpperCase()}: ${found.role}`;
+      }
+      
+      if (pinId === "D4") return "Buzzer Command (Pin 4)";
+      
+      return `Arduino Pin ${pinId}`;
+    }
+
+    // Filter Component Selection
+    function selectComponent(comp) {
+      currentComponent = comp;
+      
+      // Update filter buttons
+      document.querySelectorAll('.comp-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`btn-${comp}`).classList.add('active');
+      
+      // Redraw GPIO highlighting
+      updateGpioHighlighting();
+      // Update table
+      updatePinTable();
+    }
+
+    function updateGpioHighlighting() {
+      // Clear previous active classes
+      const allPins = [...boardLayout.top, ...boardLayout.bottom];
+      allPins.forEach(p => {
+        const pinCircle = document.getElementById(`pin-circle-${p.id}`);
+        if (pinCircle) {
+          pinCircle.classList.remove('tft-active', 'pn532-active', 'barcode-active');
+        }
+      });
+      
+      // Add active class for current component
+      const activePins = pinDefinitions[currentComponent];
+      activePins.forEach(p => {
+        const targetIds = [];
+        if (p.pin === "GND") {
+          targetIds.push("GND_D", "GND_P1", "GND_P2");
+        } else if (p.pin === "5V") {
+          targetIds.push("5V");
+        } else if (p.pin === "3.3V") {
+          targetIds.push("3.3V");
+        } else {
+          targetIds.push(p.pin);
+        }
+        
+        targetIds.forEach(id => {
+          const pinCircle = document.getElementById(`pin-circle-${id}`);
+          if (pinCircle) {
+            pinCircle.classList.add(`${currentComponent}-active`);
+          }
+        });
+      });
+    }
+
+    function updatePinTable() {
+      const tbody = document.getElementById('pin-table-body');
+      tbody.innerHTML = '';
+      
+      const isDeviceOnline = document.getElementById('pos-status-text').innerText === 'ONLINE';
+      const activePins = pinDefinitions[currentComponent];
+      
+      activePins.forEach(p => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #fff;">Pin ${p.pin}</td>
+          <td>${p.name}</td>
+          <td><span class="badge ${currentComponent}-badge">${currentComponent.toUpperCase()}</span> ${p.role}</td>
+          <td style="color: ${isDeviceOnline ? 'var(--success)' : 'var(--text-muted)'}; font-family: 'JetBrains Mono', monospace;">
+            ${isDeviceOnline ? '● HIGH (1)' : '○ LOW (0)'}
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Sparklines updater helper
+    function updateSparkline(pathId, history, isOnline) {
+      const path = document.getElementById(pathId);
+      if (!isOnline) {
+        path.setAttribute('d', 'M0 30 L 100 30');
+        return;
+      }
+      const maxVal = Math.max(...history, 50);
+      const points = history.map((val, idx) => {
+        const x = (idx / (history.length - 1)) * 100;
+        const y = 30 - (val / maxVal) * 26 - 2;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' L ');
+      
+      path.setAttribute('d', `M ${points}`);
+    }
+
+    // Fetch dynamic state from Flask Endpoint
+    async function updateStatus() {
+      try {
+        const res = await fetch('/api/pos/status');
+        if (res.ok) {
+          const status = await res.json();
+          renderDashboardState(status);
+        } else {
+          renderOfflineState();
+        }
+      } catch (err) {
+        renderOfflineState();
+      }
+    }
+
+    function renderDashboardState(data) {
+      const isOnline = data.status === 'Online';
+      
+      // Status Dot
+      const dot = document.getElementById('pos-status-dot');
+      const txt = document.getElementById('pos-status-text');
+      
+      if (isOnline) {
+        dot.className = 'status-dot online';
+        txt.innerText = 'ONLINE';
+        txt.style.color = 'var(--success)';
+        
+        // Power LED glow
+        document.getElementById('power-led').setAttribute('fill', '#10b981');
+        document.getElementById('power-led').style.filter = 'drop-shadow(0px 0px 4px var(--success))';
+      } else {
+        renderOfflineState();
+        return;
+      }
+      
+      // Last Seen
+      if (data.last_ping) {
+        const timeStr = new Date(data.last_ping).toLocaleTimeString('fr-FR');
+        document.getElementById('pos-last-seen').innerText = `Last Ping: ${timeStr}`;
+      }
+      
+      // Wifi SSID & Signal
+      const wifiLabel = document.getElementById('wifi-ssid');
+      const wifiIp = document.getElementById('wifi-ip');
+      if (data.wifi === 'connected' || data.wifi === 'Connected') {
+        wifiLabel.innerText = data.wifi_ssid || 'Secure_WiFi';
+        wifiIp.innerText = `IP: ${data.wifi_ip || '172.22.32.100'}`;
+        wifiLabel.style.color = '#fff';
+        
+        // Wifi signal visual bars
+        const rssi = data.wifi_signal || -50;
+        let activeBars = 1;
+        if (rssi > -60) activeBars = 4;
+        else if (rssi > -70) activeBars = 3;
+        else if (rssi > -80) activeBars = 2;
+        
+        const bars = document.querySelectorAll('.wifi-bar');
+        bars.forEach((bar, idx) => {
+          if (idx < activeBars) {
+            bar.style.background = 'var(--success)';
+          } else {
+            bar.style.background = 'rgba(255,255,255,0.2)';
+          }
+        });
+      } else {
+        wifiLabel.innerText = 'Disconnected';
+        wifiLabel.style.color = 'var(--text-muted)';
+        wifiIp.innerText = 'IP: Not Connected';
+        document.querySelectorAll('.wifi-bar').forEach(b => b.style.background = 'rgba(255,255,255,0.2)');
+      }
+      
+      // Battery
+      const batPct = document.getElementById('battery-pct');
+      const batFill = document.getElementById('battery-bar-fill');
+      const batteryVal = data.battery || 100;
+      batPct.innerText = `${batteryVal}%`;
+      batPct.style.color = '#fff';
+      
+      batFill.style.width = `${batteryVal}%`;
+      if (batteryVal < 20) {
+        batFill.style.background = 'var(--danger)';
+      } else if (batteryVal < 50) {
+        batFill.style.background = 'var(--warning)';
+      } else {
+        batFill.style.background = 'var(--success)';
+      }
+      
+      const chargingIcon = document.getElementById('battery-charging-icon');
+      if (data.battery_charging) {
+        chargingIcon.style.display = 'block';
+        batFill.classList.add('charging');
+      } else {
+        chargingIcon.style.display = 'none';
+        batFill.classList.remove('charging');
+      }
+      
+      // MQTT Latency
+      const mqttBadge = document.getElementById('mqtt-status-badge');
+      const mqttLabel = document.getElementById('mqtt-latency-val');
+      if (data.mqtt_broker === 'connected' || data.mqtt_broker === 'Connected') {
+        mqttBadge.innerText = 'STABLE';
+        mqttBadge.style.color = 'var(--success)';
+        const latency = data.mqtt_latency_ms || Math.floor(20 + Math.random() * 15);
+        mqttLabel.innerText = `${latency} ms`;
+        mqttLabel.style.color = '#fff';
+        
+        mqttLatencyHistory.push(latency);
+        mqttLatencyHistory.shift();
+      } else {
+        mqttBadge.innerText = 'OFFLINE';
+        mqttBadge.style.color = 'var(--danger)';
+        mqttLabel.innerText = 'disconnected';
+        mqttLabel.style.color = 'var(--text-muted)';
+      }
+      updateSparkline('mqtt-spark-path', mqttLatencyHistory, data.mqtt_broker === 'connected' || data.mqtt_broker === 'Connected');
+      
+      // Database Latency
+      const dbBadge = document.getElementById('db-status-badge');
+      const dbLabel = document.getElementById('db-latency-val');
+      if (data.database === 'connected' || data.database === 'Connected') {
+        dbBadge.innerText = 'STABLE';
+        dbBadge.style.color = 'var(--success)';
+        const latency = data.database_latency_ms || Math.floor(10 + Math.random() * 8);
+        dbLabel.innerText = `${latency} ms`;
+        dbLabel.style.color = '#fff';
+        
+        dbLatencyHistory.push(latency);
+        dbLatencyHistory.shift();
+      } else {
+        dbBadge.innerText = 'OFFLINE';
+        dbBadge.style.color = 'var(--danger)';
+        dbLabel.innerText = 'disconnected';
+        dbLabel.style.color = 'var(--text-muted)';
+      }
+      updateSparkline('db-spark-path', dbLatencyHistory, data.database === 'connected' || data.database === 'Connected');
+      
+      // Hardware Active Highlights in Terminal
+      const tftScreen = document.getElementById('tft-screen-display');
+      const pn532Bezel = document.getElementById('pn532-bezel');
+      const barcodeBezel = document.getElementById('barcode-bezel');
+      const barcodeLaser = document.getElementById('barcode-laser-line');
+      
+      if (data.tft_status === 'active' || data.tft_status === 'Active') {
+        tftScreen.classList.add('active-glow-blue');
+        tftScreen.setAttribute('fill', '#1e1b4b');
+        // Render screen content
+        renderScreenGraphics(data);
+      } else {
+        tftScreen.classList.remove('active-glow-blue');
+        tftScreen.setAttribute('fill', '#000');
+        renderOfflineScreen();
+      }
+      
+      if (data.pn532_status === 'active' || data.pn532_status === 'Active') {
+        pn532Bezel.classList.add('active-glow-amber');
+        pn532Bezel.setAttribute('stroke', 'var(--warning)');
+      } else {
+        pn532Bezel.classList.remove('active-glow-amber');
+        pn532Bezel.setAttribute('stroke', '#44403c');
+      }
+      
+      if (data.barcode_status === 'active' || data.barcode_status === 'Active') {
+        barcodeBezel.classList.add('active-glow');
+        barcodeBezel.setAttribute('stroke', 'var(--success)');
+        barcodeLaser.style.opacity = '1';
+        barcodeLaser.setAttribute('stroke', '#ef4444');
+      } else {
+        barcodeBezel.classList.remove('active-glow');
+        barcodeBezel.setAttribute('stroke', '#27272a');
+        barcodeLaser.style.opacity = '0.3';
+        barcodeLaser.setAttribute('stroke', '#7f1d1d');
+      }
+      
+      // Update pins details table
+      updatePinTable();
+    }
+
+    function renderScreenGraphics(data) {
+      const g = document.getElementById('screen-graphics');
+      g.innerHTML = '';
+      
+      // Draw simulated TFT display interface (premium dark-indigo theme)
+      let screenState = data.screen_state || 'WAITING';
+      let amountStr = data.screen_amount || '0.00 DH';
+      
+      if (screenState === 'WAITING') {
+        g.innerHTML = `
+          <!-- Scanning icon -->
+          <circle cx="160" cy="200" r="28" stroke="var(--primary)" stroke-width="2.5" fill="none" opacity="0.3"/>
+          <circle cx="160" cy="200" r="20" stroke="var(--primary)" stroke-width="2.5" fill="none" />
+          <path d="M150 200 L170 200 M160 190 L160 210" stroke="var(--primary)" stroke-width="3" stroke-linecap="round"/>
+          
+          <text x="160" y="260" fill="#fff" font-size="11" font-family="'Outfit', sans-serif" font-weight="600" text-anchor="middle">AWAITING SCAN...</text>
+          <text x="160" y="280" fill="var(--text-muted)" font-size="8.5" font-family="'JetBrains Mono', monospace" text-anchor="middle">Present Barcode</text>
+        `;
+      } else if (screenState === 'PROCESSING') {
+        g.innerHTML = `
+          <circle cx="160" cy="200" r="24" stroke="var(--warning)" stroke-width="3" stroke-dasharray="10 5" fill="none" class="animate-spin" style="transform-origin: 160px 200px; animation: spin 2s linear infinite;"/>
+          
+          <text x="160" y="255" fill="#fff" font-size="11" font-family="'Outfit', sans-serif" font-weight="600" text-anchor="middle">PAYMENT DETECTED</text>
+          <text x="160" y="275" fill="var(--warning)" font-size="12" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">${amountStr}</text>
+          <text x="160" y="295" fill="var(--text-muted)" font-size="8" font-family="'Outfit', sans-serif" text-anchor="middle">Authenticating card...</text>
+        `;
+      } else if (screenState === 'SUCCESS') {
+        g.innerHTML = `
+          <!-- Checked circular icon -->
+          <circle cx="160" cy="190" r="24" fill="rgba(16,185,129,0.15)" stroke="var(--success)" stroke-width="2.5"/>
+          <path d="M150 190 L157 197 L172 182" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          
+          <text x="160" y="245" fill="#fff" font-size="12" font-family="'Outfit', sans-serif" font-weight="600" text-anchor="middle">PAYMENT SUCCESS</text>
+          <text x="160" y="268" fill="var(--success)" font-size="14" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">${amountStr}</text>
+          <text x="160" y="292" fill="#71717a" font-size="8.5" font-family="'JetBrains Mono', monospace" text-anchor="middle">Ref: #${data.last_transaction_id || 'CRD-SUCCESS'}</text>
+          <text x="160" y="308" fill="#71717a" font-size="8" font-family="'Outfit', sans-serif" text-anchor="middle">Terminal sync'd via Kafka</text>
+        `;
+      } else if (screenState === 'SOLDE_INSUFISANT') {
+        g.innerHTML = `
+          <circle cx="160" cy="190" r="24" fill="rgba(239,68,68,0.15)" stroke="var(--danger)" stroke-width="2.5"/>
+          <path d="M150 180 L170 200 M170 180 L150 200" stroke="var(--danger)" stroke-width="3" stroke-linecap="round" fill="none"/>
+          
+          <text x="160" y="245" fill="var(--danger)" font-size="11" font-family="'Outfit', sans-serif" font-weight="700" text-anchor="middle">SOLDE INSUFFISANT</text>
+          <text x="160" y="270" fill="#fff" font-size="9" font-family="'Outfit', sans-serif" text-anchor="middle">Solde disponible trop bas</text>
+          <text x="160" y="290" fill="var(--text-muted)" font-size="8" font-family="'JetBrains Mono', monospace" text-anchor="middle">Transaction annulée</text>
+        `;
+      } else {
+        // Simple screen state
+        g.innerHTML = `
+          <text x="160" y="210" fill="#fff" font-size="13" font-family="'Outfit', sans-serif" font-weight="600" text-anchor="middle">${screenState}</text>
+          <text x="160" y="240" fill="var(--primary)" font-size="11" font-family="'JetBrains Mono', monospace" text-anchor="middle">${amountStr}</text>
+        `;
+      }
+    }
+
+    function renderOfflineState() {
+      // Set dot to offline
+      const dot = document.getElementById('pos-status-dot');
+      dot.className = 'status-dot';
+      
+      const txt = document.getElementById('pos-status-text');
+      txt.innerText = 'OFFLINE';
+      txt.style.color = 'var(--danger)';
+      
+      // Led to offline
+      document.getElementById('power-led').setAttribute('fill', '#27272a');
+      document.getElementById('power-led').style.filter = 'none';
+      
+      // Wifi, Battery, Latencies to default offline
+      document.getElementById('wifi-ssid').innerText = 'Offline';
+      document.getElementById('wifi-ssid').style.color = 'var(--text-muted)';
+      document.getElementById('wifi-ip').innerText = 'IP: Not Available';
+      document.querySelectorAll('.wifi-bar').forEach(b => b.style.background = 'rgba(255,255,255,0.2)');
+      
+      document.getElementById('battery-pct').innerText = '--%';
+      document.getElementById('battery-pct').style.color = 'var(--text-muted)';
+      document.getElementById('battery-bar-fill').style.width = '0%';
+      document.getElementById('battery-charging-icon').style.display = 'none';
+      
+      document.getElementById('mqtt-status-badge').innerText = 'OFFLINE';
+      document.getElementById('mqtt-status-badge').style.color = 'var(--danger)';
+      document.getElementById('mqtt-latency-val').innerText = '-- ms';
+      document.getElementById('mqtt-latency-val').style.color = 'var(--text-muted)';
+      updateSparkline('mqtt-spark-path', mqttLatencyHistory, false);
+      
+      document.getElementById('db-status-badge').innerText = 'OFFLINE';
+      document.getElementById('db-status-badge').style.color = 'var(--danger)';
+      document.getElementById('db-latency-val').innerText = '-- ms';
+      document.getElementById('db-latency-val').style.color = 'var(--text-muted)';
+      updateSparkline('db-spark-path', dbLatencyHistory, false);
+      
+      // Device SVGs to offline
+      document.getElementById('pn532-bezel').classList.remove('active-glow-amber');
+      document.getElementById('pn532-bezel').setAttribute('stroke', '#44403c');
+      document.getElementById('barcode-bezel').classList.remove('active-glow');
+      document.getElementById('barcode-bezel').setAttribute('stroke', '#27272a');
+      document.getElementById('barcode-laser-line').style.opacity = '0.3';
+      document.getElementById('barcode-laser-line').setAttribute('stroke', '#7f1d1d');
+      
+      const tftScreen = document.getElementById('tft-screen-display');
+      tftScreen.classList.remove('active-glow-blue');
+      tftScreen.setAttribute('fill', '#000');
+      
+      renderOfflineScreen();
+      updatePinTable();
+    }
+
+    function renderOfflineScreen() {
+      const g = document.getElementById('screen-graphics');
+      g.innerHTML = `
+        <text x="160" y="200" fill="#71717a" font-size="12" font-family="'JetBrains Mono', monospace" text-anchor="middle">DEVICE OFFLINE</text>
+        <text x="160" y="230" fill="#3f3f46" font-size="9" font-family="'JetBrains Mono', monospace" text-anchor="middle">Awaiting heartbeat...</text>
+      `;
+    }
+
+        // Dynamic rotation animations rules for CSS
+    (function() {
+        const style = document.createElement('style');
+        style.type = 'text/css';
+        style.appendChild(document.createTextNode(`
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `));
+        document.head.appendChild(style);
+    })();
+
+    // Initial setup
+    window.onload = () => {
+      initGpioGrid();
+      selectComponent('tft');
+      
+      // Update loop
+      updateStatus();
+      setInterval(updateStatus, 2000);
+    };
+  </script>
+</body>
+</html>

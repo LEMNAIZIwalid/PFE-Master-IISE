@@ -30,6 +30,22 @@ const renderCardGraph = (history: number[], strokeColor: string, gradId: string)
   );
 };
 
+const getNormalizedOp = (event: any) => {
+  if (!event) return '';
+  const op = event.OPERATION;
+  const src = event.SOURCE;
+  if (op === 'Virement' || op === 'virement' || op === 'Transfer' || op === 'TRANSFER') {
+    return src === 'Mobile_App' ? 'Virement' : 'Update';
+  }
+  if (op === 'Paiement' || op === 'paiement' || op === 'Payment' || op === 'payment') {
+    return 'Paiement';
+  }
+  if (op?.toUpperCase() === 'DELETE') {
+    return 'DELETE';
+  }
+  return op;
+};
+
 const EXTDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [settingsExpanded, setSettingsExpanded] = useState(false);
@@ -162,11 +178,17 @@ const EXTDashboard: React.FC = () => {
 
   const maskPAN = (pan: string) => {
     if (!pan) return '';
+    const cleanPan = pan.replace(/\s+/g, '').replace(/-/g, '');
+    if (cleanPan.length >= 12) {
+      const first4 = cleanPan.substring(0, 4);
+      const last4 = cleanPan.substring(cleanPan.length - 4);
+      return `${first4} •••• •••• ${last4}`;
+    }
     const parts = pan.split('-');
     if (parts.length === 4) {
-      return `${parts[0]}-${parts[1]}-xxxx-xxxx`;
+      return `${parts[0]} •••• •••• ${parts[3]}`;
     }
-    return pan.substring(0, 9) + 'xxxx-xxxx';
+    return pan;
   };
 
   // Modal State
@@ -515,7 +537,7 @@ const EXTDashboard: React.FC = () => {
                 {
                   id: 'Update',
                   label: 'Updated Cards',
-                  count: cards.filter(c => c.OPERATION === 'Update').length,
+                  count: cards.filter(c => c.OPERATION === 'Update' || c.OPERATION?.toLowerCase().includes('paiement') || c.OPERATION?.toLowerCase().includes('payment')).length,
                   icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"></path><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"></polygon></svg>,
                   color: 'amber'
                 },
@@ -564,33 +586,45 @@ const EXTDashboard: React.FC = () => {
                       <tr><td colSpan={7} className="empty-cell">No records found in External System</td></tr>
                     ) : (
                       cards
-                        .filter(card => operationFilter === 'All' || card.OPERATION === operationFilter)
+                        .filter(card => {
+                          if (operationFilter === 'All') return true;
+                          const op = card.OPERATION?.toLowerCase() ?? '';
+                          if (operationFilter === 'Update') {
+                            return op === 'update' || op.includes('paiement') || op.includes('payment');
+                          }
+                          return card.OPERATION === operationFilter;
+                        })
                         .filter(card =>
                           card.ID_CARD.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          card.PAN.toLowerCase().includes(searchTerm.toLowerCase())
+                          card.PAN.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (card.OPERATION?.toLowerCase().includes('paiement') ? 'update' : card.OPERATION.toLowerCase()).includes(searchTerm.toLowerCase())
                         )
-                        .filter(card => !(card.OPERATION?.toLowerCase().includes('paiement') || card.OPERATION?.toLowerCase().includes('payment')))
-                        .map((card, idx) => (
-                          <tr key={idx} onClick={() => handleCardClick(card)} className="clickable-row" style={{ animationDelay: `${idx * 0.05}s`, opacity: 0 }}>
-                            <td className="bold">{card.ID_CARD}</td>
-                            <td className="mono">{card.PAN}</td>
-                            <td>{card.F_NAME} {card.L_NAME}</td>
-                            <td>
-                              <span className={`op-badge op-${(card.OPERATION ?? '').toLowerCase()}`}>
-                                {card.OPERATION ?? 'N/A'}
-                              </span>
-                            </td>
-                            <td className="amount">{parseFloat(card.AMOUNT).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</td>
-                            <td>
-                              <span className={`status-pill ${card.STATUS?.toLowerCase()}`}>
-                                {card.STATUS}
-                              </span>
-                            </td>
-                            <td className="date-cell">
-                              {card.TIMESTMP ? new Date(card.TIMESTMP).toLocaleDateString() : 'N/A'}
-                            </td>
-                          </tr>
-                        ))
+                        .map((card, idx) => {
+                          const displayOp = (card.OPERATION?.toLowerCase().includes('paiement') || card.OPERATION?.toLowerCase().includes('payment'))
+                            ? 'Update'
+                            : (card.OPERATION ?? 'N/A');
+                          return (
+                            <tr key={idx} onClick={() => handleCardClick(card)} className="clickable-row" style={{ animationDelay: `${idx * 0.05}s`, opacity: 0 }}>
+                              <td className="bold">{card.ID_CARD}</td>
+                              <td className="mono">{maskPAN(card.PAN)}</td>
+                              <td>{card.F_NAME} {card.L_NAME}</td>
+                              <td>
+                                <span className={`op-badge op-${displayOp.toLowerCase()}`}>
+                                  {displayOp}
+                                </span>
+                              </td>
+                              <td className="amount">{parseFloat(card.AMOUNT).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €</td>
+                              <td>
+                                <span className={`status-pill ${card.STATUS?.toLowerCase()}`}>
+                                  {card.STATUS}
+                                </span>
+                              </td>
+                              <td className="date-cell">
+                                {card.TIMESTMP ? new Date(card.TIMESTMP).toLocaleDateString() : 'N/A'}
+                              </td>
+                            </tr>
+                          );
+                        })
                     )}
                   </tbody>
                 </table>
@@ -643,7 +677,7 @@ const EXTDashboard: React.FC = () => {
                       </div>
                       <div className="modal-info-row">
                         <span className="modal-info-key">PAN Number</span>
-                        <span className="modal-info-val mono">{selectedCard.PAN}</span>
+                        <span className="modal-info-val mono">{maskPAN(selectedCard.PAN)}</span>
                       </div>
                       <div className="modal-info-row">
                         <span className="modal-info-key">Source</span>
@@ -675,9 +709,9 @@ const EXTDashboard: React.FC = () => {
                       <div className="modal-section-tag">SYSTEM</div>
                       <div className="modal-info-row">
                         <span className="modal-info-key">Operation</span>
-                        <span className={`op-badge op-${(selectedCard.OPERATION ?? '').toLowerCase()}`}>
+                        <span className={`op-badge op-${((selectedCard.OPERATION?.toLowerCase().includes('paiement') || selectedCard.OPERATION?.toLowerCase().includes('payment')) ? 'update' : (selectedCard.OPERATION ?? '')).toLowerCase()}`}>
                           {String(selectedCard.OPERATION ?? 'N/A').toLowerCase() === 'create' ? 'Create' :
-                            String(selectedCard.OPERATION ?? 'N/A').toLowerCase() === 'update' ? 'Update' :
+                            (String(selectedCard.OPERATION ?? 'N/A').toLowerCase() === 'update' || String(selectedCard.OPERATION ?? 'N/A').toLowerCase().includes('paiement')) ? 'Update' :
                               String(selectedCard.OPERATION ?? 'N/A').toLowerCase() === 'delete' ? 'Delete' :
                                 selectedCard.OPERATION ?? 'N/A'}
                         </span>
@@ -987,7 +1021,14 @@ const EXTDashboard: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                <span className="feed-count">{externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && (supervisorOperationFilter === 'All' || e.OPERATION === supervisorOperationFilter)).length} Logs</span>
+                 <span className="feed-count">
+                  {externalEvents.filter(e => {
+                    const matchSource = supervisorFilter === 'All' || e.SOURCE === supervisorFilter;
+                    if (!matchSource) return false;
+                    if (supervisorOperationFilter === 'All') return true;
+                    return getNormalizedOp(e) === supervisorOperationFilter;
+                  }).length} Logs
+                </span>
               </div>
 
               {/* Operations Overview Donut Chart */}
@@ -1001,16 +1042,20 @@ const EXTDashboard: React.FC = () => {
                       {(() => {
                         const filtered = externalEvents.filter(e => supervisorFilter === 'All' || e.SOURCE === supervisorFilter);
                         const total = filtered.length || 1;
-                        const cCount = filtered.filter(e => e.OPERATION === 'Create').length;
-                        const uCount = filtered.filter(e => e.OPERATION === 'Update').length;
-                        const dCount = filtered.filter(e => e.OPERATION === 'DELETE').length;
+                        const cCount = filtered.filter(e => getNormalizedOp(e) === 'Create').length;
+                        const uCount = filtered.filter(e => getNormalizedOp(e) === 'Update').length;
+                        const dCount = filtered.filter(e => getNormalizedOp(e) === 'DELETE').length;
+                        const vCount = filtered.filter(e => getNormalizedOp(e) === 'Virement').length;
+                        const pCount = filtered.filter(e => getNormalizedOp(e) === 'Paiement').length;
 
                         const circumference = 2 * Math.PI * 40; // 251.32
 
-                        // Segments (Green, Amber, Rose)
+                        // Segments (Green, Amber, Rose, Gray, Blue)
                         const cDash = (cCount / total) * circumference;
                         const uDash = (uCount / total) * circumference;
                         const dDash = (dCount / total) * circumference;
+                        const vDash = (vCount / total) * circumference;
+                        const pDash = (pCount / total) * circumference;
 
                         return (
                           <>
@@ -1038,6 +1083,22 @@ const EXTDashboard: React.FC = () => {
                               transform="rotate(-90 50 50)"
                               strokeLinecap={dCount === total ? 'butt' : 'round'}
                             />
+                            {/* Virement Segment (Gray) */}
+                            <circle
+                              cx="50" cy="50" r="40" fill="transparent" stroke="#4b5563" strokeWidth="12"
+                              strokeDasharray={`${vDash} ${circumference - vDash}`}
+                              strokeDashoffset={-(cDash + uDash + dDash)}
+                              transform="rotate(-90 50 50)"
+                              strokeLinecap={vCount === total ? 'butt' : 'round'}
+                            />
+                            {/* Paiement Segment (Blue) */}
+                            <circle
+                              cx="50" cy="50" r="40" fill="transparent" stroke="#3b82f6" strokeWidth="12"
+                              strokeDasharray={`${pDash} ${circumference - pDash}`}
+                              strokeDashoffset={-(cDash + uDash + dDash + vDash)}
+                              transform="rotate(-90 50 50)"
+                              strokeLinecap={pCount === total ? 'butt' : 'round'}
+                            />
                             <text x="50" y="55" textAnchor="middle" className="donut-center-text">{filtered.length}</text>
                           </>
                         );
@@ -1048,9 +1109,11 @@ const EXTDashboard: React.FC = () => {
                   <div className="ops-legend">
                     {[
                       { id: 'All', label: 'All', color: '#94a3b8', count: externalEvents.filter(e => supervisorFilter === 'All' || e.SOURCE === supervisorFilter).length },
-                      { id: 'Create', label: 'Create', color: '#10b981', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && e.OPERATION === 'Create').length },
-                      { id: 'Update', label: 'Update', color: '#f59e0b', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && e.OPERATION === 'Update').length },
-                      { id: 'DELETE', label: 'Delete', color: '#ef4444', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && e.OPERATION === 'DELETE').length }
+                      { id: 'Create', label: 'Create', color: '#10b981', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && getNormalizedOp(e) === 'Create').length },
+                      { id: 'Update', label: 'Update', color: '#f59e0b', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && getNormalizedOp(e) === 'Update').length },
+                      { id: 'DELETE', label: 'Delete', color: '#ef4444', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && getNormalizedOp(e) === 'DELETE').length },
+                      { id: 'Virement', label: 'Virement', color: '#4b5563', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && getNormalizedOp(e) === 'Virement').length },
+                      { id: 'Paiement', label: 'Paiement', color: '#3b82f6', count: externalEvents.filter(e => (supervisorFilter === 'All' || e.SOURCE === supervisorFilter) && getNormalizedOp(e) === 'Paiement').length }
                     ].map(item => (
                       <div
                         key={item.id}
@@ -1073,79 +1136,104 @@ const EXTDashboard: React.FC = () => {
                 <div className="audit-feed">
                   {externalEvents
                     .filter(event => supervisorFilter === 'All' || event.SOURCE === supervisorFilter)
-                    .filter(event => supervisorOperationFilter === 'All' || event.OPERATION === supervisorOperationFilter)
+                    .filter(event => {
+                      if (supervisorOperationFilter === 'All') return true;
+                      return getNormalizedOp(event) === supervisorOperationFilter;
+                    })
                     .filter(event =>
                       event.ID_CARD?.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
                       event.F_NAME?.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
                       event.L_NAME?.toLowerCase().includes(supervisorSearchTerm.toLowerCase()) ||
                       event.PAN?.toLowerCase().includes(supervisorSearchTerm.toLowerCase())
                     )
-                    .map((event, idx) => (
-                      <div
-                        key={idx}
-                        className="audit-log-card animate-slide-up clickable"
-                        style={{ animationDelay: `${idx * 0.08}s` }}
-                        onClick={() => handleAuditClick(event)}
-                      >
-                        <div className="log-indicator-side">
-                          <div
-                            className={`log-dot ${event.OPERATION?.toLowerCase().includes('delete')
-                              ? 'op-deleted'
-                              : event.OPERATION?.toLowerCase().includes('update')
-                                ? 'op-updated'
-                                : 'op-created'
+                    .map((event, idx) => {
+                      const normalizedOp = getNormalizedOp(event);
+                      return (
+                        <div
+                          key={idx}
+                          className="audit-log-card animate-slide-up clickable"
+                          style={{ animationDelay: `${idx * 0.08}s` }}
+                          onClick={() => handleAuditClick(event)}
+                        >
+                          <div className="log-indicator-side">
+                            <div
+                              className={`log-dot ${
+                                normalizedOp === 'DELETE'
+                                  ? 'op-deleted'
+                                  : normalizedOp === 'Update'
+                                    ? 'op-updated'
+                                    : normalizedOp === 'Create'
+                                      ? 'op-created'
+                                      : normalizedOp === 'Virement'
+                                        ? 'op-virement'
+                                        : normalizedOp === 'Paiement'
+                                          ? 'op-paiement'
+                                          : 'op-other'
                               }`}
-                          ></div>
-                          <div className="log-line"></div>
-                        </div>
-
-                        <div className="log-body">
-                          <div className="log-message">
-                            {event.SOURCE === 'PWC_System' ? (
-                              <>
-                                The administrator <span className="pwc-tag">PWC Admin</span>
-                                <span
-                                  className={`action-word ${event.OPERATION?.toLowerCase().includes('delete') ? 'deleted' : event.OPERATION?.toLowerCase().includes('update') ? 'updated' : 'created'}`}
-                                >
-                                  <span> </span>
-                                  {event.OPERATION?.toLowerCase().includes('delete') ? 'Deleted' : 'Updated'}
-                                </span>
-                                <span> </span> the card: <span className="card-ref bold-black">#{event.ID_CARD}</span>
-
-                                <span className="change-details">
-                                  via <span className="pwc-tag">PWC System</span>
-                                  [Limits: {event.POS_LIMIT}€ / {event.ATM_LIMIT}€ | Status: {event.STATUS}]
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                The <span className="ext-tag">External</span> system
-                                <span
-                                  className={`action-word ${event.OPERATION?.toLowerCase().includes('delete') ? 'deleted' : event.OPERATION?.toLowerCase().includes('update') ? 'updated' : 'created'}`}
-                                >
-                                  <span> </span>
-                                  {event.OPERATION?.toLowerCase().includes('delete') ? 'Deleted' : event.OPERATION === 'Create' ? 'Created' : 'Updated'}
-                                </span>
-                                <span> </span> the card: <span className="card-ref bold-black">#{event.ID_CARD}</span>
-
-                                <span className="change-details">
-                                  [Source: {event.SOURCE}]
-                                </span>
-                              </>
-                            )}
+                            ></div>
+                            <div className="log-line"></div>
                           </div>
 
-                          <div className="log-meta">
-                            <span className="meta-item timestamp">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                              {new Date(event.TIMETMP).toLocaleString('en-US', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <span className="meta-item ref-id">Audit Reference: #{event.ID_EVENT}</span>
-                            <span className={`meta-item status-badge ${event.STATUS?.toLowerCase()}`}>{event.STATUS}</span>
+                          <div className="log-body">
+                            <div className="log-message">
+                              {/* Source badge */}
+                              {event.SOURCE === 'PWC_System' ? (
+                                <span className="source-tag pwc">PWC Admin</span>
+                              ) : event.SOURCE === 'Externel_System' ? (
+                                <span className="source-tag ext">External System</span>
+                              ) : event.SOURCE === 'POS_Terminal' ? (
+                                <span className="source-tag pos">POS Terminal</span>
+                              ) : event.SOURCE === 'Mobile_App' ? (
+                                <span className="source-tag mobile">Mobile App</span>
+                              ) : (
+                                <span className="source-tag ext">{event.SOURCE}</span>
+                              )}
+
+                              {/* Description details */}
+                              {normalizedOp === 'Create' && (
+                                <>
+                                  performed a <span className="op-badge op-create">Create</span> operation on card <span className="card-ref bold-black">#{event.ID_CARD}</span> for <span className="bold-black">{event.F_NAME} {event.L_NAME}</span>
+                                </>
+                              )}
+                              {normalizedOp === 'Update' && (
+                                <>
+                                  performed an <span className="op-badge op-update">Update</span> operation on card <span className="card-ref bold-black">#{event.ID_CARD}</span> for <span className="bold-black">{event.F_NAME} {event.L_NAME}</span>
+                                </>
+                              )}
+                              {normalizedOp === 'DELETE' && (
+                                <>
+                                  performed a <span className="op-badge op-delete">Delete</span> operation on card <span className="card-ref bold-black">#{event.ID_CARD}</span> for <span className="bold-black">{event.F_NAME} {event.L_NAME}</span>
+                                </>
+                              )}
+                              {normalizedOp === 'Virement' && (
+                                <>
+                                  executed a <span className="op-badge op-virement">Send (Transfer)</span> of <span className="bold-black">{event.AMOUNTS}€</span> from card <span className="card-ref bold-black">#{event.ID_CARD}</span> ({event.F_NAME} {event.L_NAME})
+                                </>
+                              )}
+                              {normalizedOp === 'Paiement' && (
+                                <>
+                                  executed a <span className="op-badge op-paiement">Paye (Payment)</span> of <span className="bold-black">{event.AMOUNTS}€</span> on card <span className="card-ref bold-black">#{event.ID_CARD}</span> ({event.F_NAME} {event.L_NAME})
+                                </>
+                              )}
+
+                              {/* Additional details */}
+                              <span className="change-details">
+                                [Limits: {event.POS_LIMIT}€ / {event.ATM_LIMIT}€ | Status: {event.STATUS}]
+                              </span>
+                            </div>
+
+                            <div className="log-meta">
+                              <span className="meta-item timestamp">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                {new Date(event.TIMETMP).toLocaleString('en-US', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <span className="meta-item ref-id">Audit Reference: #{event.ID_EVENT}</span>
+                              <span className={`meta-item status-badge ${event.STATUS?.toLowerCase()}`}>{event.STATUS}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               )}
             </div>
@@ -1586,21 +1674,46 @@ const EXTDashboard: React.FC = () => {
               <div className="audit-modal-body">
                 <div className="audit-summary-box">
                   <p className="audit-summary-text">
-                    The <span className={selectedAudit.current.SOURCE === 'PWC_System' ? 'pwc-tag' : 'ext-tag'}>
-                      {selectedAudit.current.SOURCE === 'PWC_System' ? 'PWC Administrator' : 'External System'}
-                    </span>
-                    performed a
-                    <span className={`op-badge op-${selectedAudit.current.OPERATION?.toLowerCase()}`}>
-                      {selectedAudit.current.OPERATION}
-                    </span>
-                    operation on card <span className="card-ref bold-black">#{selectedAudit.current.ID_CARD}</span>.
+                    The {selectedAudit.current.SOURCE === 'PWC_System' ? (
+                      <span className="source-tag pwc">PWC Admin</span>
+                    ) : selectedAudit.current.SOURCE === 'Externel_System' ? (
+                      <span className="source-tag ext">External System</span>
+                    ) : selectedAudit.current.SOURCE === 'POS_Terminal' ? (
+                      <span className="source-tag pos">POS Terminal</span>
+                    ) : selectedAudit.current.SOURCE === 'Mobile_App' ? (
+                      <span className="source-tag mobile">Mobile App</span>
+                    ) : (
+                      <span className="source-tag ext">{selectedAudit.current.SOURCE}</span>
+                    )}
+                    {getNormalizedOp(selectedAudit.current) === 'Virement' ? (
+                      <>
+                        <span> executed a </span>
+                        <span className="op-badge op-virement">Send (Transfer)</span>
+                        <span> of <strong>{selectedAudit.current.AMOUNTS}€</strong> on card </span>
+                      </>
+                    ) : getNormalizedOp(selectedAudit.current) === 'Paiement' ? (
+                      <>
+                        <span> executed a </span>
+                        <span className="op-badge op-paiement">Paye (Payment)</span>
+                        <span> of <strong>{selectedAudit.current.AMOUNTS}€</strong> on card </span>
+                      </>
+                    ) : (
+                      <>
+                        <span> performed a </span>
+                        <span className={`op-badge op-${getNormalizedOp(selectedAudit.current)?.toLowerCase()}`}>
+                          {getNormalizedOp(selectedAudit.current) === 'DELETE' ? 'Delete' : getNormalizedOp(selectedAudit.current)}
+                        </span>
+                        <span> operation on card </span>
+                      </>
+                    )}
+                    <span className="card-ref bold-black">#{selectedAudit.current.ID_CARD}</span>.
                   </p>
                 </div>
 
                 <div className="audit-comparison-grid">
                   <h4 className="comparison-title">Detailed Modifications</h4>
 
-                  {selectedAudit.current.OPERATION === 'Create' ? (
+                  {getNormalizedOp(selectedAudit.current) === 'Create' ? (
                     <div className="audit-initial-state">
                       <p>This is the <strong>initial registration</strong> of the card in the system.</p>
                       <div className="initial-details">

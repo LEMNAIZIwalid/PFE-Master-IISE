@@ -38,9 +38,9 @@ parsed_schema = parse_schema(CARD_EVENT_SCHEMA)
 # Initialisation du Producer Kafka
 try:
     producer = Producer({'bootstrap.servers': KAFKA_BROKER})
-    print(f"✅ Kafka Producer initialized (Broker: {KAFKA_BROKER})")
+    print(f"[OK] Kafka Producer initialized (Broker: {KAFKA_BROKER})")
 except Exception as e:
-    print(f"❌ Failed to initialize Kafka Producer: {e}")
+    print(f"[ERROR] Failed to initialize Kafka Producer: {e}")
     producer = None
 
 def send_to_kafka(data, topic=KAFKA_TOPIC):
@@ -620,8 +620,7 @@ def get_external_events():
                    POS_LIMIT, ATM_LIMIT, STATUS, SOURCE, OPERATION, TIMETMP 
             FROM POS.Events 
             WHERE (SOURCE = 'Externel_System' 
-               OR (SOURCE = 'PWC_System' AND ID_CARD IN (SELECT ID_CARD FROM POS.Externel_System)))
-               AND UPPER(OPERATION) NOT IN ('TRANSFER', 'VIREMENT')
+               OR ID_CARD IN (SELECT ID_CARD FROM POS.Externel_System))
             ORDER BY TIMETMP DESC
         """)
         
@@ -1897,7 +1896,128 @@ def get_health():
     return jsonify(health_status), 200
 
 
+pos_status = {
+    "status": "Offline",
+    "wifi": "disconnected",
+    "wifi_signal": 0,
+    "mqtt_broker": "disconnected",
+    "database": "disconnected",
+    "battery": 0,
+    "battery_charging": False,
+    "tft_status": "inactive",
+    "tft_pins": {
+        "MOSI": 11,
+        "MISO": 12,
+        "SCLK": 13,
+        "CS": 10,
+        "DC": 9,
+        "RST": 8,
+        "T_CS": 7,
+        "T_IRQ": 2
+    },
+    "pn532_status": "inactive",
+    "pn532_pins": {
+        "SCK": 6,
+        "MISO": 3,
+        "MOSI": 5,
+        "SS_CS": "A0"
+    },
+    "barcode_status": "inactive",
+    "barcode_pins": {
+        "TX": "A1",
+        "RX": "A2"
+    },
+    "last_ping": None
+}
+
+@app.route('/api/pos/heartbeat', methods=['POST'])
+def pos_heartbeat():
+    """Receive heartbeat data from POS hardware.
+
+    The endpoint accepts a JSON payload with optional status fields.
+    Missing payloads or malformed JSON result in a 400 error.
+    """
+    global pos_status
+    try:
+        # Force JSON parsing even if Content-Type header is missing or incorrect
+        data = request.get_json(force=True)
+        if not isinstance(data, dict) or not data:
+            return jsonify({"status": "error", "message": "Invalid or empty JSON payload"}), 400
+
+        # Update only known fields to avoid accidental injection
+        allowed_keys = {
+            "wifi", "wifi_signal", "mqtt_broker", "database",
+            "battery", "battery_charging", "tft_status",
+            "pn532_status", "barcode_status"
+        }
+        for key, value in data.items():
+            if key in allowed_keys:
+                pos_status[key] = value
+
+        pos_status["status"] = "Online"
+        pos_status["last_ping"] = datetime.datetime.now().isoformat()
+        return jsonify({"status": "success", "message": "Heartbeat updated"}), 200
+    except Exception as e:
+        print(f"Error in POS heartbeat: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/pos/debug/heartbeat', methods=['POST'])
+def debug_heartbeat():
+    """Utility endpoint to set POS status to online with mock data (for testing)."""
+    global pos_status
+    mock_data = {
+        "wifi": "connected",
+        "wifi_signal": 100,
+        "mqtt_broker": "connected",
+        "database": "connected",
+        "battery": 100,
+        "battery_charging": True,
+        "tft_status": "active",
+        "pn532_status": "active",
+        "barcode_status": "active"
+    }
+    pos_status.update(mock_data)
+    pos_status["status"] = "Online"
+    pos_status["last_ping"] = datetime.datetime.now().isoformat()
+    return jsonify({"status": "success", "message": "Debug heartbeat applied"}), 200
+
+@app.route('/api/pos/status', methods=['GET'])
+def get_pos_status():
+    global pos_status
+    if pos_status["last_ping"]:
+        try:
+            last_ping_dt = datetime.datetime.fromisoformat(pos_status["last_ping"])
+            elapsed = (datetime.datetime.now() - last_ping_dt).total_seconds()
+            if elapsed > 12:
+                pos_status["status"] = "Offline"
+                pos_status["wifi"] = "disconnected"
+                pos_status["mqtt_broker"] = "disconnected"
+                pos_status["database"] = "disconnected"
+                pos_status["pn532_status"] = "inactive"
+                pos_status["tft_status"] = "inactive"
+                pos_status["barcode_status"] = "inactive"
+        except Exception as e:
+            print(f"Error parsing last ping: {e}")
+            pos_status["status"] = "Offline"
+    else:
+        pos_status["status"] = "Offline"
+        
+    return jsonify(pos_status), 200
+
+@app.route('/pos-monitoring', methods=['GET'])
+def get_pos_monitoring_page():
+    try:
+        import os
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(base_dir, 'pos_monitoring.html')
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return f"Error loading pos_monitoring.html: {e}", 500
+
+
 if __name__ == '__main__':
-    print("API PowerCard System started on http://localhost:5001")
-    app.run(port=5001, debug=True)
+    print("API PowerCard System started on http://0.0.0.0:5001")
+    app.run(host='0.0.0.0', port=5001, debug=False, use_reloader=False)
 

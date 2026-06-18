@@ -314,16 +314,18 @@ function PWCDashboard() {
   }
 
   const maskPAN = (pan: string) => {
-
     if (!pan) return ''
-    // Le format est 4532-1234-5678-9012
-    // On garde les 8 premiers chiffres (incluant le tiret) et on masque les 8 derniers
-    // Utilisateur demande xxxx xxxx dans les 8 derniers chiffres
+    const cleanPan = pan.replace(/\s+/g, '').replace(/-/g, '')
+    if (cleanPan.length >= 12) {
+      const first4 = cleanPan.substring(0, 4)
+      const last4 = cleanPan.substring(cleanPan.length - 4)
+      return `${first4} •••• •••• ${last4}`
+    }
     const parts = pan.split('-')
     if (parts.length === 4) {
-      return `${parts[0]}-${parts[1]}-xxxx-xxxx`
+      return `${parts[0]} •••• •••• ${parts[3]}`
     }
-    return pan.substring(0, 9) + 'xxxx-xxxx'
+    return pan
   }
 
   const handleViewCard = (card: any) => {

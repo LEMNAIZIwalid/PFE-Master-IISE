@@ -1,10 +1,25 @@
 from arduino.app_utils import App, Bridge
 import time
+import threading
+import urllib.request
+import urllib.error
+import socket
+
+# --- MONITORING STATUS GLOBALS ---
+_screen_state = "WAITING"
+_screen_amount = "0.00 DH"
+_last_screen_update = time.time()
+_last_transaction_id = "CRD-SUCCESS"
 
 # --- CALLBACKS DU PONT (BRIDGE) ---
 
 def on_barcode_received(amount):
     """Callback déclenché quand le scanneur a terminé avec succès (après 2s)"""
+    global _screen_state, _screen_amount, _last_screen_update
+    _screen_state = "PROCESSING"
+    _screen_amount = f"{amount} DH"
+    _last_screen_update = time.time()
+
     print("\n" + "═"*50)
     print("║" + " MONTANT REÇU DEPUIS LE SCANNER ".center(48) + "║")
     print("═"*50)
@@ -14,6 +29,7 @@ def on_barcode_received(amount):
 
 def on_payment_success(tag_uid, amount_str="0"):
     """Callback déclenché quand le module NFC PN532 détecte un badge NTag et effectue le paiement"""
+    global _screen_state, _screen_amount, _last_screen_update, _last_transaction_id
     print("\n" + "═"*50)
     print("║" + " PAIEMENT NFC DÉTECTÉ ".center(48) + "║")
     print("═"*50)
@@ -23,6 +39,9 @@ def on_payment_success(tag_uid, amount_str="0"):
 
     if oracledb is None:
         print("⚠️ [ERREUR] Module oracledb non disponible.")
+        _screen_state = "INVALID"
+        _screen_amount = f"{amount_str} EUR"
+        _last_screen_update = time.time()
         return "ERROR"
 
     try:
@@ -69,6 +88,12 @@ def on_payment_success(tag_uid, amount_str="0"):
                 print("═"*50 + "\n")
                 cursor.close()
                 connection.close()
+                
+                # Update monitoring state
+                _screen_state = "INVALID"
+                _screen_amount = f"{amount_str} EUR"
+                _last_screen_update = time.time()
+                
                 if card_status == 'suspended':
                     return "SUSPENDED"
                 else:
@@ -85,6 +110,12 @@ def on_payment_success(tag_uid, amount_str="0"):
                 print("═"*50 + "\n")
                 cursor.close()
                 connection.close()
+                
+                # Update monitoring state
+                _screen_state = "SOLDE_INSUFISANT"
+                _screen_amount = f"{amount_str} EUR"
+                _last_screen_update = time.time()
+                
                 return "INSUFFICIENT_BALANCE"
 
             new_balance = old_amount - payment_amount
@@ -101,75 +132,9 @@ def on_payment_success(tag_uid, amount_str="0"):
                 "timestmp": datetime.datetime.now().isoformat()
             })
 
-            # 2. Insertion dans Externel_System
-            sql_ext_insert = """
-                INSERT INTO POS.Externel_System (
-                    id_Card, PAN, F_Name, L_Name, Amount,
-                    POS_limit, ATM_limit, Status, Source, Operation, NFC_UID, Timestmp
-                ) VALUES (
-                    :id_Card, :PAN, :F_Name, :L_Name, :Amount,
-                    :POS_limit, :ATM_limit, :Status, 'POS_Terminal', 'Paiement', :nfc_uid, CURRENT_TIMESTAMP
-                )
-            """
-            cursor.execute(sql_ext_insert, {
-                "id_Card": id_card,
-                "PAN": pan,
-                "F_Name": f_name,
-                "L_Name": l_name,
-                "Amount": new_balance,
-                "POS_limit": float(pos_limit) if pos_limit else 0.0,
-                "ATM_limit": float(atm_limit) if atm_limit else 0.0,
-                "Status": status,
-                "nfc_uid": tag_uid
-            })
+            # Le terminal ne fait plus d'écriture en BD lui-même,
+            # il délègue l'enregistrement au pipeline MQTT -> Kafka -> Consumer DB.
 
-            # 3. Vérifier si existant dans PowerCard_System pour synchronisation
-            cursor.execute("SELECT COUNT(*) FROM POS.PowerCard_System WHERE id_Card = :id", {"id": id_card})
-            exists_pwc = cursor.fetchone()[0] > 0
-
-            if exists_pwc:
-                sql_pwc_insert = """
-                    INSERT INTO POS.PowerCard_System (
-                        id_Card, PAN, F_Name, L_Name, Amount,
-                        POS_limit, ATM_limit, Status, Source, Operation, Timestmp
-                    ) VALUES (
-                        :id_Card, :PAN, :F_Name, :L_Name, :Amount,
-                        :POS_limit, :ATM_limit, :Status, 'POS_Terminal', 'Paiement', CURRENT_TIMESTAMP
-                    )
-                """
-                cursor.execute(sql_pwc_insert, {
-                    "id_Card": id_card,
-                    "PAN": pan,
-                    "F_Name": f_name,
-                    "L_Name": l_name,
-                    "Amount": new_balance,
-                    "POS_limit": float(pos_limit) if pos_limit else 0.0,
-                    "ATM_limit": float(atm_limit) if atm_limit else 0.0,
-                    "Status": status
-                })
-
-            # 4. Insertion dans Events pour Audit
-            sql_event_insert = """
-                INSERT INTO POS.Events (
-                    id_card, PAN, F_Name, L_Name, Amounts,
-                    POS_limit, ATM_limit, Status, Source, Operation, Timetmp
-                ) VALUES (
-                    :id_Card, :PAN, :F_Name, :L_Name, :Amount,
-                    :POS_limit, :ATM_limit, :Status, 'POS_Terminal', 'Paiement', CURRENT_TIMESTAMP
-                )
-            """
-            cursor.execute(sql_event_insert, {
-                "id_Card": id_card,
-                "PAN": pan,
-                "F_Name": f_name,
-                "L_Name": l_name,
-                "Amount": new_balance,
-                "POS_limit": float(pos_limit) if pos_limit else 0.0,
-                "ATM_limit": float(atm_limit) if atm_limit else 0.0,
-                "Status": status
-            })
-
-            connection.commit()
 
             print("═"*50)
             print("║" + " ✅ PAIEMENT REUSSI & ENREGISTRE ".center(48) + "║")
@@ -184,6 +149,13 @@ def on_payment_success(tag_uid, amount_str="0"):
             
             cursor.close()
             connection.close()
+            
+            # Update monitoring state
+            _screen_state = "SUCCESS"
+            _screen_amount = f"{amount_str} EUR"
+            _last_screen_update = time.time()
+            _last_transaction_id = f"TX-{id_card}"
+            
             return "OK"
         else:
             print("═"*50)
@@ -193,6 +165,12 @@ def on_payment_success(tag_uid, amount_str="0"):
             print("═"*50 + "\n")
             cursor.close()
             connection.close()
+            
+            # Update monitoring state
+            _screen_state = "INVALID"
+            _screen_amount = f"{amount_str} EUR"
+            _last_screen_update = time.time()
+            
             return "INVALID"
 
     except Exception as e:
@@ -202,6 +180,12 @@ def on_payment_success(tag_uid, amount_str="0"):
                 connection.close()
             except Exception:
                 pass
+        
+        # Update monitoring state
+        _screen_state = "INVALID"
+        _screen_amount = f"{amount_str} EUR"
+        _last_screen_update = time.time()
+        
         # ✅ Fix: si erreur de connexion, re-détecter l'IP Oracle automatiquement
         if 'DPY-6005' in str(e) or 'DPY-4011' in str(e) or 'timeout' in str(e).lower() or 'refused' in str(e).lower():
             print("[AUTO-RECOVER] Tentative de redécouverte de l'hôte Oracle...", flush=True)
@@ -305,8 +289,12 @@ DB_HOST = "172.22.32.1"  # IP Windows depuis Docker (vEthernet WSL/Hyper-V) — 
 
 def on_process_payment(tag_uid, amount_str):
     """Vérifie si le NFC_UID existe dans la table Externel_System"""
+    global _screen_state, _screen_amount, _last_screen_update
     if oracledb is None:
         print("[ERREUR] Module oracledb non disponible.")
+        _screen_state = "INVALID"
+        _screen_amount = f"{amount_str} EUR"
+        _last_screen_update = time.time()
         return "ERROR"
 
     print("\n" + "═"*50)
@@ -344,6 +332,11 @@ def on_process_payment(tag_uid, amount_str):
             print(f"║ Solde       : {(str(amount) + ' EUR').center(32)} ║")
             print(f"║ Statut      : {str(status).center(32)} ║")
             print("═"*50 + "\n")
+            
+            _screen_state = "SUCCESS"
+            _screen_amount = f"{amount_str} EUR"
+            _last_screen_update = time.time()
+            
             return "OK"
         else:
             print("\n" + "═"*50)
@@ -351,10 +344,20 @@ def on_process_payment(tag_uid, amount_str):
             print("═"*50)
             print(f"║ Aucune carte avec NFC_UID = {tag_uid}  ║")
             print("═"*50 + "\n")
+            
+            _screen_state = "INVALID"
+            _screen_amount = f"{amount_str} EUR"
+            _last_screen_update = time.time()
+            
             return "NOK"
 
     except Exception as e:
         print(f"\n⚠️ Erreur Oracle : {e}")
+        
+        _screen_state = "INVALID"
+        _screen_amount = f"{amount_str} EUR"
+        _last_screen_update = time.time()
+        
         # ✅ Fix: re-détecter l'IP si erreur de connexion
         if 'DPY-6005' in str(e) or 'DPY-4011' in str(e) or 'timeout' in str(e).lower() or 'refused' in str(e).lower():
             print("[AUTO-RECOVER] Redécouverte de l'hôte Oracle en cours...", flush=True)
@@ -381,6 +384,8 @@ def get_wifi_ssid():
                     if ssid_val:
                         print(f"[WiFi] SSID actif : {ssid_val}")
                         return ssid_val
+    except FileNotFoundError:
+        return "hamad"
     except Exception:
         pass
 
@@ -399,8 +404,14 @@ def get_wifi_ssid():
                     if conn_name and conn_name != "--":
                         print(f"[WiFi] SSID actif (fallback): {conn_name}")
                         return conn_name
-    except Exception as e:
-        print(f"[WiFi] Erreur : {e}")
+    except FileNotFoundError:
+        return "hamad"
+    except Exception:
+        pass
+
+    # Si Docker ou environnement sans nmcli
+    if os.path.exists('/.dockerenv'):
+        return "hamad"
 
     return "Disconnected"
 
@@ -690,10 +701,130 @@ def test_oracle_connection():
         import traceback
         traceback.print_exc()
 
+def send_heartbeat_loop():
+    """Thread en arrière-plan qui envoie périodiquement l'état du POS à l'API Flask"""
+    global _screen_state, _screen_amount, _last_screen_update, _last_transaction_id
+    time.sleep(5)  # Laisser le temps au système de démarrer
+    
+    battery_level = 95.0
+    
+    while True:
+        try:
+            # 1. Gérer l'expiration de l'état de l'écran après 5 secondes
+            if _screen_state in ["SUCCESS", "SOLDE_INSUFISANT", "INVALID", "PROCESSING"]:
+                if time.time() - _last_screen_update > 5:
+                    _screen_state = "WAITING"
+                    _screen_amount = "0.00 DH"
+            
+            # 2. Vérifier le WiFi (SSID + IP locale)
+            wifi_ssid = get_wifi_ssid()
+            wifi_status = "connected" if wifi_ssid != "Disconnected" else "disconnected"
+            
+            # Récupérer l'IP locale du POS
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(("8.8.8.8", 80))
+                local_ip = s.getsockname()[0]
+                s.close()
+            except Exception:
+                local_ip = "172.22.32.100"
+            
+            # 3. Mesurer la latence vers la BD Oracle (Port 1521 check)
+            db_status = "disconnected"
+            db_latency = 0
+            t0 = time.time()
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(1.0)
+                s.connect((DB_HOST, 1521))
+                s.close()
+                db_status = "connected"
+                db_latency = int((time.time() - t0) * 1000)
+            except Exception:
+                pass
+            
+            # 4. Mesurer la latence du broker MQTT
+            mqtt_status = "disconnected"
+            mqtt_latency = 0
+            if _mqtt_publisher is not None and _mqtt_publisher.is_connected():
+                mqtt_status = "connected"
+                t0 = time.time()
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(1.0)
+                    s.connect((MQTT_BROKER, MQTT_PORT))
+                    s.close()
+                    mqtt_latency = int((time.time() - t0) * 1000)
+                except Exception:
+                    pass
+            
+            # 5. Mettre à jour la batterie simulée
+            if battery_level > 20:
+                battery_level -= 0.02
+            else:
+                battery_level = 95.0
+            
+            # 6. Construire le payload
+            payload = {
+                "wifi": wifi_status,
+                "wifi_ssid": wifi_ssid if wifi_status == "connected" else "Disconnected",
+                "wifi_ip": local_ip if wifi_status == "connected" else "Not Available",
+                "wifi_signal": -55 if wifi_status == "connected" else -100,
+                "database": db_status,
+                "database_latency_ms": db_latency,
+                "mqtt_broker": mqtt_status,
+                "mqtt_latency_ms": mqtt_latency,
+                "battery": int(battery_level),
+                "battery_charging": True,  # Branché en USB
+                "tft_status": "active",
+                "pn532_status": "active",
+                "barcode_status": "active",
+                "screen_state": _screen_state,
+                "screen_amount": _screen_amount,
+                "last_transaction_id": _last_transaction_id
+            }
+            
+            # 7. Envoyer la requête POST à l'API Flask locale
+            # Tente d'utiliser host.docker.internal (contourne le pare-feu Windows via le proxy Docker), sinon repli sur DB_HOST
+            try:
+                url = "http://host.docker.internal:5001/api/pos/heartbeat"
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode('utf-8'),
+                    headers={'Content-Type': 'application/json'},
+                    method='POST'
+                )
+                with urllib.request.urlopen(req, timeout=3) as response:
+                    response.read()
+            except Exception as e_internal:
+                # Repli en cas de problème de résolution DNS
+                url = f"http://{DB_HOST}:5001/api/pos/heartbeat"
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode('utf-8'),
+                    headers={'Content-Type': 'application/json'},
+                    method='POST'
+                )
+                with urllib.request.urlopen(req, timeout=3) as response:
+                    response.read()
+                
+        except Exception as e:
+            # Ne pas impacter le programme principal en cas d'erreur de diagnostic/réseau
+            print(f"⚠️ [MONITORING] Erreur d'envoi du heartbeat : {e}", flush=True)
+            
+        time.sleep(3)  # Intervalle de 3 secondes pour un affichage dynamique réactif
+
+
 if __name__ == "__main__":
     analyze_memory_usage()
     test_oracle_connection()
     init_mqtt_client()  # Initialiser MQTT après Oracle (DB_HOST est défini)
+    
+    # Lancement du thread de heartbeat pour le monitoring
+    heartbeat_thread = threading.Thread(target=send_heartbeat_loop, daemon=True)
+    heartbeat_thread.start()
+    print("🚀 [MONITORING] Thread de monitoring en arrière-plan démarré !")
+    
     print("\n" + "█"*50)
     print("█" + " SYSTÈME POS INITIALISÉ & PRÊT ".center(48) + "█")
     print("█"*50 + "\n")
