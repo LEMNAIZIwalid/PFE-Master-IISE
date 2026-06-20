@@ -567,7 +567,7 @@ La liaison entre la périphérie d'acquisition (\textit{Edge}) et le cœur de tr
 \section{Objectifs du PFE}
 Afin d'apporter une réponse concrète à la problématique soulevée, ce projet de fin d'études s'articule autour de trois objectifs fondamentaux, structurés selon une perspective d'intégration système complète : un axe matériel d'acquisition à la périphérie, un axe d'infrastructure de transport et de streaming de données, et un axe métier garantissant la conformité et la supervision des opérations transactionnelles.
 
-\subsection[Axe Matériel : ......]{Axe Matériel \\[0.15cm] {\color{uizpurple}\fontsize{12}{15}\selectfont\itshape Conception du Terminal Smart-POS (NFC, TFT, Scanner)}}
+\subsection[Axe Matériel : Conception du Smart-POS]{Axe Matériel \\[0.15cm] {\color{uizpurple}\fontsize{12}{15}\selectfont\itshape Conception du Terminal Smart-POS (NFC, TFT, Scanner)}}
 L'objectif matériel consiste à concevoir et à réaliser un prototype de terminal de paiement intelligent (\textit{Smart-POS}) basé sur un microcontrôleur embarqué. Ce terminal doit fonctionner comme le point de contact physique sécurisé avec l'utilisateur et doit orchestrer de façon optimale trois modules périphériques :
 \begin{itemize}[label=\textbullet]
   \item \textbf{Un lecteur de communication sans contact (NFC)} pour assurer la lecture instantanée et sécurisée des données de cartes ou de badges clients (badges de type NTAG213).
@@ -576,7 +576,7 @@ L'objectif matériel consiste à concevoir et à réaliser un prototype de termi
 \end{itemize}
 L'orchestration de ces périphériques sous des contraintes mémoires et de puissance de calcul réduites constitue le premier défi matériel du projet.
 
-\subsection[Axe Infrastructure : ......]{Axe Infrastructure \\[0.15cm] {\color{uizpurple}\fontsize{12}{15}\selectfont\itshape Établissement du Pipeline de Données (MQTT $\to$ Avro $\to$ Kafka)}}
+\subsection[Axe Infrastructure : Ingestion et Streaming]{Axe Infrastructure \\[0.15cm] {\color{uizpurple}\fontsize{12}{15}\selectfont\itshape Établissement du Pipeline de Données (MQTT $\to$ Avro $\to$ Kafka)}}
 Sur le plan de l'infrastructure logicielle, le projet vise à mettre en place un pipeline d'échange de données robuste, asynchrone et bidirectionnel reliant la périphérie (\textit{Edge}) au cœur du système (\textit{Core}) :
 \begin{itemize}[label=\textbullet]
   \item \textbf{L'intégration d'un protocole de messagerie léger (MQTT)} pour assurer le transport rapide et économique des événements d'acquisition bruts depuis le réseau local.
@@ -585,7 +585,7 @@ Sur le plan de l'infrastructure logicielle, le projet vise à mettre en place un
   \item \textbf{Le déploiement d'un bus de streaming d'événements à haut débit} (Apache Kafka) comme colonne vertébrale distribuée et résiliente pour propager instantanément les transactions validées.
 \end{itemize}
 
-\subsection[Axe Métier : ......]{Axe Métier \\[0.15cm] {\color{uizpurple}\fontsize{12}{15}\selectfont\itshape Conformité aux Standards de Paiement Électronique (HPS/PowerCARD)}}
+\subsection[Axe Métier : Conformité et Supervision]{Axe Métier \\[0.15cm] {\color{uizpurple}\fontsize{12}{15}\selectfont\itshape Conformité aux Standards de Paiement Électronique (HPS/PowerCARD)}}
 L'objectif métier consiste à s'aligner sur les exigences et processus transactionnels du secteur de la monétique, en phase avec les standards industriels comme la solution monétique \textbf{PowerCARD} de l'éditeur \textbf{HPS} :
 \begin{itemize}[label=\textbullet]
   \item \textbf{Le respect des règles de sécurité et de traçabilité} pour l'ensemble des cas d'usage monétiques (transactions de paiement par carte, opérations de virement et gestion administrative des cartes comme le blocage ou la modification de plafond).
@@ -2206,160 +2206,728 @@ Ce diagramme détaille la chronologie des échanges de messages lors d'une trans
   \caption{Diagramme de séquence du flux de paiement NFC}
   \label{fig:sequence_diagram_payment}
 \end{figure}
+\newpage
+\subsection{Diagrammes de Séquences}
 
-\subsection{Diagramme de Séquence : Actions d'Administration Interne (PWC Admin)}
-Ce diagramme de séquence détaille la cinématique d'administration interne du système. Il modélise les échanges de messages lorsqu'un administrateur de la banque crée ou met à jour une carte d'utilisateur sur le tableau de bord interne :
+\subsubsection{Création de Carte}
+Ce diagramme de séquence détaille la cinématique d'administration de création de carte. Il modélise les échanges de messages lorsqu'un administrateur crée une carte d'utilisateur sur le tableau de bord :
+
+\begin{figure}[H]
+  \centering
+  \makebox[\textwidth][c]{%
+    \begin{tikzpicture}[
+      scale=0.8, every node/.style={transform shape},
+      line/.style={draw, dashed, thick, black!40},
+      arrow/.style={-Latex, thick, draw=black!70},
+      reply/.style={-Latex, dashed, thick, draw=black!60},
+      box/.style={draw, rectangle, minimum height=0.8cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\normalsize\bfseries, align=center},
+      labelstyle/.style={font=\large\itshape, align=center, fill=white, inner sep=1.5pt}
+    ]
+    \useasboundingbox (-1.4, 0.8) rectangle (19.6, -15.0);
+
+    % Lifelines Headers
+    \node[box, text width=2.8cm] (admin) at (0, 0) {Administrateur\\(PWC ou Externe)};
+    \node[box, text width=3.4cm] (dash) at (4.0, 0) {PWC-Dashboard /\\EXT-Dashboard\\(React)};
+    \node[box, text width=1.6cm] (mqtt) at (7.3, 0) {mqtt\\broker};
+    \node[box, text width=1.6cm] (proxy) at (9.8, 0) {proxy\\avro};
+    \node[box, text width=1.8cm] (kafka) at (12.5, 0) {HPOS\\kafka\\topic};
+    \node[box, text width=2.3cm] (api) at (15.3, 0) {pwc\_api.py\\(Flask)};
+    \node[box, text width=2.0cm] (db) at (18.2, 0) {base de\\données\\table};
+
+    % Lifelines dashed lines
+    \draw[line] (admin.south) -- (0, -14.5);
+    \draw[line] (dash.south) -- (4.0, -14.5);
+    \draw[line] (mqtt.south) -- (7.3, -14.5);
+    \draw[line] (proxy.south) -- (9.8, -14.5);
+    \draw[line] (kafka.south) -- (12.5, -14.5);
+    \draw[line] (api.south) -- (15.3, -14.5);
+    \draw[line] (db.south) -- (18.2, -14.5);
+
+    % 1. Saisir
+    \draw[arrow] (0, -2.0) -- node[labelstyle, above] {1. Saisir les informations} (4.0, -2.0);
+    
+    % 2. Publier
+    \draw[arrow] (4.0, -3.0) -- node[labelstyle, above] {2. Publier la création} (7.3, -3.0);
+
+    % 3. Transmettre
+    \draw[arrow] (7.3, -4.0) -- node[labelstyle, above] {3. Transmettre message brut} (9.8, -4.0);
+
+    % 4. Sérialiser (boucle sur proxy à 9.8)
+    \draw[arrow] (9.8, -4.8) .. controls (10.8, -4.8) and (10.8, -5.6) .. node[labelstyle, right, pos=0.5] {4. Formater et\\sérialiser} (9.8, -5.6);
+
+    % 5. Déposer
+    \draw[arrow] (9.8, -6.2) -- node[labelstyle, above] {5. Déposer l'événement} (12.5, -6.2);
+
+    % 6. Livrer
+    \draw[arrow] (12.5, -7.2) -- node[labelstyle, above] {6. Livrer l'événement} (15.3, -7.2);
+
+    % 7. Enregistrer principal
+    \draw[arrow] (15.3, -8.2) -- node[labelstyle, above] {7. Enregistrer carte (Principale)} (18.2, -8.2);
+
+    % 8. Enregistrer audit
+    \draw[arrow] (15.3, -9.2) -- node[labelstyle, above] {8. Enregistrer audit (Events)} (18.2, -9.2);
+
+    % 9. Synchroniser
+    \draw[arrow] (15.3, -10.2) -- node[labelstyle, above] {9. Synchroniser table miroir} (18.2, -10.2);
+
+    % 10. OK
+    \draw[reply] (18.2, -11.2) -- node[labelstyle, below] {10. Enregistrements réussis} (15.3, -11.2);
+
+    % 11. Confirmation
+    \draw[reply] (15.3, -12.2) -- node[labelstyle, below] {11. Signaler création réussie} (4.0, -12.2);
+
+    % 12. Succès
+    \draw[reply] (4.0, -13.2) -- node[labelstyle, below] {12. Afficher message de succès} (0, -13.2);
+
+  \end{tikzpicture}%
+  }
+  \caption{Diagramme de séquence de création de carte}
+  \label{fig:sequence_diagram_create_card}
+\end{figure}
+
+
+\subsubsection{Modification de Carte}
+Ce diagramme de séquence détaille la cinématique d'administration de modification de carte. Il modélise les échanges de messages lorsqu'un administrateur met à jour une carte d'utilisateur sur le tableau de bord :
+
+\begin{figure}[H]
+  \centering
+  \makebox[\textwidth][c]{%
+    \begin{tikzpicture}[
+      scale=0.8, every node/.style={transform shape},
+      line/.style={draw, dashed, thick, black!40},
+      arrow/.style={-Latex, thick, draw=black!70},
+      reply/.style={-Latex, dashed, thick, draw=black!60},
+      box/.style={draw, rectangle, minimum height=0.8cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\normalsize\bfseries, align=center},
+      labelstyle/.style={font=\large\itshape, align=center, fill=white, inner sep=1.5pt}
+    ]
+    \useasboundingbox (-1.4, 0.8) rectangle (19.6, -15.0);
+
+    % Lifelines Headers
+    \node[box, text width=2.8cm] (admin) at (0, 0) {Administrateur\\(PWC ou Externe)};
+    \node[box, text width=3.4cm] (dash) at (4.0, 0) {PWC-Dashboard /\\EXT-Dashboard\\(React)};
+    \node[box, text width=1.6cm] (mqtt) at (7.3, 0) {mqtt\\broker};
+    \node[box, text width=1.6cm] (proxy) at (9.8, 0) {proxy\\avro};
+    \node[box, text width=1.8cm] (kafka) at (12.5, 0) {HPOS\\kafka\\topic};
+    \node[box, text width=2.3cm] (api) at (15.3, 0) {pwc\_api.py\\(Flask)};
+    \node[box, text width=2.0cm] (db) at (18.2, 0) {base de\\données\\table};
+
+    % Lifelines dashed lines
+    \draw[line] (admin.south) -- (0, -14.5);
+    \draw[line] (dash.south) -- (4.0, -14.5);
+    \draw[line] (mqtt.south) -- (7.3, -14.5);
+    \draw[line] (proxy.south) -- (9.8, -14.5);
+    \draw[line] (kafka.south) -- (12.5, -14.5);
+    \draw[line] (api.south) -- (15.3, -14.5);
+    \draw[line] (db.south) -- (18.2, -14.5);
+
+    % 1. Modifier
+    \draw[arrow] (0, -2.0) -- node[labelstyle, above] {1. Modifier les limites\\ou le statut} (4.0, -2.0);
+    
+    % 2. Publier
+    \draw[arrow] (4.0, -3.0) -- node[labelstyle, above] {2. Publier la modification} (7.3, -3.0);
+
+    % 3. Transmettre
+    \draw[arrow] (7.3, -4.0) -- node[labelstyle, above] {3. Transmettre message brut} (9.8, -4.0);
+
+    % 4. Sérialiser (boucle sur proxy à 9.8)
+    \draw[arrow] (9.8, -4.8) .. controls (10.8, -4.8) and (10.8, -5.6) .. node[labelstyle, right, pos=0.5] {4. Formater et\\sérialiser} (9.8, -5.6);
+
+    % 5. Déposer
+    \draw[arrow] (9.8, -6.2) -- node[labelstyle, above] {5. Déposer l'événement} (12.5, -6.2);
+
+    % 6. Livrer
+    \draw[arrow] (12.5, -7.2) -- node[labelstyle, above] {6. Livrer l'événement} (15.3, -7.2);
+
+    % 7. Enregistrer principal
+    \draw[arrow] (15.3, -8.2) -- node[labelstyle, above] {7. Enregistrer modifications\\(Table principale)} (18.2, -8.2);
+
+    % 8. Enregistrer audit
+    \draw[arrow] (15.3, -9.2) -- node[labelstyle, above] {8. Enregistrer audit (Events)} (18.2, -9.2);
+
+    % 9. Synchroniser
+    \draw[arrow] (15.3, -10.2) -- node[labelstyle, above] {9. Synchroniser table miroir} (18.2, -10.2);
+
+    % 10. OK
+    \draw[reply] (18.2, -11.2) -- node[labelstyle, below] {10. Enregistrements réussis} (15.3, -11.2);
+
+    % 11. Confirmation
+    \draw[reply] (15.3, -12.2) -- node[labelstyle, below] {11. Signaler modification réussie} (4.0, -12.2);
+
+    % 12. Succès
+    \draw[reply] (4.0, -13.2) -- node[labelstyle, below] {12. Afficher "Carte mise à jour"} (0, -13.2);
+
+  \end{tikzpicture}%
+  }
+  \caption{Diagramme de séquence de modification de carte}
+  \label{fig:sequence_diagram_update_card}
+\end{figure}
+
+\newpage
+\subsubsection{Suppression ou Blocage de Carte}
+Ce diagramme de séquence détaille la cinématique d'administration de suppression ou blocage de carte. Il modélise les échanges de messages lorsqu'un administrateur désactive ou bloque une carte d'utilisateur sur le tableau de bord :
+
+\begin{figure}[H]
+  \centering
+  \makebox[\textwidth][c]{%
+    \begin{tikzpicture}[
+      scale=0.8, every node/.style={transform shape},
+      line/.style={draw, dashed, thick, black!40},
+      arrow/.style={-Latex, thick, draw=black!70},
+      reply/.style={-Latex, dashed, thick, draw=black!60},
+      box/.style={draw, rectangle, minimum height=0.8cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\normalsize\bfseries, align=center},
+      labelstyle/.style={font=\large\itshape, align=center, fill=white, inner sep=1.5pt}
+    ]
+    \useasboundingbox (-1.4, 0.8) rectangle (19.6, -15.0);
+
+    % Lifelines Headers
+    \node[box, text width=2.8cm] (admin) at (0, 0) {Administrateur\\(PWC ou Externe)};
+    \node[box, text width=3.4cm] (dash) at (4.0, 0) {PWC-Dashboard /\\EXT-Dashboard\\(React)};
+    \node[box, text width=1.6cm] (mqtt) at (7.3, 0) {mqtt\\broker};
+    \node[box, text width=1.6cm] (proxy) at (9.8, 0) {proxy\\avro};
+    \node[box, text width=1.8cm] (kafka) at (12.5, 0) {HPOS\\kafka\\topic};
+    \node[box, text width=2.3cm] (api) at (15.3, 0) {pwc\_api.py\\(Flask)};
+    \node[box, text width=2.0cm] (db) at (18.2, 0) {base de\\données\\table};
+
+    % Lifelines dashed lines
+    \draw[line] (admin.south) -- (0, -14.5);
+    \draw[line] (dash.south) -- (4.0, -14.5);
+    \draw[line] (mqtt.south) -- (7.3, -14.5);
+    \draw[line] (proxy.south) -- (9.8, -14.5);
+    \draw[line] (kafka.south) -- (12.5, -14.5);
+    \draw[line] (api.south) -- (15.3, -14.5);
+    \draw[line] (db.south) -- (18.2, -14.5);
+
+    % 1. Supprimer
+    \draw[arrow] (0, -2.0) -- node[labelstyle, above] {1. Supprimer / Bloquer la carte} (4.0, -2.0);
+    
+    % 2. Publier
+    \draw[arrow] (4.0, -3.0) -- node[labelstyle, above] {2. Publier la demande de blocage} (7.3, -3.0);
+
+    % 3. Transmettre
+    \draw[arrow] (7.3, -4.0) -- node[labelstyle, above] {3. Transmettre le message brut de blocage} (9.8, -4.0);
+
+    % 4. Sérialiser (boucle sur proxy à 9.8)
+    \draw[arrow] (9.8, -4.8) .. controls (10.8, -4.8) and (10.8, -5.6) .. node[labelstyle, right, pos=0.5] {4. Formater et sérialiser\\en Avro [Status = 'blocked']} (9.8, -5.6);
+
+    % 5. Déposer
+    \draw[arrow] (9.8, -6.2) -- node[labelstyle, above] {5. Déposer l'événement de blocage} (12.5, -6.2);
+
+    % 6. Livrer
+    \draw[arrow] (12.5, -7.2) -- node[labelstyle, above] {6. Livrer l'événement de blocage} (15.3, -7.2);
+
+    % 7. Enregistrer principal
+    \draw[arrow] (15.3, -8.2) -- node[labelstyle, above] {7. Mettre à jour statut en 'blocked'\\(Table principale)} (18.2, -8.2);
+
+    % 8. Enregistrer audit
+    \draw[arrow] (15.3, -9.2) -- node[labelstyle, above] {8. Enregistrer audit (Table Events)} (18.2, -9.2);
+
+    % 9. Synchroniser
+    \draw[arrow] (15.3, -10.2) -- node[labelstyle, above] {9. Synchroniser table miroir} (18.2, -10.2);
+
+    % 10. OK
+    \draw[reply] (18.2, -11.2) -- node[labelstyle, below] {10. Enregistrements réussis} (15.3, -11.2);
+
+    % 11. Confirmation
+    \draw[reply] (15.3, -12.2) -- node[labelstyle, below] {11. Signaler le blocage réussi} (4.0, -12.2);
+
+    % 12. Succès
+    \draw[reply] (4.0, -13.2) -- node[labelstyle, below] {12. Afficher "Carte désactivée/bloquée"} (0, -13.2);
+
+  \end{tikzpicture}%
+  }
+  \caption{Diagramme de séquence de suppression ou blocage de carte}
+  \label{fig:sequence_diagram_delete_card}
+\end{figure}
+
+\newpage
+\subsubsection{Suivi des Transactions}
+Ce diagramme de séquence détaille la cinématique du suivi des transactions (virements mobiles et paiements POS) depuis les tableaux de bord d'administration :
 
 \begin{figure}[H]
   \centering
   \begin{tikzpicture}[
-    scale=0.85, every node/.style={transform shape},
+    scale=0.8, every node/.style={transform shape},
     line/.style={draw, dashed, thick, black!40},
     arrow/.style={-Latex, thick, draw=black!70},
     reply/.style={-Latex, dashed, thick, draw=black!60},
-    box/.style={draw, rectangle, minimum width=2.1cm, minimum height=0.8cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\small\bfseries, align=center},
-    labelstyle/.style={font=\footnotesize\itshape, align=left, fill=white, inner sep=1.5pt}
+    box/.style={draw, rectangle, minimum height=0.8cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\normalsize\bfseries, align=center},
+    labelstyle/.style={font=\large\itshape, align=center, fill=white, inner sep=1.5pt}
   ]
 
   % Lifelines Headers
-  \node[box] (admin) at (0, 0) {Administrateur\\PWC};
-  \node[box] (dash) at (3.5, 0) {Dashboard React\\(PWC-system)};
-  \node[box] (api) at (7.5, 0) {API REST Flask\\(pwc\_api.py)};
-  \node[box] (db) at (11.5, 0) {Oracle DB\\(XE)};
-  \node[box] (kafka) at (15.0, 0) {Apache Kafka\\(Broker)};
+  \node[box, text width=2.8cm] (admin) at (0, 0) {Administrateur\\(PWC ou Externe)};
+  \node[box, text width=3.4cm] (dash) at (4.0, 0) {PWC-Dashboard /\\EXT-Dashboard\\(React)};
+  \node[box, text width=2.3cm] (api) at (9.0, 0) {pwc\_api.py\\(Flask)};
+  \node[box, text width=2.0cm] (db) at (13.0, 0) {base de\\données\\table};
+
+  % Alternative block background
+  \draw[draw=black!30, fill=black!2, dashed, rounded corners] (3.5, -2.6) rectangle (9.5, -5.0);
+  \node[font=\small\bfseries, anchor=north west] at (3.5, -2.6) {Alternative};
+  \draw[draw=black!30, dashed] (3.5, -3.8) -- (9.5, -3.8);
 
   % Lifelines dashed lines
-  \draw[line] (admin.south) -- (0, -11.0);
-  \draw[line] (dash.south) -- (3.5, -11.0);
-  \draw[line] (api.south) -- (7.5, -11.0);
-  \draw[line] (db.south) -- (11.5, -11.0);
-  \draw[line] (kafka.south) -- (15.0, -11.0);
+  \draw[line] (admin.south) -- (0, -11.5);
+  \draw[line] (dash.south) -- (4.0, -11.5);
+  \draw[line] (api.south) -- (9.0, -11.5);
+  \draw[line] (db.south) -- (13.0, -11.5);
 
-  % 1. Formulaire
-  \draw[arrow] (0, -1.0) -- node[labelstyle, above] {1. Soumission formulaire (CRUD)} (3.5, -1.8);
+  % 1. Consulter
+  \draw[arrow] (0, -1.8) -- node[labelstyle, above] {1. Consulter l'historique des transactions} (4.0, -1.8);
   
-  % 2. POST request
-  \draw[arrow] (3.5, -2.4) -- node[labelstyle, above] {2. Requête POST /api/create-card} (7.5, -3.2);
+  % 2a. Demander transactions internes
+  \draw[arrow] (4.0, -3.2) -- node[labelstyle, above] {2a. Demander l'historique interne} (9.0, -3.2);
 
-  % 3. Check Oracle
-  \draw[arrow] (7.5, -3.8) -- node[labelstyle, above] {3. SELECT ID\_CARD (Contrôle d'unicité)} (11.5, -4.6);
-  \draw[reply] (11.5, -5.1) -- node[labelstyle, below] {4. ID disponible} (7.5, -5.9);
+  % 2b. Demander transactions externes
+  \draw[arrow] (4.0, -4.4) -- node[labelstyle, above] {2b. Demander l'historique externe} (9.0, -4.4);
 
-  % 5. Insert DB
-  \draw[arrow] (7.5, -6.4) -- node[labelstyle, above] {5. INSERT INTO PowerCard\_System \& Events} (11.5, -7.2);
-  \draw[reply] (11.5, -7.6) -- node[labelstyle, below] {6. Confirmation Commit} (7.5, -8.4);
+  % 3. Rechercher
+  \draw[arrow] (9.0, -5.6) -- node[labelstyle, above] {3. Rechercher les transactions} (13.0, -5.6);
 
-  % 7. Produce Kafka
-  \draw[arrow] (7.5, -8.8) -- node[labelstyle, above] {7. Publication Avro (Topic 'HPOS')} (15.0, -9.4);
+  % 4. Retourner
+  \draw[reply] (13.0, -6.8) -- node[labelstyle, below] {4. Retourner les transactions} (9.0, -6.8);
 
-  % 8. Response
-  \draw[reply] (7.5, -9.8) -- node[labelstyle, below] {8. Réponse HTTP 201 Created} (3.5, -10.4);
-  \draw[reply] (3.5, -10.4) -- node[labelstyle, below] {9. Notification Succès \& Rafraîchissement} (0, -10.8);
+  % 5. Apparier (boucle)
+  \draw[arrow] (9.0, -7.6) .. controls (10.0, -7.6) and (10.0, -8.4) .. node[labelstyle, right, pos=0.5] {5. Associer et formater\\les transactions} (9.0, -8.4);
+
+  % 6. Livrer
+  \draw[reply] (9.0, -9.5) -- node[labelstyle, below] {6. Transmettre les transactions formatées} (4.0, -9.5);
+
+  % 7. Afficher
+  \draw[reply] (4.0, -10.5) -- node[labelstyle, below] {7. Afficher l'historique sur le tableau de bord} (0, -10.5);
 
 \end{tikzpicture}
-  \caption{Diagramme de séquence des actions d'administration interne PWC}
-  \label{fig:sequence_diagram_pwc_admin}
+  \caption{Diagramme de séquence du suivi des transactions}
+  \label{fig:sequence_diagram_transaction_tracking}
 \end{figure}
 
-\subsection{Diagramme de Séquence : Actions d'Administration Externe (External Admin)}
-Ce diagramme détaille la cinématique d'administration externe. Il modélise les échanges de messages lorsqu'un administrateur partenaire externe met à jour ou bloque une carte sur le tableau de bord externe :
+\newpage
+\subsubsection{PWC: Audit et Historisation (Checking Events)}
+Ce diagramme de séquence détaille la cinématique de consultation de l'historique d'audit (événements d'administration) par l'administrateur interne (PWC) :
 
 \begin{figure}[H]
   \centering
   \begin{tikzpicture}[
-    scale=0.85, every node/.style={transform shape},
+    scale=0.8, every node/.style={transform shape},
     line/.style={draw, dashed, thick, black!40},
     arrow/.style={-Latex, thick, draw=black!70},
     reply/.style={-Latex, dashed, thick, draw=black!60},
-    box/.style={draw, rectangle, minimum width=2.1cm, minimum height=0.8cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\small\bfseries, align=center},
-    labelstyle/.style={font=\footnotesize\itshape, align=left, fill=white, inner sep=1.5pt}
+    box/.style={draw, rectangle, minimum height=0.8cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\normalsize\bfseries, align=center},
+    labelstyle/.style={font=\large\itshape, align=center, fill=white, inner sep=1.5pt}
   ]
 
   % Lifelines Headers
-  \node[box] (admin) at (0, 0) {Administrateur\\Externe};
-  \node[box] (dash) at (3.5, 0) {Dashboard React\\(Extenel-system)};
-  \node[box] (api) at (7.5, 0) {API REST Flask\\(pwc\_api.py)};
-  \node[box] (db) at (11.5, 0) {Oracle DB\\(XE)};
-  \node[box] (kafka) at (15.0, 0) {Apache Kafka\\(Broker)};
+  \node[box, text width=2.8cm] (admin) at (0, 0) {Administrateur\\PWC};
+  \node[box, text width=3.4cm] (dash) at (4.0, 0) {PWC-Dashboard\\(React)};
+  \node[box, text width=2.3cm] (api) at (8.5, 0) {pwc\_api.py\\(Flask)};
+  \node[box, text width=2.4cm] (db) at (12.5, 0) {base de données\\(Events)};
 
   % Lifelines dashed lines
-  \draw[line] (admin.south) -- (0, -11.0);
-  \draw[line] (dash.south) -- (3.5, -11.0);
-  \draw[line] (api.south) -- (7.5, -11.0);
-  \draw[line] (db.south) -- (11.5, -11.0);
-  \draw[line] (kafka.south) -- (15.0, -11.0);
+  \draw[line] (admin.south) -- (0, -12.0);
+  \draw[line] (dash.south) -- (4.0, -12.0);
+  \draw[line] (api.south) -- (8.5, -12.0);
+  \draw[line] (db.south) -- (12.5, -12.0);
 
-  % 1. Formulaire
-  \draw[arrow] (0, -1.0) -- node[labelstyle, above] {1. Modification carte (CRUD Externe)} (3.5, -1.8);
+  % 1. Accéder
+  \draw[arrow] (0, -2.0) -- node[labelstyle, above] {1. Accéder à l'onglet "Checking Events"} (4.0, -2.0);
   
-  % 2. PUT request
-  \draw[arrow] (3.5, -2.4) -- node[labelstyle, above] {2. Requête PUT /api/external/update} (7.5, -3.2);
+  % 2. Demander
+  \draw[arrow] (4.0, -3.0) -- node[labelstyle, above] {2. Demander l'historique d'audit} (8.5, -3.0);
 
-  % 3. Check Oracle Appartenance
-  \draw[arrow] (7.5, -3.8) -- node[labelstyle, above] {3. SELECT check appartenance carte} (11.5, -4.6);
-  \draw[reply] (11.5, -5.1) -- node[labelstyle, below] {4. Autorisation accordée} (7.5, -5.9);
+  % 3. Lire
+  \draw[arrow] (8.5, -4.0) -- node[labelstyle, above] {3. Lire les événements d'audit} (12.5, -4.0);
 
-  % 5. Insert DB
-  \draw[arrow] (7.5, -6.4) -- node[labelstyle, above] {5. INSERT INTO Externel\_System \& Events} (11.5, -7.2);
-  \draw[reply] (11.5, -7.6) -- node[labelstyle, below] {6. Confirmation Commit} (7.5, -8.4);
+  % 4. Retourner
+  \draw[reply] (12.5, -5.0) -- node[labelstyle, below] {4. Retourner les événements d'audit} (8.5, -5.0);
 
-  % 7. Produce Kafka
-  \draw[arrow] (7.5, -8.8) -- node[labelstyle, above] {7. Stream Avro (Topic 'HPOS')} (15.0, -9.4);
+  % 5. Transmettre
+  \draw[reply] (8.5, -6.0) -- node[labelstyle, below] {5. Transmettre l'historique d'audit} (4.0, -6.0);
 
-  % 8. Response
-  \draw[reply] (7.5, -9.8) -- node[labelstyle, below] {8. Réponse HTTP 200 OK} (3.5, -10.4);
-  \draw[reply] (3.5, -10.4) -- node[labelstyle, below] {9. Notification Succès \& Rafraîchissement} (0, -10.8);
+  % 6. Afficher liste
+  \draw[reply] (4.0, -7.0) -- node[labelstyle, below] {6. Afficher la liste des événements} (0, -7.0);
+
+  % 7. Sélectionner
+  \draw[arrow] (0, -8.2) -- node[labelstyle, above] {7. Sélectionner un événement} (4.0, -8.2);
+
+  % 8. Ouvrir le détail (boucle)
+  \draw[arrow] (4.0, -9.0) .. controls (5.0, -9.0) and (5.0, -9.8) .. node[labelstyle, right, pos=0.5] {8. Formater le détail\\(Vue structurée ou JSON)} (4.0, -9.8);
+
+  % 9. Afficher détails
+  \draw[reply] (4.0, -10.8) -- node[labelstyle, below] {9. Afficher les informations détaillées} (0, -10.8);
 
 \end{tikzpicture}
-  \caption{Diagramme de séquence des actions d'administration externe}
-  \label{fig:sequence_diagram_ext_admin}
+  \caption{Diagramme de séquence d'audit et historisation (Checking Events)}
+  \label{fig:sequence_diagram_pwc_checking_events}
 \end{figure}
 
-\subsection{Diagramme de Séquence : Espace Client Mobile (Application Mobile)}
-Ce diagramme détaille la chronologie des échanges de messages lors de l'utilisation de l'application mobile par le client porteur, illustrant les phases d'authentification et d'exécution d'un virement de solde peer-to-peer (PAN-to-PAN) :
+\newpage
+\subsubsection{External: Superviseur de Paiements (Payment Supervisor)}
+Ce diagramme de séquence détaille la cinématique de consultation de l'historique d'audit par le partenaire externe (EXT) et le fonctionnement de l'algorithme de calcul des écarts (différences d'état de carte) :
 
 \begin{figure}[H]
   \centering
   \begin{tikzpicture}[
-    scale=0.85, every node/.style={transform shape},
+    scale=0.8, every node/.style={transform shape},
     line/.style={draw, dashed, thick, black!40},
     arrow/.style={-Latex, thick, draw=black!70},
     reply/.style={-Latex, dashed, thick, draw=black!60},
-    box/.style={draw, rectangle, minimum width=2.1cm, minimum height=0.8cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\small\bfseries, align=center},
-    labelstyle/.style={font=\footnotesize\itshape, align=left, fill=white, inner sep=1.5pt}
+    box/.style={draw, rectangle, minimum height=0.8cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\normalsize\bfseries, align=center},
+    labelstyle/.style={font=\large\itshape, align=center, fill=white, inner sep=1.5pt}
   ]
 
   % Lifelines Headers
-  \node[box] (client) at (0, 0) {Client Mobile};
-  \node[box] (app) at (4.0, 0) {App Mobile Android\\(POS)};
-  \node[box] (api) at (8.5, 0) {API REST Flask\\(pwc\_api.py)};
-  \node[box] (db) at (13.0, 0) {Oracle DB\\(XE)};
+  \node[box, text width=2.8cm] (admin) at (0, 0) {Administrateur\\Externe};
+  \node[box, text width=3.4cm] (dash) at (4.0, 0) {EXT-Dashboard\\(React)};
+  \node[box, text width=2.3cm] (api) at (8.5, 0) {pwc\_api.py\\(Flask)};
+  \node[box, text width=2.4cm] (db) at (12.5, 0) {base de données\\(Events)};
 
   % Lifelines dashed lines
-  \draw[line] (client.south) -- (0, -11.8);
-  \draw[line] (app.south) -- (4.0, -11.8);
-  \draw[line] (api.south) -- (8.5, -11.8);
-  \draw[line] (db.south) -- (13.0, -11.8);
+  \draw[line] (admin.south) -- (0, -13.5);
+  \draw[line] (dash.south) -- (4.0, -13.5);
+  \draw[line] (api.south) -- (8.5, -13.5);
+  \draw[line] (db.south) -- (12.5, -13.5);
 
-  % Authentication Flow
-  \draw[arrow] (0, -1.0) -- node[labelstyle, above] {1. Saisie identifiants (pan, mdp)} (4.0, -1.8);
-  \draw[arrow] (4.0, -2.2) -- node[labelstyle, above] {2. POST /api/mobile/login} (8.5, -3.0);
-  \draw[arrow] (8.5, -3.4) -- node[labelstyle, above] {3. SELECT validation mot de passe} (13.0, -4.2);
-  \draw[reply] (13.0, -4.6) -- node[labelstyle, below] {4. Profil \& Solde client} (8.5, -5.4);
-  \draw[reply] (8.5, -5.8) -- node[labelstyle, below] {5. Connexion réussie (Status 200)} (4.0, -6.6);
+  % 1. Accéder
+  \draw[arrow] (0, -2.0) -- node[labelstyle, above] {1. Accéder à l'onglet "Payment Supervisor"} (4.0, -2.0);
+  
+  % 2. Demander
+  \draw[arrow] (4.0, -3.0) -- node[labelstyle, above] {2. Demander l'historique d'audit externe} (8.5, -3.0);
 
-  % Transfer Flow
-  \draw[arrow] (0, -7.2) -- node[labelstyle, above] {6. Initie virement (Destinataire, Montant)} (4.0, -8.0);
-  \draw[arrow] (4.0, -8.4) -- node[labelstyle, above] {7. POST /api/mobile/transfer} (8.5, -9.2);
-  \draw[arrow] (8.5, -9.6) -- node[labelstyle, above] {8. UPDATE Soldes \& INSERT Events (Virement)} (13.0, -10.4);
-  \draw[reply] (13.0, -10.6) -- node[labelstyle, below] {9. Confirmation Commit} (8.5, -11.0);
-  \draw[reply] (8.5, -11.2) -- node[labelstyle, below] {10. Virement validé} (4.0, -11.6);
-  \draw[reply] (4.0, -11.6) -- node[labelstyle, below] {11. Reçu numérique de virement} (0, -11.8);
+  % 3. Lire
+  \draw[arrow] (8.5, -4.0) -- node[labelstyle, above] {3. Lire les événements d'audit externe} (12.5, -4.0);
+
+  % 4. Retourner
+  \draw[reply] (12.5, -5.0) -- node[labelstyle, below] {4. Retourner les événements d'audit partenaire} (8.5, -5.0);
+
+  % 5. Transmettre
+  \draw[reply] (8.5, -6.0) -- node[labelstyle, below] {5. Transmettre l'historique d'audit} (4.0, -6.0);
+
+  % 6. Afficher liste
+  \draw[reply] (4.0, -7.0) -- node[labelstyle, below] {6. Afficher la liste des événements} (0, -7.0);
+
+  % 7. Sélectionner
+  \draw[arrow] (0, -8.2) -- node[labelstyle, above] {7. Sélectionner un événement à inspecter} (4.0, -8.2);
+
+  % 8. Comparer (boucle)
+  \draw[arrow] (4.0, -9.0) .. controls (5.0, -9.0) and (5.0, -9.8) .. node[labelstyle, right, pos=0.5] {8. Comparer avec l'état précédent\\(Calcul de différence)} (4.0, -9.8);
+
+  % 9. Ouvrir modal (boucle)
+  \draw[arrow] (4.0, -10.6) .. controls (5.0, -10.6) and (5.0, -11.4) .. node[labelstyle, right, pos=0.5] {9. Ouvrir le détail d'audit\\avec les écarts en couleur} (4.0, -11.4);
+
+  % 10. Afficher détails
+  \draw[reply] (4.0, -12.4) -- node[labelstyle, below] {10. Afficher les écarts précis de solde ou limites} (0, -12.4);
 
 \end{tikzpicture}
-  \caption{Diagramme de séquence de l'authentification et du virement mobile}
-  \label{fig:sequence_diagram_mobile}
+  \caption{Diagramme de séquence du superviseur de paiements et calcul de différence}
+  \label{fig:sequence_diagram_ext_payment_supervisor}
 \end{figure}
+
+\newpage
+\subsubsection{Supervision Technique (Monitoring)}
+Ce diagramme de séquence détaille la cinématique du suivi en temps réel de la santé de l'infrastructure et de la mesure de performance de chaque service :
+
+\begin{figure}[H]
+  \centering
+  \makebox[\textwidth][c]{%
+    \begin{tikzpicture}[
+      scale=0.8, every node/.style={transform shape},
+      line/.style={draw, dashed, thick, black!40},
+      arrow/.style={-Latex, thick, draw=black!70},
+      reply/.style={-Latex, dashed, thick, draw=black!60},
+      box/.style={draw, rectangle, minimum height=0.8cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\normalsize\bfseries, align=center},
+      labelstyle/.style={font=\large\itshape, align=center, fill=white, inner sep=1.5pt}
+    ]
+    \useasboundingbox (-1.4, 0.8) rectangle (18.4, -15.0);
+
+    % Lifelines Headers
+    \node[box, text width=2.8cm] (admin) at (0, 0) {Administrateur\\(PWC ou Externe)};
+    \node[box, text width=3.4cm] (dash) at (4.0, 0) {PWC-Dashboard /\\EXT-Dashboard\\(React)};
+    \node[box, text width=2.3cm] (api) at (8.5, 0) {pwc\_api.py\\(Flask)};
+    \node[box, text width=2.0cm] (db) at (11.5, 0) {base de\\données\\table};
+    \node[box, text width=1.8cm] (kafka) at (14.5, 0) {HPOS\\kafka\\topic};
+    \node[box, text width=1.6cm] (mqtt) at (17.0, 0) {mqtt\\broker};
+
+    % Loop block background
+    \draw[draw=black!30, fill=black!2, dashed, rounded corners] (3.5, -2.6) rectangle (17.5, -12.9);
+    \node[font=\small\bfseries, anchor=north west] at (3.5, -2.6) {Boucle (toutes les 5s)};
+
+    % Lifelines dashed lines
+    \draw[line] (admin.south) -- (0, -14.5);
+    \draw[line] (dash.south) -- (4.0, -14.5);
+    \draw[line] (api.south) -- (8.5, -14.5);
+    \draw[line] (db.south) -- (11.5, -14.5);
+    \draw[line] (kafka.south) -- (14.5, -14.5);
+    \draw[line] (mqtt.south) -- (17.0, -14.5);
+
+    % 1. Activer
+    \draw[arrow] (0, -1.8) -- node[labelstyle, above] {1. Activer la supervision technique} (4.0, -1.8);
+    
+    % 2. Demander
+    \draw[arrow] (4.0, -3.2) -- node[labelstyle, above] {2. Demander les mesures de performance} (8.5, -3.2);
+
+    % 3. Tester DB
+    \draw[arrow] (8.5, -4.2) -- node[labelstyle, above] {3. Tester connexion et récupérer métriques} (11.5, -4.2);
+    \draw[reply] (11.5, -5.0) -- node[labelstyle, below] {4. Retourner état et latence DB} (8.5, -5.0);
+
+    % 5. Tester Kafka
+    \draw[arrow] (8.5, -6.2) -- node[labelstyle, above] {5. Vérifier activité et partitions} (14.5, -6.2);
+    \draw[reply] (14.5, -7.0) -- node[labelstyle, below] {6. Retourner état et latence flux} (8.5, -7.0);
+
+    % 7. Tester MQTT
+    \draw[arrow] (8.5, -8.2) -- node[labelstyle, above] {7. Tester connexion avec le canal de messages} (17.0, -8.2);
+    \draw[reply] (17.0, -9.0) -- node[labelstyle, below] {8. Retourner disponibilité et latence canal} (8.5, -9.0);
+
+    % 9. Tester Proxy (boucle)
+    \draw[arrow] (8.5, -10.0) .. controls (9.5, -10.0) and (9.5, -10.8) .. node[labelstyle, right, pos=0.5] {9. Vérifier l'activité du pont} (8.5, -10.8);
+
+    % 10. Transmettre
+    \draw[reply] (8.5, -11.6) -- node[labelstyle, below] {10. Transmettre le rapport d'état et latences} (4.0, -11.6);
+
+    % 11. Rafraichir (boucle)
+    \draw[arrow] (4.0, -12.0) .. controls (5.0, -12.0) and (5.0, -12.6) .. node[labelstyle, right, pos=0.5] {11. Rafraîchir les courbes\\de latence sur l'écran} (4.0, -12.6);
+
+    % 12. Afficher
+    \draw[reply] (4.0, -13.5) -- node[labelstyle, below] {12. Afficher la supervision en temps réel} (0, -13.5);
+
+  \end{tikzpicture}%
+  }
+  \caption{Diagramme de séquence de supervision technique (Monitoring)}
+  \label{fig:sequence_diagram_technical_monitoring}
+\end{figure}
+
+\newpage
+\subsubsection{Virement Mobile (Transfer)}
+Ce diagramme de séquence détaille la cinématique du virement mobile, illustrant la validation synchrone (solde et existence des comptes) suivie de la synchronisation asynchrone pour la mise à jour des comptes et l'archivage de l'opération :
+
+\begin{figure}[H]
+  \centering
+  \makebox[\textwidth][c]{%
+    \begin{tikzpicture}[
+      scale=0.8, every node/.style={transform shape},
+      line/.style={draw, dashed, thick, black!40},
+      arrow/.style={-Latex, thick, draw=black!70},
+      reply/.style={-Latex, dashed, thick, draw=black!60},
+      box/.style={draw, rectangle, minimum height=0.8cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\normalsize\bfseries, align=center},
+      labelstyle/.style={font=\large\itshape, align=center, fill=white, inner sep=1.5pt}
+    ]
+    \useasboundingbox (-1.5, 0.8) rectangle (18.7, -20.5);
+
+    % Lifelines Headers
+    \node[box, text width=1.8cm] (client) at (0, 0) {Client};
+    \node[box, text width=2.4cm] (app) at (3.0, 0) {Application\\Mobile};
+    \node[box, text width=1.6cm] (mqtt) at (6.0, 0) {mqtt\\broker};
+    \node[box, text width=1.6cm] (proxy) at (8.7, 0) {proxy\\avro};
+    \node[box, text width=1.8cm] (kafka) at (11.4, 0) {HPOS\\kafka\\topic};
+    \node[box, text width=2.3cm] (api) at (14.2, 0) {pwc\_api.py\\(Flask)};
+    \node[box, text width=2.0cm] (db) at (17.2, 0) {base de\\données\\table};
+
+    % Section 1 Divider
+    \draw[double, thick, black!20] (-0.5, -1.2) -- (17.7, -1.2) node[midway, fill=white, font=\bfseries\normalsize] {-- Validation Synchrone --};
+
+    % Section 2 Divider
+    \draw[double, thick, black!20] (-0.5, -6.8) -- (17.7, -6.8) node[midway, fill=white, font=\bfseries\normalsize] {-- Synchronisation Asynchrone --};
+
+    % Alt box background
+    \draw[draw=black!30, fill=black!2, dashed, rounded corners] (-0.3, -5.5) rectangle (17.5, -19.3);
+    \node[font=\small\bfseries, anchor=north west] at (-0.3, -5.5) {Alternative (Solde suffisant et comptes actifs)};
+    \draw[draw=black!30, dashed] (-0.3, -17.0) -- (17.5, -17.0);
+    \node[font=\small\bfseries, anchor=north west] at (-0.3, -17.0) {sinon (Informations incorrectes ou solde insuffisant)};
+
+    % Lifelines dashed lines
+    \draw[line] (client.south) -- (0, -20.0);
+    \draw[line] (app.south) -- (3.0, -20.0);
+    \draw[line] (mqtt.south) -- (6.0, -20.0);
+    \draw[line] (proxy.south) -- (8.7, -20.0);
+    \draw[line] (kafka.south) -- (11.4, -20.0);
+    \draw[line] (api.south) -- (14.2, -20.0);
+    \draw[line] (db.south) -- (17.2, -20.0);
+
+    % 1. Initier
+    \draw[arrow] (0, -2.0) -- node[labelstyle, above] {1. Initier un virement (Numéro, Nom, Montant)} (3.0, -2.0);
+    
+    % 2. Demander
+    \draw[arrow] (3.0, -3.0) -- node[labelstyle, above] {2. Demander le transfert de solde} (14.2, -3.0);
+
+    % 3. Verifier
+    \draw[arrow] (14.2, -4.0) -- node[labelstyle, above] {3. Vérifier validité des comptes et solde} (17.2, -4.0);
+
+    % 4. Confirmer
+    \draw[reply] (17.2, -5.0) -- node[labelstyle, below] {4. Confirmer la validité des comptes} (14.2, -5.0);
+
+    % 5. Autoriser
+    \draw[reply] (14.2, -6.2) -- node[labelstyle, below] {5. Autoriser la transaction localement} (3.0, -6.2);
+
+    % 6. Publier
+    \draw[arrow] (3.0, -7.4) -- node[labelstyle, above] {6. Publier la demande de virement} (6.0, -7.4);
+
+    % 7. Transmettre
+    \draw[arrow] (6.0, -8.6) -- node[labelstyle, above] {7. Transmettre le message de virement} (8.7, -8.6);
+
+    % 8. Traduire (boucle)
+    \draw[arrow] (8.7, -9.4) .. controls (9.7, -9.4) and (9.7, -10.2) .. node[labelstyle, right, pos=0.5] {8. Traduire et formater\\l'événement} (8.7, -10.2);
+
+    % 9. Envoyer
+    \draw[arrow] (8.7, -11.0) -- node[labelstyle, above] {9. Envoyer les événements de virement} (11.4, -11.0);
+
+    % 10. Livrer
+    \draw[arrow] (11.4, -12.0) -- node[labelstyle, above] {10. Livrer les événements de virement} (14.2, -12.0);
+
+    % 11. Enregistrer
+    \draw[arrow] (14.2, -13.0) -- node[labelstyle, above] {11. Enregistrer soldes et historique} (17.2, -13.0);
+
+    % 12. Confirmer DB
+    \draw[reply] (17.2, -14.0) -- node[labelstyle, below] {12. Confirmer l'enregistrement} (14.2, -14.0);
+
+    % 13. Confirmer API
+    \draw[reply] (14.2, -15.0) -- node[labelstyle, below] {13. Confirmer la réussite du transfert} (3.0, -15.0);
+
+    % 14. Afficher succes
+    \draw[reply] (3.0, -16.0) -- node[labelstyle, below] {14. Afficher "Transfert réussi !"} (0, -16.0);
+
+    % 15. Refuser
+    \draw[reply] (14.2, -17.8) -- node[labelstyle, below] {15. Refuser le virement (Solde insuffisant / Invalide)} (3.0, -17.8);
+
+    % 16. Afficher erreur
+    \draw[reply] (3.0, -18.8) -- node[labelstyle, below] {16. Afficher le message d'erreur} (0, -18.8);
+
+  \end{tikzpicture}%
+  }
+  \caption{Diagramme de séquence de virement mobile}
+  \label{fig:sequence_diagram_mobile_transfer}
+\end{figure}
+
+\newpage
+\subsubsection{Paiement POS (Payer)}
+Ce diagramme de séquence détaille la cinématique du paiement par carte sur le terminal de paiement physique, illustrant la validation locale synchrone suivie de la synchronisation asynchrone pour la mise à jour globale du solde et l'enregistrement de l'audit :
+
+\begin{figure}[H]
+  \centering
+  \makebox[\textwidth][c]{%
+    \begin{tikzpicture}[
+      scale=0.55, every node/.style={transform shape},
+      line/.style={draw, dashed, thick, black!40},
+      arrow/.style={-Latex, thick, draw=black!70},
+      reply/.style={-Latex, dashed, thick, draw=black!60},
+      box/.style={draw, rectangle, minimum height=1.1cm, fill=profblue!10, rounded corners, thick, draw=profblue, font=\Large\bfseries, align=center},
+      labelstyle/.style={font=\Large\itshape, align=center, fill=white, inner sep=1.5pt}
+    ]
+    \useasboundingbox (-1.5, 1.1) rectangle (34.0, -34.5);
+
+    % Caissier stick figure
+    \draw[thick, fill=black!10, draw=black!70] (0, 0.8) circle (0.2);
+    \draw[thick, draw=black!70] (0, 0.6) -- (0, 0.1);
+    \draw[thick, draw=black!70] (-0.25, 0.45) -- (0.25, 0.45);
+    \draw[thick, draw=black!70] (0, 0.1) -- (-0.2, -0.2);
+    \draw[thick, draw=black!70] (0, 0.1) -- (0.2, -0.2);
+    \node[font=\Large\bfseries, below] at (0, -0.25) {Caissier};
+
+    % Client stick figure
+    \draw[thick, fill=green!20, draw=darkgreen] (4.0, 0.8) circle (0.2);
+    \draw[thick, draw=darkgreen] (4.0, 0.6) -- (4.0, 0.1);
+    \draw[thick, draw=darkgreen] (3.75, 0.45) -- (4.25, 0.45);
+    \draw[thick, draw=darkgreen] (4.0, 0.1) -- (3.8, -0.2);
+    \draw[thick, draw=darkgreen] (4.0, 0.1) -- (4.2, -0.2);
+    \node[font=\Large\bfseries, below] at (4.0, -0.25) {Client};
+
+    % Other Lifelines Headers
+    \node[box, text width=2.4cm] (terminal) at (8.0, 0.25) {Terminal de\\Paiement};
+    \node[box, text width=2.8cm, fill=profblue!10] (db_lect) at (12.5, 0.25) {base de données\\table (Lecture)};
+    \node[box, text width=1.6cm] (mqtt) at (16.5, 0.25) {mqtt\\broker};
+    \node[box, text width=1.6cm] (proxy) at (20.5, 0.25) {proxy\\avro};
+    \node[box, text width=2.2cm] (kafka) at (24.5, 0.25) {HPOS\\kafka\\topic};
+    \node[box, text width=3.4cm] (api) at (28.5, 0.25) {pwc\_api.py\\(Flask)};
+    \node[box, text width=2.8cm, fill=darkgreen!10, draw=darkgreen] (db_write) at (32.5, 0.25) {base de données\\table (Écriture)};
+
+    % Alt box background
+    \draw[draw=black!30, fill=black!2, dashed, rounded corners] (-0.3, -11.8) rectangle (32.8, -33.7);
+    \node[font=\large\bfseries, anchor=north west] at (-0.3, -11.8) {Alternative (Carte active et solde suffisant)};
+    \draw[draw=black!30, dashed] (-0.3, -29.4) -- (32.8, -29.4);
+    \node[font=\large\bfseries, anchor=north west] at (-0.3, -29.4) {sinon (Carte bloquée ou solde insuffisant)};
+
+    % Lifelines dashed lines
+    \draw[line] (0, -0.5) -- (0, -34.0);
+    \draw[line] (4.0, -0.5) -- (4.0, -34.0);
+    \draw[line] (terminal.south) -- (8.0, -34.0);
+    \draw[line] (db_lect.south) -- (12.5, -34.0);
+    \draw[line] (mqtt.south) -- (16.5, -34.0);
+    \draw[line] (proxy.south) -- (20.5, -34.0);
+    \draw[line] (kafka.south) -- (24.5, -34.0);
+    \draw[line] (api.south) -- (28.5, -34.0);
+    \draw[line] (db_write.south) -- (32.5, -34.0);
+
+    % Divider 1
+    \draw[double, thick, black!20] (-0.5, -2.2) -- (33.0, -2.2) node[midway, fill=white, font=\bfseries\large] {-- Étape 1 : Saisie du Montant --};
+
+    % Divider 2
+    \draw[double, thick, black!20] (-0.5, -7.2) -- (33.0, -7.2) node[midway, fill=white, font=\bfseries\large] {-- Étape 2 : Autorisation Synchrone --};
+
+    % 1. Scanner l'article
+    \draw[arrow] (0, -3.5) -- node[labelstyle, above] {1. Scanner l'article ou saisir le montant} (8.0, -3.5);
+
+    % 2. Afficher le prix (boucle)
+    \draw[arrow] (8.0, -4.8) .. controls (9.5, -4.8) and (9.5, -5.8) .. node[labelstyle, right, pos=0.5] {2. Afficher le prix et\\demander la carte} (8.0, -5.8);
+
+    % 3. Présenter la carte NFC
+    \draw[arrow] (4.0, -8.4) -- node[labelstyle, above] {3. Présenter la carte NFC} (8.0, -8.4);
+
+    % 4. Lire le solde
+    \draw[arrow] (8.0, -9.7) -- node[labelstyle, above] {4. Lire le solde et le statut de la carte} (12.5, -9.7);
+
+    % 5. Retourner Solde
+    \draw[reply] (12.5, -11.0) -- node[labelstyle, below] {5. Retourner Solde et Statut} (8.0, -11.0);
+
+    % --- Alt block: Carte Active et Solde Suffisant ---
+
+    % 6. Soustraire le montant (boucle)
+    \draw[arrow] (8.0, -12.7) .. controls (9.5, -12.7) and (9.5, -13.7) .. node[labelstyle, right, pos=0.5] {6. Soustraire le montant\\du solde localement} (8.0, -13.7);
+
+    % 7. Valider le paiement (boucle)
+    \draw[arrow] (8.0, -14.5) .. controls (9.5, -14.5) and (9.5, -15.5) .. node[labelstyle, right, pos=0.5] {7. Valider le paiement\\(signal vert et bip)} (8.0, -15.5);
+
+    % 8. Transaction acceptée / Reçu imprimé
+    \draw[reply] (8.0, -16.7) -- node[labelstyle, below] {8. Transaction acceptée / Reçu imprimé} (4.0, -16.7);
+    \draw[reply] (4.0, -16.7) -- (0, -16.7);
+
+    % -- Étape 3 : Synchronisation Asynchrone --
+    \draw[double, thick, black!20] (-0.5, -18.0) -- (33.0, -18.0) node[midway, fill=white, font=\bfseries\large] {-- Étape 3 : Synchronisation Asynchrone --};
+
+    % 9. Publier la transaction
+    \draw[arrow] (8.0, -19.2) -- node[labelstyle, above] {9. Publier la transaction (Nouveau solde)} (16.5, -19.2);
+
+    % 10. Transmettre le message brut
+    \draw[arrow] (16.5, -20.7) -- node[labelstyle, above] {10. Transmettre le message brut} (20.5, -20.7);
+
+    % 11. Formater et convertir (boucle)
+    \draw[arrow] (20.5, -21.7) .. controls (22.0, -21.7) and (22.0, -22.7) .. node[labelstyle, right, pos=0.5] {11. Convertir en format Avro} (20.5, -22.7);
+
+    % 12. Envoyer l'événement
+    \draw[arrow] (20.5, -24.0) -- node[labelstyle, above] {12. Envoyer l'événement de transaction} (24.5, -24.0);
+
+    % 13. Livrer l'événement
+    \draw[arrow] (24.5, -25.4) -- node[labelstyle, above] {13. Livrer l'événement de transaction} (28.5, -25.4);
+
+    % 14. Enregistrer l'audit
+    \draw[arrow] (28.5, -26.8) -- node[labelstyle, above, pos=0.3] {14. Enregistrer l'audit (Events)\\et mettre à jour les soldes\\dans les tables} (32.5, -26.8);
+
+    % 15. Soldes mis à jour
+    \draw[reply] (32.5, -28.2) -- node[labelstyle, below] {15. Soldes mis à jour en base} (28.5, -28.2);
+
+    % --- Alt block: sinon (Carte bloquée ou solde insuffisant) ---
+
+    % 16. Afficher l'erreur (boucle)
+    \draw[arrow] (8.0, -30.4) .. controls (9.5, -30.4) and (9.5, -31.4) .. node[labelstyle, right, pos=0.5] {16. Afficher l'erreur\\(signal rouge)} (8.0, -31.4);
+
+    % 17. Transaction refusée
+    \draw[reply] (8.0, -32.7) -- node[labelstyle, below] {17. Transaction refusée} (4.0, -32.7);
+    \draw[reply] (4.0, -32.7) -- (0, -32.7);
+
+  \end{tikzpicture}%
+  }
+  \caption{Diagramme de séquence de paiement POS}
+  \label{fig:sequence_diagram_pos_payment}
+\end{figure}
+
+
+
 
 \subsection{Diagramme de Classes}
 Le diagramme de classes illustre la structure statique orientée objet de notre application logicielle globale, décrivant les entités de base de données et les modules de communication :
@@ -4127,7 +4695,9 @@ services:
 \subsection{Fonctionnement du mode KRaft (sans ZooKeeper)}
 Traditionnellement, \mbox{Apache Kafka} s'appuyait sur \mbox{Apache ZooKeeper} pour stocker les métadonnées du cluster (définitions des topics, états des partitions, leadership des courtiers) et pour élire le courtier contrôleur. Cette architecture double introduisait des goulots d'étranglement de synchronisation, une complexité opérationnelle accrue et des délais lors de la récupération après panne.
 
-Le mode \mbox{KRaft} (Kafka Raft Metadata Mode), standardisé de\subsection{Supervision via la Plateforme Conduktor}
+Le mode \mbox{KRaft} (Kafka Raft Metadata Mode), standardisé depuis les versions récentes d'Apache Kafka, remplace ZooKeeper en utilisant un protocole de consensus basé sur Raft pour stocker et répliquer les métadonnées directement au sein du cluster.
+
+\subsection{Supervision via la Plateforme Conduktor}
 La console web \mbox{Conduktor} (via le service \mbox{\texttt{conduktor-console}}) offre une interface graphique intuitive pour la gestion et la supervision en temps réel de notre cluster Kafka, éliminant le recours aux commandes CLI complexes. Ses fonctionnalités clés sont :
 \begin{itemize}[label=\textbullet]
     \item \textbf{Supervision du cluster} : Suivi en direct de l'état du broker unique, de la charge CPU/mémoire et du quorum de métadonnées KRaft.
@@ -4408,26 +4978,16 @@ Le portail d'administration interne (\textit{PowerCard System Dashboard}) est ex
     \item \textbf{Transactions Checking (Virement + Paiement)} : Permet de superviser l'historique global de l'intégralité des virements mobiles inter-PAN et des paiements NFC.
 \end{itemize}
 
-\paragraph{Structure du Code Source}
-L'architecture modulaire de l'application PowerCard System Dashboard s'organise selon l'arborescence de fichiers suivante, localisée sous \mbox{\texttt{software-app/frontend}} :
-
-\begin{verbatim}
-frontend/
-+- src/
-|  +- main.tsx
-|  +- App.tsx
-|  +- App.css
-|  +- index.css
-|  +- PWC-system/
-|     +- PWC-Dashboard.tsx
-|     +- PWC-Dashboard.css
-+- package.json
-+- vite.config.ts
-\end{verbatim}
+\begin{figure}[H]
+    \centering
+    \makebox[\textwidth]{\includegraphics[width=1.2\textwidth]{Gemini_Generated_Image_gtr2nagtr2nagtr2.png}}
+    \caption{Architecture de navigation et arborescence de l'application PowerCard System Dashboard}
+    \label{fig:pwc-admin-sitemap}
+\end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1.0\textwidth]{PWC-DASH.png}
+    \makebox[\textwidth]{\includegraphics[width=1.2\textwidth]{pwc-dashbord.png}}
     \caption{PowerCard Admin dashboard}
     \label{fig:pwc-dashboard}
 \end{figure}
@@ -4442,21 +5002,18 @@ Le portail d'administration externe (\textit{External System Dashboard}) est des
 \end{itemize}
 
 \paragraph{Structure du Code Source}
-L'architecture de l'application External System Dashboard s'organise selon l'arborescence de fichiers suivante, localisée sous \mbox{\texttt{software-app/frontend/Extenel-system}} :
+L'architecture de l'application External System Dashboard s'organise selon la structure arborescente suivante :
 
-\begin{verbatim}
-Extenel-system/
-+- src/
-|  +- main.tsx
-|  +- EXT-Dashboard.tsx
-|  +- EXT-Dashboard.css
-+- index.html
-+- package.json
-+- vite.config.ts
-\end{verbatim}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1.0\textwidth]{EXTARNAL-DASH.png}
+    \makebox[\textwidth]{\includegraphics[width=1.2\textwidth]{external-arbo.png}}
+    \caption{Architecture de navigation et arborescence de l'application External System Dashboard}
+    \label{fig:external-system-sitemap}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \makebox[\textwidth]{\includegraphics[width=1.2\textwidth]{external-dash.png}}
     \caption{External system admin dashboard}
     \label{fig:external-dashboard}
 \end{figure}
@@ -4477,51 +5034,29 @@ L'application s'articule autour des composants et écrans suivants :
     \item \textbf{ReceiptActivity} : Affichage du reçu numérique suite à la validation réussie d'une transaction.
 \end{itemize}
 
-\subsection{Arborescence et Structure du Projet}
-L'arborescence logique des packages sources et des ressources de l'application Android native (\mbox{\texttt{POS/app/src/main}}) se présente comme suit :
+\begin{figure}[H]
+    \centering
+    \makebox[\textwidth]{\includegraphics[width=1.2\textwidth]{arborescence-mobile .png}}
+    \caption{Architecture de navigation et arborescence de l'application Android POS Mobile}
+    \label{fig:pos-mobile-sitemap}
+\end{figure}
 
-\begin{verbatim}
-app/src/main/
-+- AndroidManifest.xml
-+- java/
-|  +- com/
-|     +- example/
-|        +- pos/
-|           +- Views/
-|           |  +- SplashActivity.java
-|           |  +- LoginActivity.java
-|           |  +- MainActivity.java
-|           |  +- TransferActivity.java
-|           |  +- HistoryActivity.java
-|           |  +- HistoryAdapter.java
-|           |  +- ProfileActivity.java
-|           |  +- ForgotPasswordActivity.java
-|           |  +- ResetPasswordActivity.java
-|           |  +- ReceiptActivity.java
-|           +- ui/
-|              +- theme/
-|                 +- Color.kt
-|                 +- Theme.kt
-|                 +- Type.kt
-+- res/
-   +- anim/
-   |  +- shake.xml
-   +- drawable/
-   |  +- gradient_background.xml
-   |  +- pin_box_background.xml
-   |  +- badge_pwc.xml
-   +- layout/
-   |  +- activity_splash.xml
-   |  +- activity_login.xml
-   |  +- activity_main.xml
-   |  +- activity_transfer.xml
-   |  +- activity_history.xml
-   |  +- item_history_entry.xml
-   +- values/
-      +- colors.xml
-      +- strings.xml
-      +- themes.xml
-\end{verbatim}
+\subsection{Interface Utilisateur de l'Application Mobile}
+L'interface de l'application mobile client offre une expérience utilisateur intuitive et sécurisée. L'écran principal (\textit{MainActivity}) présente en un seul coup d'œil le solde du compte, les dernières transactions et les raccourcis vers les fonctionnalités clés (virement, historique, profil). Le design épuré, combiné à des indicateurs visuels distincts pour les débits et les crédits, permet à l'utilisateur de gérer son compte en toute simplicité depuis son appareil Android.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{mobile-dash.png}
+    \caption{Interface du tableau de bord de l'application mobile client Android}
+    \label{fig:pos-mobile-dashboard}
+\end{figure}
+
+\section{Conclusion du Chapitre}
+Ce chapitre a présenté l'intégralité de la couche logicielle et du pipeline de données constituant le cœur de traitement de notre écosystème de paiement intelligent. Nous avons détaillé la conception et l'implémentation du \textit{Bridge Python} s'exécutant sur le microprocesseur Qualcomm QRB2210, qui orchestre la désérialisation des trames d'acquisition NFC, la validation transactionnelle ACID auprès de la base Oracle XE, et la publication asynchrone vers le courtier MQTT Mosquitto.
+
+Nous avons ensuite couvert la construction du pipeline de données \textit{Edge-to-Core}, fondé sur la sérialisation binaire Apache Avro et l'ingestion distribuée dans un cluster Apache Kafka fonctionnant en mode natif KRaft, garantissant à la fois la durabilité, la scalabilité et la traçabilité de chaque événement financier. La mise en place de l'\textit{API REST Flask} a ensuite formalisé les interfaces d'accès aux données pour l'ensemble des clients (web, mobile), en respectant les principes de séparation des rôles et de sécurité par token.
+
+Enfin, les trois interfaces de supervision développées en React/Vite — le tableau de bord administrateur PowerCard, le portail partenaire External System et l'application mobile Android — démontrent la cohérence et la complétude du système. L'ensemble des développements réalisés forme un pipeline logiciel robuste, modulaire et immédiatement déployable, posant les bases solides pour la phase de tests et de validation qui fait l'objet du chapitre suivant.
 
 \newpage
 
@@ -4648,5 +5183,86 @@ En somme, ce travail de fin d'études dresse un bilan extrêmement positif en r�
   \bibitem{react_library} Meta Open Source. (2025). \textit{React: A JavaScript library for building user interfaces}. Meta.
   \bibitem{vite_tool} Vite Core Team. (2025). \textit{Vite: Next Generation Frontend Tooling}. Vite.
 \end{thebibliography}
+
+\newpage
+
+% ============================================================
+%  ANNEXES
+% ============================================================
+\appendix
+\addcontentsline{toc}{chapter}{Annexes}
+\thispagestyle{plain}
+\begin{center}
+  {\fontsize{20}{24}\bfseries\color{titlebg} Annexes}
+\end{center}
+\vspace{0.8cm}
+
+\section*{Annexe A — Endpoints de l'API REST Flask}
+\addcontentsline{toc}{section}{Annexe A — Endpoints de l'API REST Flask}
+\renewcommand{\arraystretch}{1.4}
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|p{6cm}|}
+\hline
+\rowcolor{profblue!15}
+\textbf{Méthode} & \textbf{Endpoint} & \textbf{Description} \\
+\hline
+GET  & \texttt{/api/health}            & Vérification de l'état de l'API et de la connexion Oracle. \\
+GET  & \texttt{/api/cards}             & Liste paginée de toutes les cartes PowerCard. \\
+POST & \texttt{/api/cards}             & Création d'une nouvelle carte (admin uniquement). \\
+GET  & \texttt{/api/cards/<pan>}        & Détail d'une carte par son numéro PAN. \\
+PUT  & \texttt{/api/cards/<pan>}        & Mise à jour partielle d'une carte (statut, solde). \\
+DELETE & \texttt{/api/cards/<pan>}     & Suppression logique d'une carte. \\
+GET  & \texttt{/api/events}            & Journal d'audit des événements transactionnels. \\
+GET  & \texttt{/api/transactions}      & Historique des transactions filtrables. \\
+POST & \texttt{/api/transfer}          & Initiation d'un virement PAN-to-PAN sécurisé. \\
+POST & \texttt{/api/auth/login}        & Authentification et génération du token JWT. \\
+POST & \texttt{/api/auth/reset-password} & Réinitialisation du mot de passe utilisateur. \\
+\hline
+\end{tabular}
+\caption{Référence des endpoints de l'API REST Flask}
+\label{tab:api-endpoints}
+\end{table}
+
+\section*{Annexe B — Extrait de la Configuration Docker Compose}
+\addcontentsline{toc}{section}{Annexe B — Extrait de la Configuration Docker Compose}
+\begin{lstlisting}[language=Python, caption={Extrait docker-compose.yml — services Kafka et Oracle XE}, label=lst:docker-compose]
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on: [zookeeper]
+    ports: ["9092:9092"]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  oracle-xe:
+    image: gvenzl/oracle-xe:21-slim
+    ports: ["1521:1521"]
+    environment:
+      ORACLE_PASSWORD: oracle
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    ports: ["1883:1883", "9001:9001"]
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+volumes:
+  oracle_data:
+\end{lstlisting}
+
+\section*{Annexe C — Schéma du Circuit Smart-POS}
+\addcontentsline{toc}{section}{Annexe C — Schéma du Circuit Smart-POS}
+Le schéma complet du circuit électronique du terminal Smart-POS, incluant les connexions entre la carte Arduino Uno Q, le lecteur NFC PN532, l'écran TFT ST7796S et le module lecteur de code-barres GM65, est disponible dans le répertoire \texttt{hardware-app/} du dépôt du projet. Les fichiers de conception ont été réalisés sous \textbf{Fritzing} et sont exportés aux formats \texttt{.fzz} et \texttt{.pdf}.
 
 \end{document}

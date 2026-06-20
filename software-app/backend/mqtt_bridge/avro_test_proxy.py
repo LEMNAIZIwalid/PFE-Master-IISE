@@ -50,9 +50,9 @@ def on_message(client, userdata, msg):
         # Conversion Avro
         avro_binary = json_to_avro(data)
         
-        print(f"⚙️  [CONVERSION] Transformation en format Avro...")
-        print(f"📦 [AVRO BINARY] : {avro_binary.hex()}") # Affiche en Hexadécimal
-        print(f"📏 Taille : {len(avro_binary)} octets")
+        print(f"[CONVERSION] Transformation en format Avro...")
+        print(f"[AVRO BINARY] : {avro_binary.hex()}") # Affiche en Hexadécimal
+        print(f"Taille : {len(avro_binary)} octets")
 
         # Envoi à Kafka (si dispo)
         if producer:
@@ -62,17 +62,17 @@ def on_message(client, userdata, msg):
                 value=avro_binary
             )
             producer.flush(1)
-            print(f"🚀 [KAFKA] Avro envoyé avec key card_id vers '{KAFKA_TOPIC}'")
+            print(f"[KAFKA] Avro envoyé avec key card_id vers '{KAFKA_TOPIC}'")
 
     except Exception as e:
-        print(f"❌ Erreur : {e}")
+        print(f"[ERROR] Erreur : {e}")
 
 # Configuration MQTT
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
 client.on_message = on_message
 
-print(f"🚀 Proxy de test démarré...")
-print(f"📡 Écoute sur MQTT: {MQTT_TOPIC}")
+print(f"[INFO] Proxy de test démarré...")
+print(f"[INFO] Écoute sur MQTT: {MQTT_TOPIC}")
 
 try:
     client.connect(MQTT_BROKER, 1883, 60)

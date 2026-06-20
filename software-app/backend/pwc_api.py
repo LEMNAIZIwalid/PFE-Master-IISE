@@ -76,9 +76,9 @@ def send_to_kafka(data, topic=KAFKA_TOPIC):
             value=avro_binary
         )
         producer.flush(1)
-        print(f"🚀 [KAFKA] Event sent (Avro) to topic '{topic}' for card {avro_data['id_card']}")
+        print(f"[KAFKA] Event sent (Avro) to topic '{topic}' for card {avro_data['id_card']}")
     except Exception as e:
-        print(f"❌ Error sending to Kafka: {e}")
+        print(f"[ERROR] Error sending to Kafka: {e}")
 
 # --- CONFIGURATION ORACLE ---
 ORACLE_USER = "POS"
@@ -1828,7 +1828,7 @@ def get_health():
         db_time = (time.time() - start_db) * 1000
         health_status["database"]["latency_ms"] = round(db_time, 2)
     except Exception as e:
-        print(f"❌ Health Check - Oracle DB error: {e}")
+        print(f"[HEALTH ERROR] Health Check - Oracle DB error: {e}")
         health_status["database"]["status"] = "DISCONNECTED"
         db_time = (time.time() - start_db) * 1000
         health_status["database"]["latency_ms"] = round(db_time, 2)
@@ -1856,7 +1856,7 @@ def get_health():
         kafka_time = (time.time() - start_kafka) * 1000
         health_status["kafka"]["latency_ms"] = round(kafka_time, 2)
     except Exception as e:
-        print(f"❌ Health Check - Kafka error: {e}")
+        print(f"[HEALTH ERROR] Health Check - Kafka error: {e}")
         health_status["kafka"]["status"] = "ERROR"
         kafka_time = (time.time() - start_kafka) * 1000
         health_status["kafka"]["latency_ms"] = round(kafka_time, 2)
@@ -1873,7 +1873,7 @@ def get_health():
         mqtt_time = (time.time() - start_mqtt) * 1000
         health_status["mqtt"]["latency_ms"] = round(mqtt_time, 2)
     except Exception as e:
-        print(f"❌ Health Check - MQTT broker error: {e}")
+        print(f"[HEALTH ERROR] Health Check - MQTT broker error: {e}")
         health_status["mqtt"]["status"] = "DISCONNECTED"
         mqtt_time = (time.time() - start_mqtt) * 1000
         health_status["mqtt"]["latency_ms"] = round(mqtt_time, 2)
@@ -1888,7 +1888,7 @@ def get_health():
         bridge_time = (time.time() - start_bridge) * 1000
         health_status["mqtt_bridge"]["latency_ms"] = round(bridge_time, 2)
     except Exception as e:
-        print(f"❌ Health Check - Ingestion Proxy error: {e}")
+        print(f"[HEALTH ERROR] Health Check - Ingestion Proxy error: {e}")
         health_status["mqtt_bridge"]["status"] = "ERROR"
         bridge_time = (time.time() - start_bridge) * 1000
         health_status["mqtt_bridge"]["latency_ms"] = round(bridge_time, 2)
